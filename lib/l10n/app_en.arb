@@ -1,0 +1,653 @@
+{
+  "generateKeyFile": "Generate a key file",
+  "errorCreateKeyFile": "Could not save and verify the key file.",
+  "@@locale": "en",
+  "appTitle": "KeePassMobile",
+  "fileSelectDemo": "Save a demo copy",
+  "fileSelectDemoHint": "Fictional data · Password: demo1234",
+  "fileSelectTitle": "Open database",
+  "fileSelectOpenFile": "Open file",
+  "fileSelectRecentFiles": "Recent files",
+  "fileSelectNoRecent": "No recent files. Open a KeePass database (.kdbx) to start.",
+  "fileSelectRemove": "Remove from recent files",
+  "remoteOpenTitle": "Open from server",
+  "remoteServerType": "Server type",
+  "remoteServerWebDav": "WebDAV",
+  "remoteServerNextcloud": "Nextcloud",
+  "remoteServerOwnCloud": "ownCloud",
+  "remoteAddress": "Address",
+  "remoteAddressHintWebDav": "https://server/folder/",
+  "remoteAddressHintCloud": "https://server",
+  "remoteUserName": "User name",
+  "remotePassword": "Password",
+  "remoteRemember": "Remember the credentials",
+  "remoteRememberHint": "Saved in the device's secure storage. Otherwise they are asked every time the file is opened.",
+  "remoteConnect": "Connect",
+  "remoteUp": "Parent folder",
+  "remoteEmptyFolder": "Empty folder",
+  "remoteCancel": "Cancel",
+  "remoteSignIn": "Sign in",
+  "remoteCredentialsTitle": "Sign in to {server}",
+  "@remoteCredentialsTitle": {
+    "placeholders": {
+      "server": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteCredentialsFailed": "The server rejected the user name or password.",
+  "remoteCertificateTitle": "Unrecognized certificate",
+  "remoteCertificateBody": "The certificate of {server} is not recognized by the system. Accept it only if this SHA-256 fingerprint is the one of your server:",
+  "@remoteCertificateBody": {
+    "placeholders": {
+      "server": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteCertificateAccept": "Accept",
+  "errorRemoteAuth": "The server rejected the user name or password.",
+  "errorRemoteUnreachable": "Server unreachable. Check the connection and the address.",
+  "errorRemoteNotFound": "File or folder not found on the server.",
+  "errorRemoteServer": "The server replied with an error ({status}).",
+  "@errorRemoteServer": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "errorRemoteInsecure": "Use an https:// address: the connection must be encrypted.",
+  "errorRemoteCanceled": "Access to the server canceled.",
+  "errorRemoteAddress": "Invalid address.",
+  "unlockPassword": "Master password",
+  "unlockShowPassword": "Show password",
+  "unlockHidePassword": "Hide password",
+  "unlockKeyFile": "Key file",
+  "unlockNoKeyFile": "No key file",
+  "unlockChooseKeyFile": "Choose key file",
+  "unlockRemoveKeyFile": "Remove key file",
+  "unlockButton": "Unlock",
+  "unlockInProgress": "Unlocking…",
+  "errorInvalidCredentials": "Wrong password or key file.",
+  "errorFileCorrupted": "The file is damaged or is not a KeePass database.",
+  "errorUnsupported": "Unsupported database format or algorithm.",
+  "errorKeyFileUnavailable": "The key file could not be read. Choose it again.",
+  "errorFileUnavailable": "The database could not be read. Open the file again.",
+  "errorGeneric": "The database could not be opened.",
+  "groupLock": "Lock database",
+  "groupEmpty": "This group is empty.",
+  "entryUntitled": "(no title)",
+  "cancel": "Cancel",
+  "saving": "Saving…",
+  "searchTitle": "Search",
+  "searchHint": "Search entries",
+  "searchClear": "Clear search",
+  "searchNoResults": "No entries found.",
+  "groupAddEntry": "Add entry",
+  "entryTitle": "Title",
+  "entryUserName": "User name",
+  "entryPassword": "Password",
+  "entryUrl": "URL",
+  "entryOverrideUrl": "Override URL",
+  "entryNotes": "Notes",
+  "entryCopy": "Copy {field}",
+  "entryShow": "Show",
+  "entryHide": "Hide",
+  "entryHiddenValue": "Hidden value",
+  "entryCopied": "{seconds, plural, =1{Copied. The clipboard will be cleared in 1 second.} other{Copied. The clipboard will be cleared in {seconds} seconds.}}",
+  "entryEdit": "Edit",
+  "entryDelete": "Delete",
+  "itemsSelected": "{count} selected",
+  "itemsSelectAll": "Select all",
+  "@itemsSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "itemsDeleteRecycle": "Move the selected items and their contents to the recycle bin?",
+  "itemsDeletePermanent": "Permanently delete the selected items and their contents? This cannot be undone.",
+  "entryDeleteConfirmRecycle": "Move this entry to the recycle bin?",
+  "entryDeleteConfirmPermanent": "Delete this entry permanently? This cannot be undone.",
+  "entryEditTitleNew": "New entry",
+  "entryEditTitle": "Edit entry",
+  "entryEditSave": "Save",
+  "entryEditAddField": "Add field",
+  "entryEditFieldName": "Field name",
+  "entryEditFieldValue": "Value",
+  "entryEditFieldProtected": "Protected",
+  "entryEditRemoveField": "Remove field",
+  "entryEditFieldNameRequired": "Enter a name",
+  "entryEditFieldNameDuplicate": "This name is already used",
+  "entryEditFieldNameReserved": "This name is reserved for a standard field",
+  "entryEditDiscardTitle": "Discard your changes?",
+  "entryEditDiscard": "Discard",
+  "entryEditKeepEditing": "Keep editing",
+  "errorSaveUnavailable": "Cannot save: the file can no longer be reached. Your changes were not saved.",
+  "errorSaveFailed": "Saving failed. Your changes were not saved.",
+  "errorSaveBusy": "A save is already in progress.",
+  "errorSaveLocked": "The database has been locked.",
+  "entryEditGenerate": "Generate password",
+  "entryTotp": "TOTP",
+  "entryTotpRemaining": "{seconds} s",
+  "entryTotpInvalid": "Invalid TOTP settings.",
+  "generatorTitle": "Password generator",
+  "generatorUse": "Use",
+  "generatorRegenerate": "Generate again",
+  "generatorEntropy": "{bits} bits of entropy",
+  "generatorInvalid": "Choose at least one character type or a number of words.",
+  "generatorProfile": "Profile",
+  "generatorProfileCustom": "Custom",
+  "generatorCharacters": "Characters",
+  "generatorLength": "Length",
+  "generatorUpperCase": "Upper case (A-Z)",
+  "generatorLowerCase": "Lower case (a-z)",
+  "generatorDigits": "Digits (0-9)",
+  "generatorMinus": "Minus (-)",
+  "generatorUnderline": "Underline (_)",
+  "generatorSpace": "Space",
+  "generatorSpecials": "Special (!, $, %, &, …)",
+  "generatorSpecialsExtended": "Extended special (§, ©, ®, …)",
+  "generatorBrackets": "Brackets ({chars})",
+  "generatorExcludeLookAlike": "Exclude look-alike characters ({chars})",
+  "generatorAtLeastOne": "At least one character from each group",
+  "generatorPassphrase": "Passphrase",
+  "generatorWordCount": "Number of words",
+  "generatorSeparator": "Separator",
+  "generatorCaseLower": "lower",
+  "generatorCaseUpper": "UPPER",
+  "generatorCasePascal": "Capitalized",
+  "@entryCopy": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "@entryCopied": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@entryTotpRemaining": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@generatorEntropy": {
+    "placeholders": {
+      "bits": {
+        "type": "int"
+      }
+    }
+  },
+  "@generatorExcludeLookAlike": {
+    "placeholders": {
+      "chars": {
+        "type": "String"
+      }
+    }
+  },
+  "@generatorBrackets": {
+    "placeholders": {
+      "chars": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsTitle": "Settings",
+  "settingsSecurity": "Security",
+  "settingsDisplay": "Display",
+  "settingsFiles": "Files",
+  "settingsClipboardTimeout": "Clear clipboard after",
+  "settingsLockTimeout": "Lock after inactivity",
+  "settingsLockNever": "Never",
+  "settingsSeconds": "{seconds, plural, =1{1 second} other{{seconds} seconds}}",
+  "settingsMinutes": "{minutes, plural, =1{1 minute} other{{minutes} minutes}}",
+  "settingsLockOnScreenOff": "Lock when the screen turns off",
+  "settingsLockOnScreenOffHint": "On iOS the database locks when the device locks, only if a passcode is set.",
+  "settingsSecureScreen": "Secure screen",
+  "settingsSecureScreenHint": "Blocks screenshots and screen recordings and hides the preview in recent apps.",
+  "settingsOpenNotification": "Open database notification",
+  "settingsOpenNotificationHint": "While a database is open, shows a notification with the Lock action.",
+  "settingsAutofill": "Autofill",
+  "settingsAutofillOn": "KeePassMobile is the autofill service",
+  "settingsAutofillOff": "Tap to choose KeePassMobile in the system settings",
+  "autofillChooseDatabase": "Choose the database",
+  "autofillNoRecentFiles": "No recent databases. Open the database in KeePassMobile first.",
+  "autofillClose": "Close",
+  "autofillPickTitle": "Choose the entry",
+  "autofillFor": "For {target}",
+  "@autofillFor": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "autofillMatches": "Entries for this app or site",
+  "autofillNoMatches": "No entries found: search the database below.",
+  "autofillSearchAll": "Search the database",
+  "autofillSearchHint": "Search",
+  "autofillDomainWarning": "The app {app} says it shows the site {domain}. Another app could claim it to obtain the site's credentials: use the site's entries only if you trust the app.",
+  "@autofillDomainWarning": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "domain": {
+        "type": "String"
+      }
+    }
+  },
+  "autofillUseDomainOnce": "Use the site this time",
+  "autofillUseDomainAlways": "Always use the site in this app",
+  "autofillRememberTitle": "Remember the entry?",
+  "autofillRememberBody": "Next time {target} asks, “{entry}” is suggested right away. The field {field} is added to the entry and the database is saved.",
+  "@autofillRememberBody": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "entry": {
+        "type": "String"
+      },
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "autofillFillOnly": "Fill only",
+  "autofillFillAndRemember": "Fill and remember",
+  "openNotificationChannel": "Open database",
+  "openNotificationText": "Database open",
+  "openNotificationLock": "Lock",
+  "settingsMaskPassword": "Hide passwords",
+  "settingsMaskTotp": "Hide TOTP codes",
+  "settingsShowGroupNameInSearch": "Show group name in search results",
+  "settingsShowGroupInEntry": "Show group in entry details",
+  "settingsListTextSize": "List text size",
+  "settingsSizeSmall": "Small",
+  "settingsSizeMedium": "Medium",
+  "settingsSizeLarge": "Large",
+  "entryGroup": "Group",
+  "entryCreated": "Created",
+  "entryModified": "Last modified",
+  "settingsShowUserName": "Show user name in lists",
+  "settingsTheme": "Theme",
+  "settingsThemeSystem": "System",
+  "settingsThemeLight": "Light",
+  "settingsThemeDark": "Dark",
+  "settingsRememberRecentFiles": "Remember recent files",
+  "settingsRememberKeyFile": "Remember key file",
+  "@settingsSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@settingsMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "createDatabaseTitle": "New database",
+  "createDatabaseConfirm": "Confirm password",
+  "createDatabaseButton": "Create database",
+  "createDatabaseInProgress": "Creating…",
+  "createDatabaseKeyRequired": "Enter a password or choose a key file.",
+  "createDatabaseMismatch": "The passwords do not match.",
+  "createDatabaseInfo": "The database uses KDBX 4, AES-256 and Argon2id (64 MiB). Next, choose where to save it.",
+  "errorCreateFailed": "The database could not be created. No file was opened.",
+  "groupMore": "More actions",
+  "groupSort": "Sort",
+  "groupSortAscending": "Name: A–Z",
+  "groupSortDescending": "Name: Z–A",
+  "groupSortDatabase": "Database order",
+  "groupSortModification": "Last modified: newest first",
+  "groupSortCreation": "Created: oldest first",
+  "dbSettingsTitle": "Database settings",
+  "dbSettingsTemplatesGroup": "Entry templates group",
+  "dbSettingsTemplatesNone": "None",
+  "dbSettingsName": "Database name",
+  "dbSettingsDefaultUserName": "Default user name",
+  "dbSettingsRecycleBin": "Recycle bin",
+  "dbSettingsHistoryMaxItems": "Versions in an entry's history",
+  "dbSettingsHistoryMaxSize": "Maximum size of an entry's history (MiB)",
+  "dbSettingsEmptyUnlimited": "Empty: no limit",
+  "dbSettingsEncryption": "Encryption (KDBX {version})",
+  "dbSettingsCipher": "Cipher",
+  "dbSettingsKdf": "Key derivation",
+  "dbSettingsRounds": "Transformation rounds",
+  "dbSettingsMemory": "Memory (MiB)",
+  "dbSettingsIterations": "Iterations",
+  "dbSettingsParallelism": "Parallelism (threads)",
+  "dbSettingsMeasure": "Measure the opening time",
+  "dbSettingsMeasured": "Opening takes about {seconds} s on this device.",
+  "dbSettingsRange": "Enter a value from {min} to {max}.",
+  "dbSettingsSaved": "Database settings saved.",
+  "cipherAes": "AES-256",
+  "cipherChaCha20": "ChaCha20",
+  "cipherTwofish": "Twofish",
+  "kdfAes": "AES-KDF",
+  "kdfArgon2d": "Argon2d",
+  "kdfArgon2id": "Argon2id",
+  "changeKeyTitle": "Change master key",
+  "changeKeyNewPassword": "New master password",
+  "changeKeyButton": "Change key",
+  "changeKeyInProgress": "Changing the key…",
+  "changeKeyInfo": "After the change the database opens only with the new key.",
+  "changeKeyDone": "Master key changed.",
+  "@dbSettingsEncryption": {
+    "placeholders": {
+      "version": {
+        "type": "int"
+      }
+    }
+  },
+  "@dbSettingsMeasured": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "@dbSettingsRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "exportTitle": "Export a copy",
+  "exportDone": "Encrypted copy exported: {name}",
+  "@exportDone": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "entryEditTotpSetup": "Set up TOTP",
+  "entryEditTotpUri": "otpauth:// URI",
+  "entryEditTotpHint": "Paste the otpauth:// address provided by the service (often shown next to the QR code). It replaces the entry's TOTP settings.",
+  "entryEditTotpInvalid": "Invalid otpauth:// URI.",
+  "entryEditTotpApply": "Apply",
+  "generatorSaveProfile": "Save as profile",
+  "generatorRemoveProfile": "Remove profile",
+  "generatorProfileName": "Profile name",
+  "generatorProfileReserved": "This name belongs to a built-in profile.",
+  "fileSelectNotPersistent": "This file stays accessible only while the app is open: you will need to choose it again later.",
+  "deviceBlockedTitle": "Device not secure",
+  "deviceBlockedBody": "KeePassMobile cannot be used on rooted or jailbroken devices, or on devices configured in an insecure way (for example with developer options or USB debugging enabled). To protect your databases the app stays locked.",
+  "entryIcon": "Icon",
+  "entryEditChooseIcon": "Choose icon",
+  "entryEditIconNumber": "Icon {number}",
+  "entryExpires": "Expires",
+  "entryExpiresOn": "Expires on {date}",
+  "entryExpiredOn": "Expired on {date}",
+  "entryEditExpiryDate": "Expiry date",
+  "entryTags": "Tags",
+  "entryEditTagsHint": "Separated by comma or semicolon",
+  "@entryEditIconNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@entryExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@entryExpiredOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "entryHistory": "History",
+  "entryHistoryVersion": "Version of {date}",
+  "entryHistoryReadOnly": "{version}, read only.",
+  "entryHistoryRestore": "Restore",
+  "entryHistoryDelete": "Delete version",
+  "entryHistoryRestoreConfirm": "Restore this version? The current version stays in the history.",
+  "entryHistoryDeleteConfirm": "Delete this version from the history? This cannot be undone.",
+  "@entryHistoryVersion": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@entryHistoryReadOnly": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "entryHistoryUndated": "Undated version",
+  "close": "Close",
+  "entryAttachments": "Attachments",
+  "entryEditAttachmentAdd": "Add attachment",
+  "entryEditAttachmentRemove": "Remove attachment",
+  "entryEditAttachmentUnreadable": "The selected file could not be read.",
+  "entryEditAttachmentTooLarge": "The file exceeds the maximum size of {size}.",
+  "entryEditAttachmentExistsTitle": "Attachment already present",
+  "entryEditAttachmentExists": "The entry already has an attachment \"{name}\".",
+  "entryEditAttachmentReplace": "Replace",
+  "entryEditAttachmentRename": "Add with another name",
+  "entryAttachmentNoPreview": "No preview available for this file type.",
+  "entryAttachmentSave": "Save {name}",
+  "entryAttachmentSaveWarning": "\"{name}\" will be saved unencrypted, without the database encryption: anyone with access to the file will be able to read it. Continue?",
+  "entryAttachmentSaveConfirm": "Save unencrypted",
+  "entryAttachmentSaved": "Attachment saved: {name}",
+  "entryAttachmentSaveFailed": "The attachment could not be saved.",
+  "@entryEditAttachmentTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "@entryEditAttachmentExists": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@entryAttachmentSave": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@entryAttachmentSaveWarning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@entryAttachmentSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "entryUrlOpen": "Open in browser",
+  "entryUrlNotSupported": "Only http and https addresses can be opened.",
+  "entryUrlNoApp": "No app can open this address.",
+  "unlockBiometric": "Unlock with biometrics",
+  "biometricPromptTitle": "Unlock the database",
+  "biometricPromptCancel": "Use password",
+  "biometricEnableTitle": "Turn on biometric unlock",
+  "biometricUpdateTitle": "Update biometric unlock",
+  "errorBiometricUnavailable": "Biometrics unavailable: enrol a fingerprint or face and set a screen lock on the device.",
+  "errorBiometricFailed": "Biometric unlock failed. Use the password.",
+  "errorBiometricInvalidated": "Biometric unlock was turned off because the device biometrics changed. Unlock with the password and turn it on again in the database settings.",
+  "errorBiometricStale": "The database was changed elsewhere or its key changed: unlock with the password and biometric unlock will be updated.",
+  "dbSettingsBiometric": "Biometric unlock",
+  "dbSettingsBiometricInfo": "Open this database with your fingerprint or face. Only the derived key is kept on the device, protected by biometrics.",
+  "dbSettingsKdfLocked": "With biometric unlock the key derivation stays fixed. To change it, turn biometric unlock off, lock the database and open it again with the password.",
+  "errorSaveKdfLocked": "The key derivation cannot be changed in this session: open the database with the password.",
+  "changeKeyDoneBiometricOff": "Master key changed. Biometric unlock was turned off: turn it on again in the database settings.",
+  "biometricOfferTitle": "Biometric unlock",
+  "biometricOfferBody": "Do you want to open this database with your fingerprint or face? Only the derived key is kept on the device, protected by biometrics. You can change this from ⋮ → Database settings.",
+  "biometricOfferEnable": "Turn on",
+  "biometricOfferNever": "Don't ask again",
+  "biometricOfferEnabled": "Biometric unlock turned on.",
+  "externalChangeTitle": "File changed elsewhere",
+  "externalChangeBody": "\"{name}\" was changed by another app or device after it was opened. Synchronize merges both versions; Overwrite replaces it with this version and the changes made elsewhere are lost.",
+  "externalChangeSynchronize": "Synchronize",
+  "externalChangeOverwrite": "Overwrite",
+  "externalChangeCancel": "Cancel",
+  "errorSaveExternalCanceled": "Saving canceled: the file was changed elsewhere. Your changes were not saved.",
+  "errorSyncKeyMismatch": "Cannot synchronize: the file changed elsewhere has a different master key. Nothing was written.",
+  "errorSyncNeedsPassword": "Cannot synchronize without the password: lock the database and open it again with the master password. Nothing was written.",
+  "errorSyncDifferentDatabase": "Cannot synchronize: the file was replaced with a different database. Nothing was written.",
+  "syncNow": "Synchronize now",
+  "syncInProgress": "Synchronizing…",
+  "syncUnchanged": "The file has not changed: nothing to synchronize.",
+  "syncDone": "Database synchronized with the changes made elsewhere.",
+  "@externalChangeBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "remoteServerSftp": "SFTP",
+  "remoteAddressHintSftp": "sftp://server:22/folder/",
+  "sshUseKey": "Use an SSH private key",
+  "sshPrivateKey": "OpenSSH private key",
+  "sshChooseKey": "Choose private key file",
+  "sshPassphrase": "Private key passphrase",
+  "sshHostTitle": "Verify SSH server",
+  "sshHostBody": "First connection to {server}. Compare this fingerprint with the one provided by the server administrator before accepting.",
+  "errorSshHostChanged": "The server SSH key has changed. Connection blocked. Verify the server with its administrator.",
+  "errorSshKey": "Invalid private key or incorrect passphrase.",
+  "errorSftp": "SFTP operation failed. Check permissions and server rename support.",
+  "@sshHostBody": {
+    "placeholders": {
+      "server": {
+        "type": "String"
+      }
+    }
+  },
+  "errorRemoteConflict": "The server file changed during saving. Nothing was written to the server. Synchronize and try again.",
+  "settingsRemoteCache": "Local cache of remote databases",
+  "settingsRemoteCacheHint": "Keep an encrypted KDBX copy excluded from backups. Turning this off does not delete changes awaiting upload.",
+  "cacheOffline": "Offline: using the encrypted local copy.",
+  "cachePending": "Changes saved on this device, awaiting upload to the server.",
+  "cacheUnavailable": "Local cache unavailable. An offline copy is not guaranteed.",
+  "cacheChanged": "The local copy changed in another session. Reopen the database before synchronizing. No copy was overwritten.",
+  "unlockFromCache": "Open the local copy without contacting the server",
+  "cacheSyncFailed": "Synchronization failed. The local copy is preserved.",
+  "unlockChooseAgain": "Choose the file again",
+  "groupCreate": "New group",
+  "groupEdit": "Edit group",
+  "iconImport": "Import image",
+  "iconCustom": "Custom icon",
+  "iconImportError": "Unable to read the image.",
+  "databasesClose": "Close database",
+  "databasesMove": "Move to another database",
+  "databasesMoveIncomplete": "Copy saved, but the original could not be removed.",
+  "databasesCopy": "Copy to another database",
+  "linkedDatabaseFailure": "Unable to open a linked database. For a server, open it manually first and save the credentials.",
+  "linkedDatabaseAdd": "Add linked database",
+  "linkedDatabasePassword": "Linked database password (stored in this database)",
+  "linkedDatabaseDeviceWarning": "This link contains device-specific rules. Allowing it enables it on this device.",
+  "linkedDatabaseTitle": "Open linked database?",
+  "linkedDatabaseBody": "Allow access to {database}? Key file: {keyFile}. Approval is remembered for this link.",
+  "@linkedDatabaseBody": {
+    "placeholders": {
+      "database": {
+        "type": "String"
+      },
+      "keyFile": {
+        "type": "String"
+      }
+    }
+  },
+  "linkedDatabaseAllow": "Allow",
+  "databasesTitle": "Open databases",
+  "databasesOpenAnother": "Open another database",
+  "searchGoToGroup": "Go to group",
+  "groupName": "Group name",
+  "groupNameRequired": "Enter a group name.",
+  "groupDelete": "Delete group",
+  "groupDeleteToBin": "Move this group and all its contents to the recycle bin?",
+  "groupDeletePermanent": "Permanently delete this group and all its contents? This cannot be undone.",
+  "recycleBinEmpty": "Empty recycle bin",
+  "recycleBinEmptyConfirm": "Permanently delete everything in the recycle bin? This cannot be undone.",
+  "itemMoveTitle": "Move",
+  "itemNoDestination": "No destination group is available.",
+  "itemRestore": "Restore from recycle bin",
+  "itemDuplicate": "Duplicate entry",
+  "itemDuplicateSuffix": "copy",
+  "errorItemOperation": "This operation is not allowed for the item or destination group.",
+  "errorFieldReference": "Unable to resolve the field reference.",
+  "searchOptions": "Search options",
+  "searchFieldTitle": "Title",
+  "searchFieldUserName": "User name",
+  "searchFieldUrl": "URL",
+  "searchFieldPassword": "Password",
+  "searchFieldNotes": "Notes",
+  "searchFieldOther": "Other fields",
+  "searchFieldTags": "Tags",
+  "searchFieldGroup": "Group name",
+  "searchCaseSensitive": "Case sensitive",
+  "searchExcludeExpired": "Exclude expired entries",
+  "searchRegex": "Regular expression",
+  "searchRegexError": "Invalid expression or search timed out.",
+  "searchRegexSubmit": "Submit the search to run the expression.",
+  "autofillSaveTitle": "Save credentials",
+  "autofillSaveDescription": "Create a new entry after reviewing these details.",
+  "autofillSaveTarget": "Website or app",
+  "autofillSaveUser": "Username",
+  "autofillSaveDatabase": "Database",
+  "autofillSavePassword": "Password",
+  "autofillSaveConfirm": "Create entry",
+  "autofillSaveRetry": "Close this screen and submit the login again to retry.",
+  "entryTemplateChoose": "Choose a template",
+  "templatesInstall": "Add default templates",
+  "templateShowAllFields": "Show all fields",
+  "templatesInstallConfirm": "Add missing default templates to the database?",
+  "templateGroup": "Templates",
+  "templateIdCard": "ID card",
+  "templateWlan": "Wireless LAN",
+  "templateNote": "Secure note",
+  "templateCreditCard": "Credit card",
+  "templateMembership": "Membership",
+  "templateNumber": "Number",
+  "templateName": "Name",
+  "templatePlace": "Place of issue",
+  "templateIssueDate": "Date of issue",
+  "templateHolder": "Card holder",
+  "entryTemplateEmpty": "Empty entry",
+  "settingsExpireTan": "Expire TAN entries when opened",
+  "settingsExpireTanHint": "Mark a TAN as used when its details are opened.",
+  "entryEditTotpScan": "Scan QR code",
+  "entryEditTotpScanError": "Camera unavailable. Check permissions and try again."
+}

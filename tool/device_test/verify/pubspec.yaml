@@ -1,0 +1,8 @@
+name: kpm_verify
+description: Verifica dei database salvati durante le prove sul telefono.
+publish_to: none
+environment:
+  sdk: ^3.13.5
+dependencies:
+  kpasslib:
+    path: ../../../packages/kpasslib

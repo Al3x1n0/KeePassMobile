@@ -1,0 +1,65 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code: la cartella resta tracciabile se servono impostazioni condivise
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+/coverage/
+lib/generated_plugin_registrant.dart
+
+# Pacchetti locali: lockfile e build non si versionano
+packages/*/pubspec.lock
+packages/*/build/
+packages/*/.dart_tool/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# FVM Version Cache
+.fvm/
+
+# Mai versionare database o chiavi reali (i file di test sono in test/fixtures)
+*.kdbx
+*.kdb
+*.key
+*.keyx
+!test/fixtures/kdbx/*
+!packages/kpasslib/assets/test/*
+!tool/device_test/KeePassMobile_demo.kdbx
+tool/device_test/verify/pubspec.lock
+!assets/demo/Rifugio-Aurora.kdbx

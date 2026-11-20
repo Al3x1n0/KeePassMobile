@@ -1,0 +1,322 @@
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../app/theme.dart';
+import '../../l10n/app_localizations.dart';
+import '../autofill/autofill_channel.dart';
+import '../../shared/licenses/bundled_licenses.dart';
+import '../../shared/security/device_security.dart';
+import '../../shared/settings/app_settings.dart';
+import '../../shared/ui/selection_sheet.dart';
+import 'settings_view_model.dart';
+
+/// Impostazioni dell'app, raggiungibili con il database aperto o chiuso.
+class SettingsView extends ConsumerWidget {
+  const SettingsView({super.key});
+
+  /// Valore delle voci "mai" negli elenchi a scelta.
+  static const _never = -1;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final settings = ref.watch(settingsViewModelProvider);
+    void update(AppSettings next) =>
+        ref.read(settingsViewModelProvider.notifier).update(next);
+
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
+      body: ListView(
+        children: [
+          _Header(l10n.settingsSecurity),
+          _SelectionTile(
+            title: l10n.settingsClipboardTimeout,
+            value: l10n.settingsSeconds(settings.clipboardTimeout.inSeconds),
+            onTap: () async {
+              final duration = await showSelectionSheet<Duration>(
+                context: context,
+                title: l10n.settingsClipboardTimeout,
+                selected: settings.clipboardTimeout,
+                options: {
+                  for (final d in AppSettings.clipboardTimeouts)
+                    d: l10n.settingsSeconds(d.inSeconds),
+                },
+              );
+              if (context.mounted && duration != null) {
+                update(
+                  ref
+                      .read(settingsViewModelProvider)
+                      .copyWith(clipboardTimeout: duration),
+                );
+              }
+            },
+          ),
+          _SelectionTile(
+            title: l10n.settingsLockTimeout,
+            value: _lockLabel(l10n, settings.lockTimeout),
+            onTap: () async {
+              final milliseconds = await showSelectionSheet<int>(
+                context: context,
+                title: l10n.settingsLockTimeout,
+                selected: settings.lockTimeout?.inMilliseconds ?? _never,
+                options: {
+                  for (final d in AppSettings.lockTimeouts)
+                    d?.inMilliseconds ?? _never: _lockLabel(l10n, d),
+                },
+              );
+              if (context.mounted && milliseconds != null) {
+                update(
+                  ref
+                      .read(settingsViewModelProvider)
+                      .copyWith(
+                        lockTimeout: milliseconds == _never
+                            ? null
+                            : Duration(milliseconds: milliseconds),
+                      ),
+                );
+              }
+            },
+          ),
+          SwitchListTile(
+            title: Text(l10n.settingsLockOnScreenOff),
+            subtitle: Text(l10n.settingsLockOnScreenOffHint),
+            value: settings.lockOnScreenOff,
+            onChanged: (v) => update(settings.copyWith(lockOnScreenOff: v)),
+          ),
+          if (ref.watch(appSecurityProvider).supportsOpenNotification)
+            SwitchListTile(
+              title: Text(l10n.settingsOpenNotification),
+              subtitle: Text(l10n.settingsOpenNotificationHint),
+              value: settings.openNotification,
+              onChanged: (v) => update(settings.copyWith(openNotification: v)),
+            ),
+          const _AutofillTile(),
+          SwitchListTile(
+            title: Text(l10n.settingsSecureScreen),
+            subtitle: Text(l10n.settingsSecureScreenHint),
+            value: settings.secureScreen,
+            onChanged: (v) => update(settings.copyWith(secureScreen: v)),
+          ),
+          SwitchListTile(
+            title: Text(l10n.settingsExpireTan),
+            subtitle: Text(l10n.settingsExpireTanHint),
+            value: settings.expireTanOnOpen,
+            onChanged: (v) => update(settings.copyWith(expireTanOnOpen: v)),
+          ),
+          _Header(l10n.settingsDisplay),
+          SwitchListTile(
+            title: Text(l10n.settingsMaskPassword),
+            value: settings.maskPassword,
+            onChanged: (v) => update(settings.copyWith(maskPassword: v)),
+          ),
+          SwitchListTile(
+            title: Text(l10n.settingsMaskTotp),
+            value: settings.maskTotp,
+            onChanged: (v) => update(settings.copyWith(maskTotp: v)),
+          ),
+          SwitchListTile(
+            title: Text(l10n.settingsShowUserName),
+            value: settings.showUserNameInList,
+            onChanged: (v) => update(settings.copyWith(showUserNameInList: v)),
+          ),
+          SwitchListTile(
+            title: Text(l10n.settingsShowGroupNameInSearch),
+            value: settings.showGroupNameInSearch,
+            onChanged: (v) =>
+                update(settings.copyWith(showGroupNameInSearch: v)),
+          ),
+          SwitchListTile(
+            title: Text(l10n.settingsShowGroupInEntry),
+            value: settings.showGroupInEntry,
+            onChanged: (v) => update(settings.copyWith(showGroupInEntry: v)),
+          ),
+          _SelectionTile(
+            title: l10n.settingsListTextSize,
+            value: switch (settings.listTextSize) {
+              15 => l10n.settingsSizeSmall,
+              28 => l10n.settingsSizeLarge,
+              _ => l10n.settingsSizeMedium,
+            },
+            onTap: () async {
+              final size = await showSelectionSheet<int>(
+                context: context,
+                title: l10n.settingsListTextSize,
+                selected: settings.listTextSize,
+                options: {
+                  15: l10n.settingsSizeSmall,
+                  20: l10n.settingsSizeMedium,
+                  28: l10n.settingsSizeLarge,
+                },
+              );
+              if (context.mounted && size != null) {
+                update(settings.copyWith(listTextSize: size));
+              }
+            },
+          ),
+          _SelectionTile(
+            title: l10n.settingsTheme,
+            value: switch (settings.themeMode) {
+              ThemeMode.system => l10n.settingsThemeSystem,
+              ThemeMode.light => l10n.settingsThemeLight,
+              ThemeMode.dark => l10n.settingsThemeDark,
+            },
+            onTap: () async {
+              final mode = await showSelectionSheet<ThemeMode>(
+                context: context,
+                title: l10n.settingsTheme,
+                selected: settings.themeMode,
+                options: {
+                  ThemeMode.system: l10n.settingsThemeSystem,
+                  ThemeMode.light: l10n.settingsThemeLight,
+                  ThemeMode.dark: l10n.settingsThemeDark,
+                },
+              );
+              if (context.mounted && mode != null) {
+                ref
+                    .read(settingsViewModelProvider.notifier)
+                    .update(
+                      ref
+                          .read(settingsViewModelProvider)
+                          .copyWith(themeMode: mode),
+                    );
+              }
+            },
+          ),
+          _Header(l10n.settingsFiles),
+          SwitchListTile(
+            title: Text(l10n.settingsRemoteCache),
+            subtitle: Text(l10n.settingsRemoteCacheHint),
+            value: settings.cacheRemoteFiles,
+            onChanged: (v) => update(settings.copyWith(cacheRemoteFiles: v)),
+          ),
+          SwitchListTile(
+            title: Text(l10n.settingsRememberRecentFiles),
+            value: settings.rememberRecentFiles,
+            onChanged: (v) => update(settings.copyWith(rememberRecentFiles: v)),
+          ),
+          // Il file chiave si ricorda solo insieme al database.
+          SwitchListTile(
+            title: Text(l10n.settingsRememberKeyFile),
+            value: settings.rememberRecentFiles && settings.rememberKeyFile,
+            onChanged: settings.rememberRecentFiles
+                ? (v) => update(settings.copyWith(rememberKeyFile: v))
+                : null,
+          ),
+          ListTile(
+            title: Text(MaterialLocalizations.of(context).licensesPageTitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              registerBundledLicenses();
+              showLicensePage(
+                context: context,
+                applicationName: 'KeePassMobile',
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _lockLabel(AppLocalizations l10n, Duration? d) => switch (d) {
+    null => l10n.settingsLockNever,
+    _ when d.inSeconds < 60 => l10n.settingsSeconds(d.inSeconds),
+    _ => l10n.settingsMinutes(d.inMinutes),
+  };
+}
+
+class _SelectionTile extends StatelessWidget {
+  const _SelectionTile({
+    required this.title,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String title;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    title: Text(title),
+    trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(value),
+        const SizedBox(width: AppSpacing.s),
+        const Icon(Icons.chevron_right),
+      ],
+    ),
+    onTap: onTap,
+  );
+}
+
+/// "Compilazione automatica": stato del servizio e scelta nelle impostazioni di
+/// sistema (solo Android 8+). Lo stato si rilegge al ritorno nell'app.
+class _AutofillTile extends ConsumerStatefulWidget {
+  const _AutofillTile();
+
+  @override
+  ConsumerState<_AutofillTile> createState() => _AutofillTileState();
+}
+
+class _AutofillTileState extends ConsumerState<_AutofillTile> {
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(
+      onResume: () => ref.invalidate(autofillServiceStatusProvider),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final status = ref.watch(autofillServiceStatusProvider).value;
+    if (status == null || !status.supported) return const SizedBox.shrink();
+    return ListTile(
+      title: Text(l10n.settingsAutofill),
+      subtitle: Text(
+        status.enabled ? l10n.settingsAutofillOn : l10n.settingsAutofillOff,
+      ),
+      trailing: const Icon(Icons.open_in_new),
+      onTap: () => ref.read(autofillSettingsProvider).openSystemSettings(),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.m,
+        AppSpacing.l,
+        AppSpacing.m,
+        AppSpacing.s,
+      ),
+      child: Semantics(
+        header: true,
+        child: Text(
+          text,
+          style: theme.textTheme.titleSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,64 @@
+name: keepass_mobile
+description: "KeePassMobile: password manager KeePass (KDBX) per Android e iOS, ricreazione in Flutter di Keepass2Android."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.14.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  app_security:
+    path: packages/app_security
+  argon2_native:
+    path: packages/argon2_native
+  # Già presente tramite kpasslib: HMAC per i codici TOTP.
+  crypto: ^3.0.6
+  document_access:
+    path: packages/document_access
+  flutter_riverpod: ^3.4.3
+  # Chiavi derivate protette dalla biometria (D16): BSD-3-Clause.
+  # Copia locale con due correzioni Android (D24): packages/flutter_secure_storage/KEEPASSMOBILE.md
+  flutter_secure_storage:
+    path: packages/flutter_secure_storage
+  go_router: ^18.1.2
+  intl: any
+  kpasslib:
+    path: packages/kpasslib
+  material_ui: ^1.11.0
+  # Integrità del dispositivo (D9, D10): MIT, con RootBeer (Apache-2.0) e
+  # IOSSecuritySuite (BSD-2-Clause). Versione fissata.
+  jailbreak_root_detection: 1.2.3
+  # Schermo protetto (decisione D3): licenza BSD-3-Clause.
+  no_screenshot: ^2.0.1
+  secure_clipboard:
+    path: packages/secure_clipboard
+  shared_preferences: ^2.5.6
+  # Apertura degli URL nel browser (D14): BSD-3-Clause.
+  url_launcher: 6.3.3
+  # Risposte WebDAV (PROPFIND, D29): MIT. Già presente tramite altre dipendenze.
+  xml: ^6.6.1
+  dartssh2: 4.1.0
+  qr_scanner_offline_private: ^0.2.0-alpha.1
+  cupertino_icons: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  # Archivio sicuro finto nei test (stessa versione di flutter_secure_storage).
+  flutter_secure_storage_platform_interface: ^2.1.0
+  flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  generate: true
+  assets:
+    - LICENSE
+    - NOTICE
+    - assets/licenses/qr_scanner_0_2_0_alpha_1.json
+    - assets/demo/Rifugio-Aurora.kdbx

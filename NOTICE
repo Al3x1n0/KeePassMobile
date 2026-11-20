@@ -1,0 +1,93 @@
+KeePassMobile
+Copyright (C) 2026 Alex
+
+Questo programma è software libero: puoi ridistribuirlo e/o modificarlo secondo i termini
+della GNU General Public License versione 3 (file LICENSE).
+
+Include o deriva da questi lavori di terze parti.
+
+Codice derivato
+---------------
+- Keepass2Android - https://github.com/PhilippC/keepass2android
+  Philipp Crocoll e contributori. GPLv3.
+  Comportamento, impostazioni predefinite e parte della logica sono ripresi da Keepass2Android
+  (i file di origine sono citati nei commenti del codice).
+  Riferimenti verificati alla revisione 8b60a72fc8eb23e8580df053a49ca813a686c838:
+  - AutofillParser.cs e Kp2aDigitalAssetLinksDataSource.cs: Copyright 2025
+    Philipp Crocoll, GPL versione 3 o successiva; adattamenti in Kotlin.
+  - PasswordGenerator.cs: Copyright 2013 Philipp Crocoll; basato su
+    Keepassdroid, Copyright Brian Pellin; GPL versione 3 o successiva.
+- KeePass - https://keepass.info
+  Dominik Reichl. Formato KDBX e comportamento di riferimento.
+
+Componenti inclusi nel repository
+---------------------------------
+- kpasslib 1.1.2 - packages/kpasslib (modificato, vedi KEEPASSMOBILE_CHANGES.md)
+  Copyright (c) 2025 Vladimir Skorokhodov. Licenza MIT (packages/kpasslib/LICENSE).
+  Il progetto dichiara di derivare da KdbxWeb, Copyright (C) 2021-2025 Antelle,
+  licenza MIT (packages/kpasslib/KDBXWEB_LICENSE; https://github.com/keeweb/kdbxweb).
+- flutter_secure_storage 11.2.0 - packages/flutter_secure_storage (modificato, vedi KEEPASSMOBILE.md)
+  Copyright 2017 German Saprykin. Licenza BSD-3-Clause (packages/flutter_secure_storage/LICENSE).
+- Argon2, implementazione di riferimento PHC (release 20190702) - packages/argon2_native/src/argon2
+  CC0 1.0 o Apache License 2.0 (packages/argon2_native/src/argon2/LICENSE).
+- EFF Large Wordlist - lib/features/password_generator/wordlist.dart
+  Joseph Bonneau e Electronic Frontier Foundation, https://www.eff.org/dice.
+  Attribuzione storica: CC BY 3.0 US, https://creativecommons.org/licenses/by/3.0/us/.
+  La policy attuale per il materiale originale del sito EFF indica CC BY 4.0:
+  https://www.eff.org/copyright e https://creativecommons.org/licenses/by/4.0/.
+  Lista convertita nel 2026 da Wordlist.cs di Keepass2Android, revisione
+  8b60a72fc8eb23e8580df053a49ca813a686c838. Il file originale reca
+  Copyright 2025 Philipp Crocoll e licenza GPL versione 3 o successiva.
+- Database KeePass di test - test/fixtures/kdbx
+  Da pykeepass, https://github.com/libkeepass/pykeepass. GPLv3.
+- Fixture JSON di test autofill - android/app/src/test/resources/autofill
+  Da Keepass2Android, src/Kp2aAutofillParser.Tests, revisione
+  8b60a72fc8eb23e8580df053a49ca813a686c838. GPLv3.
+
+Dipendenze principali (pub.dev)
+-------------------------------
+- qr_scanner_offline_private 0.2.0-alpha.1 - GPLv3
+  https://github.com/Al3x1n0/qr_scanner_offline_private
+  Pacchetto della versione utilizzata:
+  https://pub.dev/packages/qr_scanner_offline_private/versions/0.2.0-alpha.1
+  L'archivio del pacchetto contiene native/decoder-source.tar.gz con il
+  sorgente del decoder, le dipendenze Rust vendorizzate e le istruzioni di build.
+  Il decoder nativo include componenti di terzi con licenze e attribuzioni
+  proprie, documentate nei sorgenti e nei file THIRD_PARTY.md e
+  third_party_licenses del pacchetto.
+- jailbreak_root_detection 1.2.3 - MIT; include RootBeer (Apache-2.0) e IOSSecuritySuite (BSD-2-Clause)
+- no_screenshot - BSD-3-Clause
+- url_launcher, go_router, shared_preferences, intl, crypto - BSD-3-Clause
+- flutter_riverpod, pointycastle, xml - MIT
+- dartssh2 4.1.0 - MIT, Copyright (c) 2022 xuty
+- asn1lib 1.6.8 - BSD-2-Clause, Copyright (c) 2015 Warren Strange
+- pinenacl 0.6.0 - MIT, Copyright (c) 2018 Pal Dorogi
+
+Dipendenze Android
+------------------
+- AndroidX Autofill 1.3.0 - Apache License 2.0, https://developer.android.com/jetpack/androidx/releases/autofill
+
+Licenza MIT di KdbxWeb
+----------------------
+Copyright (C) 2021-2025 Antelle
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Alcune licenze delle dipendenze Dart e Flutter sono raccolte nell'app compilata.
+Le licenze dei componenti nativi e gli avvisi aggiuntivi devono essere verificati
+e resi disponibili separatamente ove richiesto.

@@ -1,0 +1,13 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    # Codice generato da Flutter a partire dalle risorse ARB.
+    - lib/l10n/app_localizations*.dart
+    # I pacchetti locali hanno analysis_options propri
+    - packages/**
+    # Programma di verifica delle prove sul telefono, con pubspec proprio
+    - tool/device_test/verify/**
