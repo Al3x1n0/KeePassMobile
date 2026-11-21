@@ -9,9 +9,11 @@ import 'package:keepass_mobile/app/app.dart';
 import 'package:keepass_mobile/app/theme.dart';
 import 'package:keepass_mobile/features/file_select/recent_files.dart';
 import 'package:keepass_mobile/l10n/app_localizations.dart';
+import 'package:keepass_mobile/shared/database/database_session.dart';
 import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
 import 'package:keepass_mobile/shared/storage/preferences.dart';
+import 'package:kpasslib/kpasslib.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/test_database.dart';
@@ -37,7 +39,18 @@ void main() {
 
   setUp(() async {
     final db = newTestDatabase();
-    addTestEntry(db, db.root, {EntryFields.title: 'Voce'});
+    final entry = addTestEntry(db, db.root, {EntryFields.title: 'Voce'});
+    entry.binaries = {
+      'pixel.png': db.binaries.add(
+        PlainBinary(
+          data: base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNg+M8'
+            'AAAICAQB7CYF4AAAAAElFTkSuQmCC',
+          ),
+          compressed: false,
+        ),
+      ),
+    };
     final dir = Directory.systemTemp.createTempSync('keepass_mobile_5d');
     file = File('${dir.path}/prova.kdbx')..writeAsBytesSync(await db.save());
   });
@@ -91,6 +104,8 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).first,
       );
+      await tester.ensureVisible(add);
+      await tester.pumpAndSettle();
       await tester.tap(add);
       await tester.pumpAndSettle();
       expect(find.textContaining('exceeds the maximum size'), findsOneWidget);
@@ -111,12 +126,49 @@ void main() {
       await pumpUntilFound(tester, find.byTooltip(l10n.entryEdit));
       await tester.pumpAndSettle();
       final db = (await tester.runAsync(() => reopenFile(file)))!;
-      expect(db.root.allEntries.single.binaries.keys, ['nota.txt']);
+      expect(db.root.allEntries.single.binaries.keys, [
+        'pixel.png',
+        'nota.txt',
+      ]);
 
       await tester.scrollUntilVisible(find.text('nota.txt'), 200);
       await tester.tap(find.text('nota.txt'));
       await tester.pumpAndSettle();
       expect(find.text('testo di prova'), findsOneWidget);
+      expect(find.byType(SelectableText), findsNothing);
+      await tester.tap(find.text(l10n.close));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('pixel.png'));
+      await tester.tap(find.text('pixel.png'));
+      await pumpUntilFound(
+        tester,
+        find.byWidgetPredicate(
+          (widget) => widget is RawImage && widget.image != null,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final preview = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(Image),
+      );
+      final element = tester.element(preview);
+      final image = tester.widget<Image>(preview).image;
+      final config = createLocalImageConfiguration(element);
+      expect(
+        (await image.obtainCacheStatus(configuration: config))?.untracked,
+        isTrue,
+      );
+
+      ProviderScope.containerOf(element)
+          .read(databaseSessionProvider.notifier)
+          .lock();
+      await tester.pumpAndSettle();
+      expect(preview, findsNothing);
+      expect(
+        (await image.obtainCacheStatus(configuration: config))?.untracked,
+        isTrue,
+      );
     },
   );
 }

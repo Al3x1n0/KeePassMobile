@@ -51,6 +51,22 @@ void main() {
     expect(file.etag, WebDavTestServer.etagOf(Uint8List.fromList([1, 2, 3])));
   });
 
+  test('il download segue un redirect relativo della stessa origine', () async {
+    // given
+    server.redirects['/dav/link.kdbx'] = Uri.parse('prova.kdbx');
+
+    // when
+    final file = await client.get(
+      server.uri('/dav/link.kdbx'),
+      credentials: server.credentials,
+      trusted: trusted,
+    );
+
+    // then
+    expect(file.bytes, [1, 2, 3]);
+    expect(server.requests, ['GET /dav/link.kdbx', 'GET /dav/prova.kdbx']);
+  });
+
   test('il download senza redirect non contatta la destinazione', () async {
     server.redirects['/dav/link.kdbx'] = server.uri('/dav/prova.kdbx');
     await expectLater(
@@ -161,19 +177,51 @@ void main() {
   <d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop></d:propstat></d:response>
  <d:response><d:href>/remote.php/dav/files/mario/Archivio%20casa.kdbx</d:href>
   <d:propstat><d:prop><d:resourcetype/><d:getcontentlength>2048</d:getcontentlength></d:prop></d:propstat></d:response>
- <d:response><d:href>https://cloud.example/remote.php/dav/files/mario/Documenti/</d:href>
+ <d:response><d:href>https://cloud.example/remote.php/dav/files/mario/Documenti</d:href>
   <d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop></d:propstat></d:response>
 </d:multistatus>""";
 
     final entries = WebDavClient.parseMultistatus(dir, body);
 
     expect(entries.map((e) => e.name), ['Documenti', 'Archivio casa.kdbx']);
+    expect(entries.first.uri.path, '/remote.php/dav/files/mario/Documenti/');
     expect(entries.last.size, 2048);
     expect(
       entries.last.uri.toString(),
       'https://cloud.example/remote.php/dav/files/mario/Archivio%20casa.kdbx',
     );
   });
+
+  test('l’elenco accetta solo figli diretti della stessa origine', () {
+    // given
+    final directory = Uri.parse('https://cloud.example/dav/');
+    const body = '''
+<d:multistatus xmlns:d="DAV:">
+ <d:response><d:href>Note%20locali.kdbx</d:href></d:response>
+ <d:response><d:href>https://cloud.example:443/dav/prova.kdbx</d:href></d:response>
+ <d:response><d:href>https://altro.example/dav/prova.kdbx</d:href></d:response>
+ <d:response><d:href>https://cloud.example:8443/dav/prova.kdbx</d:href></d:response>
+ <d:response><d:href>http://cloud.example/dav/prova.kdbx</d:href></d:response>
+ <d:response><d:href>https://utente@cloud.example/dav/altro.kdbx</d:href></d:response>
+ <d:response><d:href>/dav/</d:href></d:response>
+ <d:response><d:href>/dav-altra/prova.kdbx</d:href></d:response>
+ <d:response><d:href>/dav/cartella/prova.kdbx</d:href></d:response>
+ <d:response><d:href>/dav/cartella%2Fprova.kdbx</d:href></d:response>
+ <d:response><d:href>/dav/cartella%5Cprova.kdbx</d:href></d:response>
+ <d:response><d:href>/dav/prova.kdbx?v=1</d:href></d:response>
+ <d:response><d:href>/dav/prova.kdbx#nome</d:href></d:response>
+</d:multistatus>''';
+
+    // when
+    final entries = WebDavClient.parseMultistatus(directory, body);
+
+    // then
+    expect(entries.map((entry) => (entry.name, entry.uri.path)), [
+      ('Note locali.kdbx', '/dav/Note%20locali.kdbx'),
+      ('prova.kdbx', '/dav/prova.kdbx'),
+    ]);
+  });
+
   test('ETag cambiato fra GET e PUT: nessuna sovrascrittura', () async {
     final uri = server.uri('/dav/prova.kdbx');
     final original = await client.get(

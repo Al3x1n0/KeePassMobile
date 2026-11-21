@@ -635,10 +635,10 @@ packages:
     dependency: "direct main"
     description:
       name: qr_scanner_offline_private
-      sha256: f67c3f97e2a495a72060f5b598178b56d4aa4121b9adccb09c0d80b7035d6f74
+      sha256: "857889ccdf0f8c3dcf139eed1b8167e3677278408e573df0a12eeb77c907d795"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0-alpha.1"
+    version: "0.2.0-alpha.2"
   record_use:
     dependency: transitive
     description:

@@ -33,16 +33,20 @@ class ScreenProtection {
   /// sa leggere (ClassCastException visto nel logcat del 2026-11-04).
   static const coverColor = -0x1000000;
 
-  Future<void> apply({required bool enabled}) async {
+  bool get availableInBuild => enforce && !deviceTest;
+
+  Future<bool> apply({required bool enabled}) async {
     final plugin = NoScreenshot.instance;
+    final protect = enabled && availableInBuild;
     try {
       // Nelle build senza protezione si spegne sempre: il plugin ricorda lo stato tra
       // un avvio e l'altro.
-      if (enabled && enforce && !deviceTest) {
+      if (protect) {
         // Prima il blocco, poi la copertura: la protezione non si interrompe
         // mai tra le due chiamate (ordine indicato dal pacchetto).
-        await plugin.screenshotOff();
-        await plugin.screenshotWithColor(color: coverColor);
+        final blocked = await plugin.screenshotOff();
+        final covered = await plugin.screenshotWithColor(color: coverColor);
+        return blocked && covered;
       } else {
         await plugin.overlayOff();
         await plugin.screenshotOn();
@@ -52,9 +56,50 @@ class ScreenProtection {
     } on PlatformException catch (e) {
       if (kDebugMode) log('protezione dello schermo non applicata: ${e.code}');
     }
+    return !protect;
   }
 }
 
 final screenProtectionProvider = Provider<ScreenProtection>(
   (_) => const ScreenProtection(),
 );
+
+enum ScreenProtectionStatus { checking, ready, warning, acknowledged }
+
+final screenProtectionStatusProvider =
+    NotifierProvider<ScreenProtectionStatusNotifier, ScreenProtectionStatus>(
+      ScreenProtectionStatusNotifier.new,
+    );
+
+class ScreenProtectionStatusNotifier extends Notifier<ScreenProtectionStatus> {
+  Future<void> _pending = Future.value();
+  int _revision = 0;
+
+  @override
+  ScreenProtectionStatus build() =>
+      ref.read(screenProtectionProvider).availableInBuild
+      ? ScreenProtectionStatus.checking
+      : ScreenProtectionStatus.ready;
+
+  Future<bool> apply({required bool enabled}) async {
+    final revision = ++_revision;
+    final protection = ref.read(screenProtectionProvider);
+    final next = _pending.then((_) => protection.apply(enabled: enabled));
+    _pending = next.then<void>((_) {});
+    final success = await next;
+    if (!ref.mounted || revision != _revision) return true;
+    if (success) {
+      state = ScreenProtectionStatus.ready;
+    } else if (state != ScreenProtectionStatus.acknowledged) {
+      state = ScreenProtectionStatus.warning;
+      return false;
+    }
+    return true;
+  }
+
+  void acknowledge() {
+    if (state == ScreenProtectionStatus.warning) {
+      state = ScreenProtectionStatus.acknowledged;
+    }
+  }
+}

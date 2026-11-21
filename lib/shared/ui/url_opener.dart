@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 ///
 /// Solo `http` e `https` (decisione D14); `null` per gli altri
 /// schemi (`cmd://` di KeePass, `file:`, `javascript:`, ...) e per gli
-/// indirizzi non validi.
+/// indirizzi non validi o con credenziali nell'autorità.
 Uri? entryUrl(String value) {
   var text = value.trim();
   if (text.isEmpty) return null;
@@ -14,19 +14,21 @@ Uri? entryUrl(String value) {
     text = 'https://$text';
   }
   final uri = Uri.tryParse(text);
-  if (uri == null || uri.host.isEmpty) return null;
-  return switch (uri.scheme.toLowerCase()) {
-    'http' || 'https' => uri,
-    _ => null,
-  };
+  return uri != null && _isWebUrl(uri) ? uri : null;
 }
+
+bool _isWebUrl(Uri uri) =>
+    (uri.scheme == 'http' || uri.scheme == 'https') &&
+    uri.host.isNotEmpty &&
+    !uri.authority.contains('@');
 
 /// Apertura nel browser esterno (sovrascritta nei test).
 class UrlOpener {
   const UrlOpener();
 
-  /// `false` se nessuna app può aprire l'indirizzo.
+  /// `false` se l'indirizzo non è ammesso o nessuna app può aprirlo.
   Future<bool> open(Uri uri) async {
+    if (!_isWebUrl(uri)) return false;
     try {
       return await launchUrl(uri, mode: LaunchMode.externalApplication);
     } on Exception {

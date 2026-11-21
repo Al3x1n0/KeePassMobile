@@ -46,10 +46,10 @@ Componenti inclusi nel repository
 
 Dipendenze principali (pub.dev)
 -------------------------------
-- qr_scanner_offline_private 0.2.0-alpha.1 - GPLv3
+- qr_scanner_offline_private 0.2.0-alpha.2 - GPLv3
   https://github.com/Al3x1n0/qr_scanner_offline_private
   Pacchetto della versione utilizzata:
-  https://pub.dev/packages/qr_scanner_offline_private/versions/0.2.0-alpha.1
+  https://pub.dev/packages/qr_scanner_offline_private/versions/0.2.0-alpha.2
   L'archivio del pacchetto contiene native/decoder-source.tar.gz con il
   sorgente del decoder, le dipendenze Rust vendorizzate e le istruzioni di build.
   Il decoder nativo include componenti di terzi con licenze e attribuzioni

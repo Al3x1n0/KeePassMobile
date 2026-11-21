@@ -34,8 +34,9 @@ abstract class KdbxBinary {
     final compressed =
         XmlUtils.getBooleanAttribute(element, XmlAttr.compressed);
 
-    if (compressed) {
-      bytes = GZipDecoder().decodeBytes(bytes);
+    // Older KDBX files can mark an empty binary as compressed.
+    if (compressed && bytes.isNotEmpty) {
+      bytes = header.decodePayload(bytes, compressed: true);
     }
 
     if (XmlUtils.getBooleanAttribute(element, XmlAttr.protected)) {

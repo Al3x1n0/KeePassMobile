@@ -9,11 +9,15 @@ import 'package:keepass_mobile/app/app.dart';
 import 'package:keepass_mobile/features/entry/totp_tile.dart';
 import 'package:keepass_mobile/features/file_select/recent_files.dart';
 import 'package:keepass_mobile/l10n/app_localizations.dart';
+import 'package:keepass_mobile/shared/database/external_change.dart';
 import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:keepass_mobile/shared/settings/app_settings.dart';
+import 'package:keepass_mobile/shared/storage/file_storage.dart';
 import 'package:keepass_mobile/shared/storage/preferences.dart';
+import 'package:keepass_mobile/shared/storage/remote_cache.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/memory_cache_documents.dart';
 import '../helpers/test_database.dart';
 
 void main() {
@@ -42,6 +46,7 @@ void main() {
   Future<void> pumpApp(
     WidgetTester tester, {
     AppSettings settings = const AppSettings(),
+    RemoteCacheStore? remoteCache,
   }) async {
     SharedPreferences.setMockInitialValues({
       RecentFilesRepository.storageKey: [
@@ -54,6 +59,8 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          if (remoteCache != null)
+            remoteCacheStoreProvider.overrideWithValue(remoteCache),
           totpClockProvider.overrideWithValue(
             () => DateTime.fromMillisecondsSinceEpoch(59000, isUtc: true),
           ),
@@ -90,6 +97,8 @@ void main() {
     final context = tester.element(find.byType(Scaffold).last);
     final title = MaterialLocalizations.of(context).licensesPageTitle;
     await tester.scrollUntilVisible(find.text(title), 200);
+    await tester.ensureVisible(find.text(title));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(title));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
@@ -99,7 +108,7 @@ void main() {
     LicenseRegistry.licenses
         .firstWhere(
           (entry) => entry.packages.contains(
-            'qr_scanner_offline_private / rust/rqrr-0.10.1/LICENSE-ISC',
+            'qr_scanner_offline_private / rust/rqrr-0.11.0/LICENSE-ISC',
           ),
         )
         .then<void>(
@@ -119,6 +128,48 @@ void main() {
     expect(failure, isNull);
     expect(found, isNotNull);
     expect(found!.paragraphs.any((p) => p.text.contains('Permission')), isTrue);
+  });
+
+  testWidgets('pulizia della cache disattivata richiede conferma', (
+    tester,
+  ) async {
+    final cache = RemoteCacheStore(documents: MemoryCacheDocuments());
+    const remote = FileRef(
+      uri: 'https://example.test/test.kdbx',
+      name: 'test.kdbx',
+    );
+    final bytes = file.readAsBytesSync();
+    await cache.write(
+      remote,
+      bytes,
+      previous: null,
+      baseHash: fileHashOf(bytes),
+      pending: false,
+    );
+    await pumpApp(
+      tester,
+      settings: const AppSettings(cacheRemoteFiles: false),
+      remoteCache: cache,
+    );
+    await tester.tap(find.byTooltip(l10n.settingsTitle));
+    await tester.pumpAndSettle();
+
+    final clear = find.text(l10n.settingsRemoteCacheClear);
+    await tester.scrollUntilVisible(clear, 200);
+    await tester.ensureVisible(clear);
+    await tester.pumpAndSettle();
+    await tester.tap(clear);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.cancel));
+    await tester.pumpAndSettle();
+    expect(await cache.read(remote), isNotNull);
+
+    await tester.tap(clear);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.entryDelete));
+    await tester.pumpAndSettle();
+    expect(await cache.read(remote), isNull);
+    expect(find.text(l10n.settingsRemoteCacheClearDone), findsOneWidget);
   });
 
   testWidgets('tema: scelta e chiusura del pannello', (tester) async {

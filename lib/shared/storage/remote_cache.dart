@@ -77,9 +77,14 @@ class RemoteCacheStore {
   static String idOf(FileRef file) =>
       sha256.convert(utf8.encode(file.uri)).toString();
 
-  Future<RemoteCacheRecord?> read(FileRef file) async {
+  Future<RemoteCacheRecord?> read(FileRef file) => _read(idOf(file));
+
+  Future<RemoteCacheRecord?> _read(
+    String id, {
+    bool verifySynchronized = false,
+  }) async {
     try {
-      final raw = await documents.readRemoteCache(idOf(file));
+      final raw = await documents.readRemoteCache(id);
       if (raw == null) return null;
       if (raw.length < 36) throw const RemoteCacheUnavailableException();
       final length = ByteData.sublistView(raw).getUint32(32);
@@ -96,6 +101,7 @@ class RemoteCacheStore {
             'hash': final String hash,
           }
           when RegExp(r'^[a-f0-9]{64}$').hasMatch(base) &&
+              (!verifySynchronized || pending || base == hash) &&
               hash == _hash(bytes)) {
         _checkKdbx(bytes);
         return RemoteCacheRecord(
@@ -113,6 +119,30 @@ class RemoteCacheStore {
     } on FormatException {
       throw const RemoteCacheUnavailableException();
     }
+  }
+
+  /// Elimina solo le copie sincronizzate verificabili, anche senza un recente.
+  /// `false` se un record non si è potuto verificare o è cambiato in corsa.
+  Future<bool> clearSynchronized() async {
+    final List<String> ids;
+    try {
+      ids = await documents.listRemoteCacheIds();
+    } on Exception {
+      return false;
+    }
+    var complete = true;
+    for (final id in ids) {
+      try {
+        final record = await _read(id, verifySynchronized: true);
+        if (record == null || record.pending) continue;
+        if (!await documents.deleteRemoteCache(id, record.token)) {
+          complete = false;
+        }
+      } on Exception {
+        complete = false;
+      }
+    }
+    return complete;
   }
 
   /// Solo byte KDBX già validati all'apertura o dopo la serializzazione.
@@ -355,9 +385,11 @@ class CachedDatabaseStorage extends FileStorage {
   Future<RemoteCacheStatus> writeAfterRead(
     FileRef file,
     Uint8List bytes,
-    StoredFile? previous,
-  ) async {
+    StoredFile? previous, {
+    void Function()? checkBeforeUpload,
+  }) async {
     if (previous is! CachedDatabaseRead) {
+      checkBeforeUpload?.call();
       await base.write(file, bytes, expectedVersion: previous?.version);
       return const RemoteCacheStatus();
     }
@@ -365,6 +397,7 @@ class CachedDatabaseStorage extends FileStorage {
     final old = previous.record;
     if (!previous.status.available) {
       if (remote == null) throw const RemoteCacheUnavailableException();
+      checkBeforeUpload?.call();
       await base.write(file, bytes, expectedVersion: remote.version);
       return previous.status;
     }
@@ -380,12 +413,14 @@ class CachedDatabaseStorage extends FileStorage {
       );
     } on RemoteCacheUnavailableException catch (error) {
       if (remote == null) rethrow;
+      checkBeforeUpload?.call();
       await base.write(file, bytes, expectedVersion: remote.version);
       return RemoteCacheStatus(available: false, error: error);
     }
     if (remote == null) {
       return const RemoteCacheStatus(offline: true, pending: true);
     }
+    checkBeforeUpload?.call();
     try {
       await base.write(file, bytes, expectedVersion: remote.version);
     } on Object catch (error) {

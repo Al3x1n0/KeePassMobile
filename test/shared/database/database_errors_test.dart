@@ -29,6 +29,13 @@ void main() {
       describeDatabaseError(l10n, const FileUnavailableException()),
       l10n.errorFileUnavailable,
     );
+    expect(
+      describeDatabaseError(
+        l10n,
+        const KdbxResourceLimitError(KdbxResourceLimit.kdfCost),
+      ),
+      l10n.errorDatabaseKdfTooCostly,
+    );
   });
 
   test(

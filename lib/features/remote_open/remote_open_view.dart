@@ -12,6 +12,7 @@ import '../../shared/storage/webdav_client.dart';
 import '../../shared/ui/size_format.dart';
 import '../../shared/ui/selection_sheet.dart';
 import '../../shared/ui/ssh_key_field.dart';
+import '../../shared/ui/sensitive_text_editing.dart';
 import '../unlock/unlock_view_model.dart';
 import 'remote_open_view_model.dart';
 
@@ -32,7 +33,7 @@ class _RemoteOpenViewState extends ConsumerState<RemoteOpenView> {
   final _privateKey = TextEditingController();
   bool _useKey = false;
   var _type = RemoteServerType.webDav;
-  bool _remember = true;
+  bool _remember = false;
   bool _obscure = true;
 
   @override
@@ -239,31 +240,36 @@ class _RemoteOpenViewState extends ConsumerState<RemoteOpenView> {
                     _secret.clear();
                   }),
                 ),
-              TextField(
-                controller: _secret,
-                enabled: !busy,
-                obscureText: _obscure,
-                autocorrect: false,
-                enableSuggestions: false,
-                enableIMEPersonalizedLearning: false,
-                keyboardType: TextInputType.visiblePassword,
-                textInputAction: TextInputAction.done,
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(AppLimits.masterPassword),
-                ],
-                onSubmitted: (_) => _connect(),
-                decoration: InputDecoration(
-                  labelText: _type == RemoteServerType.sftp && _useKey
-                      ? l10n.sshPassphrase
-                      : l10n.remotePassword,
-                  suffixIcon: IconButton(
-                    tooltip: _obscure
-                        ? l10n.unlockShowPassword
-                        : l10n.unlockHidePassword,
-                    icon: Icon(
-                      _obscure ? Icons.visibility : Icons.visibility_off,
+              SensitiveTextEditing(
+                child: TextField(
+                  selectionControls: SensitiveTextEditing.selectionControls,
+                  controller: _secret,
+                  enabled: !busy,
+                  obscureText: _obscure,
+                  autocorrect: false,
+                  smartDashesType: SmartDashesType.disabled,
+                  smartQuotesType: SmartQuotesType.disabled,
+                  enableSuggestions: false,
+                  enableIMEPersonalizedLearning: false,
+                  keyboardType: TextInputType.visiblePassword,
+                  textInputAction: TextInputAction.done,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(AppLimits.masterPassword),
+                  ],
+                  onSubmitted: (_) => _connect(),
+                  decoration: InputDecoration(
+                    labelText: _type == RemoteServerType.sftp && _useKey
+                        ? l10n.sshPassphrase
+                        : l10n.remotePassword,
+                    suffixIcon: IconButton(
+                      tooltip: _obscure
+                          ? l10n.unlockShowPassword
+                          : l10n.unlockHidePassword,
+                      icon: Icon(
+                        _obscure ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: () => setState(() => _obscure = !_obscure),
                     ),
-                    onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
               ),

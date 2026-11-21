@@ -55,6 +55,18 @@ DatabaseEdit _add(String title) => (db) {
       KdbxTextField.fromText(text: title);
 };
 
+class _ConcurrentCacheDocuments extends MemoryCacheDocuments {
+  _ConcurrentCacheDocuments(this.beforeDelete);
+
+  final Future<void> Function() beforeDelete;
+
+  @override
+  Future<bool> deleteRemoteCache(String id, Uint8List expectedToken) async {
+    await beforeDelete();
+    return super.deleteRemoteCache(id, expectedToken);
+  }
+}
+
 void main() {
   const file = FileRef(
     uri: 'https://example.test/demo.kdbx',
@@ -98,6 +110,51 @@ void main() {
       cache.read(file),
       throwsA(isA<RemoteCacheUnavailableException>()),
     );
+  });
+
+  test(
+    'pulizia elimina la copia sincronizzata e conserva pending ed errori',
+    () async {
+      const pending = FileRef(
+        uri: 'sftp://example.test/pending.kdbx',
+        name: 'pending.kdbx',
+      );
+      const damaged = FileRef(
+        uri: 'https://example.test/damaged.kdbx',
+        name: 'damaged.kdbx',
+      );
+      await cache.write(
+        pending,
+        original,
+        previous: null,
+        baseHash: fileHashOf(original),
+        pending: true,
+      );
+      final damagedId = RemoteCacheStore.idOf(damaged);
+      documents.records[damagedId] = Uint8List(20);
+
+      expect(await cache.clearSynchronized(), isFalse);
+      expect(await cache.read(file), isNull);
+      expect((await cache.read(pending))?.pending, isTrue);
+      expect(documents.records[damagedId], hasLength(20));
+    },
+  );
+
+  test('pulizia conserva la scrittura pending che cambia il token', () async {
+    late final RemoteCacheStore racingCache;
+    final racingDocuments = _ConcurrentCacheDocuments(() async {
+      await racingCache.write(
+        file,
+        original,
+        previous: await racingCache.read(file),
+        baseHash: fileHashOf(original),
+        pending: true,
+      );
+    })..records.addAll(documents.records);
+    racingCache = RemoteCacheStore(documents: racingDocuments);
+
+    expect(await racingCache.clearSynchronized(), isFalse);
+    expect((await racingCache.read(file))?.pending, isTrue);
   });
 
   test('file chiave non è un KDBX: non viene persistito', () async {

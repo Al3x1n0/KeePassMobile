@@ -12,6 +12,7 @@ import '../crypto/key_encryptor_kdf.dart';
 import '../crypto/protect_salt_generator.dart';
 import '../utils/byte_utils.dart';
 import '../utils/parameters_map.dart';
+import 'kdbx_resource_limits.dart' show KdbxDecodedSizeBudget;
 
 abstract class _HeaderField {
   ParameterType get type;
@@ -92,6 +93,12 @@ class KdbxHeader {
 
   /// The master key credentials.
   KdbxCredentials credentials;
+
+  final _decodedSizeBudget = KdbxDecodedSizeBudget();
+
+  /// Decodes a payload within the remaining size budget of this file.
+  Uint8List decodePayload(Uint8List bytes, {required bool compressed}) =>
+      _decodedSizeBudget.decode(bytes, compressed: compressed);
 
   /// The binaries collection.
   final binaries = KdbxBinaries();
@@ -308,7 +315,11 @@ class KdbxHeader {
     switch (settings) {
       case AesKdfSettings(:final rounds):
         parameters.add(key: 'R', type: ParameterType.uInt64, value: rounds);
-      case Argon2KdfSettings(:final memory, :final iterations, :final parallelism):
+      case Argon2KdfSettings(
+          :final memory,
+          :final iterations,
+          :final parallelism
+        ):
         parameters.addAll([
           ('P', ParameterType.uInt32, parallelism),
           ('I', ParameterType.uInt64, iterations),
@@ -339,6 +350,17 @@ class KdbxHeader {
   /// Available after the database has been opened or saved.
   KdbxTransformedKey? get transformedKey => _transformedKey;
 
+  /// Erases key material and releases the protected-stream generator.
+  void clearSensitiveData() {
+    credentials.clearRawKey();
+    credentials.transformedKey?.key.clear();
+    _transformedKey?.key.clear();
+    _transformedKey = null;
+    final streamKey = protectedStreamKey;
+    streamKey?.fillRange(0, streamKey.length, 0);
+    _saltGenerator = null;
+  }
+
   Future<List<int>> _transformCredentials(
       Future<List<int>> Function() kdf) async {
     final fingerprint = kdfFingerprint;
@@ -368,18 +390,24 @@ class KdbxHeader {
     if (transformSeed == null || rounds == null || masterSeed == null) {
       throw FileCorruptedError('no header transform parameters');
     }
+    if (rounds < 0) {
+      throw const FileCorruptedError('bad aes rounds');
+    }
+    KdbxResourceLimits.checkAesRounds(rounds);
 
     final challengeResponse = credentials.getChallengeResponse(masterSeed);
 
     final keyHash = await _transformCredentials(() async {
       final credHash = credentials.hash;
-      final result = await KeyEncryptorAes.transform(
-        aes: Crypto.engine.createAes256(key: transformSeed),
-        data: credHash,
-        rounds: rounds,
-      );
-      CryptoUtils.wipeData(credHash);
-      return result;
+      try {
+        return await KeyEncryptorAes.transform(
+          aes: Crypto.engine.createAes256(key: transformSeed),
+          data: credHash,
+          rounds: rounds,
+        );
+      } finally {
+        CryptoUtils.wipeData(credHash);
+      }
     });
 
     final all = masterSeed + (challengeResponse ?? []) + keyHash;
@@ -415,10 +443,12 @@ class KdbxHeader {
 
     final encKey = await _transformCredentials(() async {
       final credHash = credentials.getHash(challenge: kdfSalt);
-      final result =
-          await KeyEncryptorKdf.encrypt(data: credHash, parameters: kdfParams);
-      CryptoUtils.wipeData(credHash);
-      return result;
+      try {
+        return await KeyEncryptorKdf.encrypt(
+            data: credHash, parameters: kdfParams);
+      } finally {
+        CryptoUtils.wipeData(credHash);
+      }
     });
     if (encKey.length != 32) {
       throw FileCorruptedError('bad derived key');

@@ -176,6 +176,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorUnsupported => 'Unsupported database format or algorithm.';
 
   @override
+  String get errorFileTooLarge => 'The file exceeds the 128 MiB size limit.';
+
+  @override
+  String get errorDatabasePayloadTooLarge =>
+      'The database exceeds the size limit after decompression.';
+
+  @override
+  String get errorDatabaseKdfTooCostly =>
+      'The key derivation settings exceed the supported memory or computation limits.';
+
+  @override
   String get errorKeyFileUnavailable =>
       'The key file could not be read. Choose it again.';
 
@@ -497,6 +508,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSecureScreen => 'Secure screen';
 
   @override
+  String get screenProtectionWarning =>
+      'Screen protection could not be applied. Continuing may allow screenshots or screen recordings to capture your database.';
+
+  @override
+  String get screenProtectionContinue => 'Continue with this risk';
+
+  @override
   String get settingsSecureScreenHint =>
       'Blocks screenshots and screen recordings and hides the preview in recent apps.';
 
@@ -537,6 +555,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get autofillMatches => 'Entries for this app or site';
+
+  @override
+  String autofillSiteInApp(String domain, String app) {
+    return '$domain in $app';
+  }
+
+  @override
+  String get autofillApproximateTitle => 'Confirm the recipient';
+
+  @override
+  String autofillApproximateBody(String entry, String target) {
+    return '“$entry” matched only by a related domain or search text. Fill its credentials in $target?';
+  }
+
+  @override
+  String autofillAppIdentityWarning(String entry, String app) {
+    return '“$entry” is linked to $app. Confirm that you recognize this installed app before filling its credentials.';
+  }
+
+  @override
+  String get autofillFillAndRememberApp => 'Fill and remember app';
+
+  @override
+  String get autofillSaveAndRememberApp => 'Create entry and remember app';
+
+  @override
+  String get autofillRememberAppSignature =>
+      'Remembering this app saves its signing certificate on this device for future fills of entries linked to it.';
 
   @override
   String get autofillNoMatches =>
@@ -1130,6 +1176,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsRemoteCacheHint =>
       'Keep an encrypted KDBX copy excluded from backups. Turning this off does not delete changes awaiting upload.';
+
+  @override
+  String get settingsRemoteCacheClear => 'Delete synced local copies';
+
+  @override
+  String get settingsRemoteCacheClearConfirm =>
+      'Changes awaiting upload will be kept. A server connection is needed to recreate the local copies.';
+
+  @override
+  String get settingsRemoteCacheClearDone => 'Synced copies cleanup complete.';
+
+  @override
+  String get settingsRemoteCacheClearIncomplete =>
+      'Some copies could not be verified or changed during cleanup.';
 
   @override
   String get cacheOffline => 'Offline: using the encrypted local copy.';

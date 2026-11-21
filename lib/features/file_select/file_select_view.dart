@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
+import '../../shared/database/database_errors.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/database/database_session.dart';
 import '../../shared/storage/remote_storage.dart';
@@ -228,10 +229,11 @@ class _FileSelectViewState extends ConsumerState<FileSelectView> {
               .lockGeneration,
         ),
       );
-    } on Exception {
+    } on Exception catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.errorFileUnavailable)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(describeFilePickError(l10n, error))),
+      );
     }
   }
 }

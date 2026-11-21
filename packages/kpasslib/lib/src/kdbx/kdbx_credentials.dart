@@ -70,6 +70,12 @@ class KdbxCredentials {
   /// Whether password and/or key file are available to run the KDF.
   bool get hasRawKey => _hasRawKey;
 
+  /// Erases the password and key-file hashes held by these credentials.
+  void clearRawKey() {
+    _passwordHash?.clear();
+    _keyFileHash?.clear();
+  }
+
   /// The hash of the credentials without challenge response.
   get hash => getHash();
 
@@ -82,11 +88,15 @@ class KdbxCredentials {
     final keyFileHash = _keyFileHash;
 
     if (passwordHash != null) {
-      allBytes.addAll(passwordHash.bytes);
+      final bytes = passwordHash.bytes;
+      allBytes.addAll(bytes);
+      bytes.fillRange(0, bytes.length, 0);
     }
 
     if (keyFileHash != null) {
-      allBytes.addAll(keyFileHash.bytes);
+      final bytes = keyFileHash.bytes;
+      allBytes.addAll(bytes);
+      bytes.fillRange(0, bytes.length, 0);
     }
 
     if (challengeResp != null) {

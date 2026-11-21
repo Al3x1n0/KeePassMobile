@@ -117,11 +117,16 @@ class RemoteOpenViewModel extends Notifier<RemoteBrowserState> {
     await _show(root, root: root);
   }
 
-  Future<void> open(RemoteEntry entry) => _show(entry.uri);
+  Future<void> open(RemoteEntry entry) async {
+    if (state.busy || !entry.isDirectory || !state.entries.contains(entry)) {
+      return;
+    }
+    await _show(entry.uri);
+  }
 
   Future<void> up() async {
     final directory = state.directory;
-    if (!state.canGoUp || directory == null) return;
+    if (state.busy || !state.canGoUp || directory == null) return;
     await _show(directory.resolve('..'));
   }
 
@@ -136,7 +141,12 @@ class RemoteOpenViewModel extends Notifier<RemoteBrowserState> {
   /// file entra tra i recenti e l'utente ha scelto "ricorda".
   Future<PickedFile?> pick(RemoteEntry entry) async {
     final credentials = _credentials;
-    if (credentials == null || state.busy) return null;
+    if (credentials == null ||
+        state.busy ||
+        entry.isDirectory ||
+        !state.entries.contains(entry)) {
+      return null;
+    }
     final file = FileRef(uri: entry.uri.toString(), name: entry.name);
     ref.read(remoteSessionProvider).put(file, credentials, remember: _remember);
     state = state.copyWith(busy: true);

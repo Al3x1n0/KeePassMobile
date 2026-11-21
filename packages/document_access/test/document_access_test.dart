@@ -161,6 +161,26 @@ void main() {
   });
 
   test(
+    'cache: elenco degli identificativi senza riferimenti ai file',
+    () async {
+      final ids = ['a' * 64, 'b' * 64];
+      reply((_) => ids);
+      expect(await access.listRemoteCacheIds(), ids);
+      expect(calls.single.method, 'listRemoteCacheIds');
+      expect(calls.single.arguments, isNull);
+    },
+  );
+
+  test('cache: cancellazione con il solo identificativo e token CAS', () async {
+    reply((_) => false);
+    final token = Uint8List(32);
+    final id = 'a' * 64;
+    expect(await access.deleteRemoteCache(id, token), isFalse);
+    expect(calls.single.method, 'deleteRemoteCache');
+    expect(calls.single.arguments, {'id': id, 'expected': token});
+  });
+
+  test(
     'cache: scrittura atomica porta il token CAS al codice nativo',
     () async {
       reply((_) => false);

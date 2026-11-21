@@ -22,6 +22,7 @@ void main(List<String> args) async {
         'src/argon2/src/blake2/blake2b.c',
       ],
       includes: const ['src/argon2/include', 'src/argon2/src'],
+      flags: [if (targetOS != OS.windows) '-fstack-protector-strong'],
       defines: {
         // Le funzioni pubbliche devono essere esportate dalla libreria.
         if (targetOS == OS.windows) 'ARGON2_PUBLIC': '__declspec(dllexport)',

@@ -38,6 +38,20 @@ void main() {
       EntryFields.title: 'Comando',
       EntryFields.url: 'cmd://calc.exe',
     });
+    addTestEntry(db, db.root, {
+      EntryFields.title: 'Riferimento protetto',
+      EntryFields.password: 'token-sintetico',
+      EntryFields.url: 'https://example.org/login?token={PASSWORD}',
+    });
+    addTestEntry(
+      db,
+      db.root,
+      {
+        EntryFields.title: 'URL protetto',
+        EntryFields.url: 'https://example.org/private',
+      },
+      protectedKeys: {EntryFields.url},
+    );
     final dir = Directory.systemTemp.createTempSync('keepass_mobile_5e');
     file = File('${dir.path}/prova.kdbx')..writeAsBytesSync(await db.save());
   });
@@ -82,6 +96,15 @@ void main() {
     await tester.tap(find.byTooltip(l10n.entryUrlOpen));
     await tester.pumpAndSettle();
     expect(find.text(l10n.entryUrlNotSupported), findsOneWidget);
+
+    for (final title in ['Riferimento protetto', 'URL protetto']) {
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(title));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip(l10n.entryUrlOpen), findsNothing);
+      expect(find.byTooltip(l10n.entryCopy(l10n.entryUrl)), findsOneWidget);
+    }
     expect(opener.opened, hasLength(1));
   });
 }

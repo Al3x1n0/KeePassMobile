@@ -37,5 +37,14 @@ void main() {
         expect(entryUrl(value), isNull, reason: value);
       }
     });
+
+    test('rifiuta userinfo e ammette la chiocciola nel percorso', () {
+      expect(entryUrl('https://user:test@example.org/login'), isNull);
+      expect(entryUrl('user@example.org/login'), isNull);
+      expect(
+        entryUrl('https://example.org/a@b'),
+        Uri.parse('https://example.org/a@b'),
+      );
+    });
   });
 }

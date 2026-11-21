@@ -12,6 +12,8 @@ import '../../app/external_change_dialog.dart';
 import '../../app/remote_dialogs.dart';
 import '../../app/router.dart';
 import '../../app/routes.dart';
+import '../../app/screen_protection.dart';
+import '../../app/screen_protection_warning.dart';
 import '../../app/session_guard.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -134,9 +136,13 @@ class AutofillApp extends ConsumerWidget {
     ref.watch(sessionGuardProvider);
     final themeMode = ref.watch(appSettingsProvider.select((s) => s.themeMode));
     final integrity = ref.watch(integrityStatusProvider);
+    final protection = ref.watch(screenProtectionStatusProvider);
     final done = ref.watch(autofillDoneProvider);
     // Dispositivo non verificato o non affidabile (D9), o risposta già data.
-    if (integrity != IntegrityStatus.trusted || done) {
+    if (integrity != IntegrityStatus.trusted ||
+        done ||
+        protection == ScreenProtectionStatus.checking ||
+        protection == ScreenProtectionStatus.warning) {
       return MaterialApp(
         onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
         theme: buildLightTheme(),
@@ -147,9 +153,13 @@ class AutofillApp extends ConsumerWidget {
           ...AppLocalizations.localizationsDelegates,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        home: integrity == IntegrityStatus.compromised
-            ? const DeviceBlockedView()
-            : const Scaffold(),
+        home: switch (integrity) {
+          IntegrityStatus.compromised => const DeviceBlockedView(),
+          IntegrityStatus.trusted
+              when !done && protection == ScreenProtectionStatus.warning =>
+            const ScreenProtectionWarning(),
+          _ => const Scaffold(),
+        },
       );
     }
     return MaterialApp.router(

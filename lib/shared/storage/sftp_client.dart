@@ -6,6 +6,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:dartssh2/dartssh2.dart';
+import 'package:kpasslib/kpasslib.dart';
 
 import 'webdav_client.dart';
 
@@ -75,9 +76,7 @@ class SftpStorageClient {
     try {
       final bytes = BytesBuilder(copy: false);
       await for (final chunk in file.read()) {
-        if (bytes.length + chunk.length > WebDavClient.maxBytes) {
-          throw const RemoteSftpException();
-        }
+        KdbxResourceLimits.checkFileSize(bytes.length + chunk.length);
         bytes.add(chunk);
       }
       return RemoteFile(bytes: bytes.takeBytes());

@@ -224,8 +224,11 @@ class _EntryViewState extends ConsumerState<EntryView> {
                     })
                   : null,
               onCopy: field.issue == null ? () => _copy(field.value) : null,
-              onOpen: field.key == EntryFields.url && field.issue == null
-                  ? () => _openUrl(field.value)
+              onOpen:
+                  field.key == EntryFields.url &&
+                      field.issue == null &&
+                      !field.protected
+                  ? () => _openUrl(field)
                   : null,
             ),
           ],
@@ -404,9 +407,10 @@ class _EntryViewState extends ConsumerState<EntryView> {
   }
 
   /// Apre il campo URL nel browser (GotoUrl di Keepass2Android, D14).
-  Future<void> _openUrl(String value) async {
+  Future<void> _openUrl(EntryFieldView field) async {
+    if (field.protected || ref.read(databaseSessionProvider) == null) return;
     final l10n = AppLocalizations.of(context);
-    final uri = entryUrl(value);
+    final uri = entryUrl(field.value);
     if (uri == null) {
       _showMessage(l10n.entryUrlNotSupported);
       return;
@@ -477,17 +481,17 @@ class _EntryViewState extends ConsumerState<EntryView> {
     if (data == null) {
       content = Text(l10n.entryAttachmentNoPreview);
     } else if (_imageExtensions.contains(ext)) {
-      content = Image.memory(
-        data,
+      content = Image(
+        image: _AttachmentPreviewImage(data),
         errorBuilder: (_, _, _) => Text(l10n.entryAttachmentNoPreview),
       );
     } else if (_textExtensions.contains(ext)) {
       // Solo l'inizio dei file di testo grandi.
       final text = utf8.decode(
-        data.length > 65536 ? data.sublist(0, 65536) : data,
+        data.length > 65536 ? Uint8List.sublistView(data, 0, 65536) : data,
         allowMalformed: true,
       );
-      content = SelectableText(text);
+      content = Text(text);
     } else {
       content = Text(l10n.entryAttachmentNoPreview);
     }
@@ -612,6 +616,24 @@ class _EntryViewState extends ConsumerState<EntryView> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+/// Le anteprime decifrate appartengono solo al flusso immagine del dialogo.
+class _AttachmentPreviewImage extends MemoryImage {
+  const _AttachmentPreviewImage(super.bytes);
+
+  @override
+  void resolveStreamForKey(
+    ImageConfiguration configuration,
+    ImageStream stream,
+    MemoryImage key,
+    ImageErrorListener handleError,
+  ) {
+    if (stream.completer != null) return;
+    stream.setCompleter(
+      loadImage(key, PaintingBinding.instance.instantiateImageCodecWithSize),
+    );
   }
 }
 

@@ -9,17 +9,23 @@ import '../../shared/storage/preferences.dart';
 import 'autofill_channel.dart';
 import 'autofill_matcher.dart';
 
-/// Coppie dominio-app di cui l'utente si fida (D27), come
-/// `AutoFillTrustedLinks` di Keepass2Android.
+/// Destinatari confermati per un'app Android e una firma specifiche.
 class AutofillTrustRepository {
   AutofillTrustRepository(this._prefs);
 
-  static const storageKey = 'autofill.trusted_links';
+  static const storageKey = 'autofill.signed_trusted_links';
 
   final SharedPreferences _prefs;
 
   bool isTrusted(String link) =>
       (_prefs.getStringList(storageKey) ?? const []).contains(link);
+
+  bool isAppTrusted(AutofillRequest request) =>
+      request.appTrustLinks.any(isTrusted);
+
+  Future<void> trustApp(AutofillRequest request) async {
+    if (request.canRememberApp) await trust(request.appTrustLinks.last);
+  }
 
   Future<void> trust(String link) async {
     final links = {...?_prefs.getStringList(storageKey), link}.toList()..sort();
@@ -31,9 +37,7 @@ final autofillTrustRepositoryProvider = Provider<AutofillTrustRepository>(
   (ref) => AutofillTrustRepository(ref.watch(sharedPreferencesProvider)),
 );
 
-/// `true` se le voci si cercano per il dominio dichiarato: browser noto,
-/// coppia dominio-app ricordata o confermata per questa volta (D27). Altrimenti
-/// si cerca per l'app.
+/// Usa il dominio dichiarato dopo una conferma dell'utente.
 final autofillUseDomainProvider =
     NotifierProvider<AutofillUseDomainNotifier, bool>(
       AutofillUseDomainNotifier.new,
@@ -43,19 +47,21 @@ class AutofillUseDomainNotifier extends Notifier<bool> {
   @override
   bool build() {
     final request = ref.watch(autofillRequestProvider);
-    final link = request.trustLink;
-    if (link == null) return false;
-    return request.isBrowser ||
-        ref.watch(autofillTrustRepositoryProvider).isTrusted(link);
+    if (!request.canRememberDomain) return false;
+    return request.trustLinks.any(
+      ref.watch(autofillTrustRepositoryProvider).isTrusted,
+    );
   }
 
   void useOnce() => state = true;
 
   Future<void> useAlways() async {
-    final link = ref.read(autofillRequestProvider).trustLink;
-    if (link == null) return;
+    final request = ref.read(autofillRequestProvider);
+    if (!request.canRememberDomain) return;
     state = true;
-    await ref.read(autofillTrustRepositoryProvider).trust(link);
+    await ref
+        .read(autofillTrustRepositoryProvider)
+        .trust(request.trustLinks.last);
   }
 }
 
@@ -87,6 +93,9 @@ class AutofillDoneNotifier extends Notifier<bool> {
   void done() => state = true;
 }
 
+/// Conferma data dall'utente per la scelta corrente.
+enum AutofillChoice { direct, once, rememberEntry, rememberApp }
+
 /// Compilazione con la voce scelta.
 final autofillPickViewModelProvider =
     AsyncNotifierProvider<AutofillPickViewModel, void>(
@@ -97,9 +106,11 @@ class AutofillPickViewModel extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
-  /// Compila con la voce [uuid]; con [remember] prima la associa alla
-  /// richiesta e salva il database (D28). Poi il database si chiude.
-  Future<void> fill(KdbxUuid uuid, {bool remember = false}) async {
+  /// Compila con la voce [uuid], dopo l'eventuale conferma del destinatario.
+  Future<void> fill(
+    KdbxUuid uuid, {
+    AutofillChoice choice = AutofillChoice.direct,
+  }) async {
     if (state.isLoading) return;
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
@@ -111,6 +122,20 @@ class AutofillPickViewModel extends AsyncNotifier<void> {
           : findEntryByUuid(initialDatabase, uuid);
       if (initialEntry == null) throw const DatabaseLockedException();
       final request = ref.read(autofillRequestProvider);
+      final query = ref.read(autofillQueryProvider);
+      final appTarget = query == request.appQuery;
+      final trust = ref.read(autofillTrustRepositoryProvider);
+      if (choice == AutofillChoice.direct &&
+          (!isExactAutofillMatch(initialEntry, query) ||
+              (appTarget && !trust.isAppTrusted(request)))) {
+        throw StateError('destinatario autofill da confermare');
+      }
+      if (choice == AutofillChoice.rememberApp &&
+          (!appTarget ||
+              !request.canRememberApp ||
+              !isExactAutofillMatch(initialEntry, query))) {
+        throw StateError('destinatario autofill non associabile');
+      }
       String resolved(
         KdbxDatabase db,
         KdbxEntry item,
@@ -136,10 +161,14 @@ class AutofillPickViewModel extends AsyncNotifier<void> {
         EntryFields.password,
         request.hasPassword,
       );
-      if (remember) {
-        await session.apply(
-          rememberAutofillEdit(uuid, ref.read(autofillQueryProvider)),
-        );
+      if (choice == AutofillChoice.rememberEntry) {
+        await session.apply(rememberAutofillEdit(uuid, query));
+      }
+      if (appTarget &&
+          (choice == AutofillChoice.rememberApp ||
+              choice == AutofillChoice.rememberEntry) &&
+          !trust.isAppTrusted(request)) {
+        await trust.trustApp(request);
       }
       final database = ref.read(databaseSessionProvider)?.database;
       final entry = database == null ? null : findEntryByUuid(database, uuid);

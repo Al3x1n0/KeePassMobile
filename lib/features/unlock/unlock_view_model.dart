@@ -120,26 +120,30 @@ class UnlockViewModel extends AsyncNotifier<void> {
       password: password,
       keyFile: keyFile?.bytes,
     );
-    // L'utente ha lasciato la schermata durante la KDF: niente sessione.
-    if (!ref.mounted) return;
-    final hadBiometrics = ref
-        .read(biometricKeyStoreProvider)
-        .isEnabled(database.ref);
-    await _syncBiometricKey(database.ref, kdbx, biometricTexts);
-    if (!ref.mounted) return;
-    final offer = !hadBiometrics && await _canOfferBiometrics(database.ref);
-    if (!ref.mounted) return;
-    if (offer) ref.read(biometricOfferProvider.notifier).offer(database.ref);
-    await _start(
-      args,
-      database.ref,
-      keyFile?.ref,
-      kdbx,
-      fileHash: fileHashOf(database.bytes),
-      cacheStatus: databaseStorage is CachedDatabaseStorage
-          ? await databaseStorage.opened(database)
-          : const RemoteCacheStatus(),
-    );
+    var started = false;
+    try {
+      if (!ref.mounted) return;
+      final hadBiometrics = ref
+          .read(biometricKeyStoreProvider)
+          .isEnabled(database.ref);
+      await _syncBiometricKey(database.ref, kdbx, biometricTexts);
+      if (!ref.mounted) return;
+      final offer = !hadBiometrics && await _canOfferBiometrics(database.ref);
+      if (!ref.mounted) return;
+      if (offer) ref.read(biometricOfferProvider.notifier).offer(database.ref);
+      started = await _start(
+        args,
+        database.ref,
+        keyFile?.ref,
+        kdbx,
+        fileHash: fileHashOf(database.bytes),
+        cacheStatus: databaseStorage is CachedDatabaseStorage
+            ? await databaseStorage.opened(database)
+            : const RemoteCacheStatus(),
+      );
+    } finally {
+      if (!started) kdbx.clearSensitiveData();
+    }
   }
 
   Future<void> _openWithBiometrics(
@@ -166,19 +170,25 @@ class UnlockViewModel extends AsyncNotifier<void> {
       throw const BiometricKeyException(BiometricKeyError.stale);
     } on InvalidCredentialsError {
       throw const BiometricKeyException(BiometricKeyError.stale);
+    } finally {
+      key.key.clear();
     }
-    if (!ref.mounted) return;
-    // Il file chiave non serve: la chiave derivata lo comprende già.
-    await _start(
-      args,
-      database.ref,
-      args.keyFile?.ref,
-      kdbx,
-      fileHash: fileHashOf(database.bytes),
-      cacheStatus: databaseStorage is CachedDatabaseStorage
-          ? await databaseStorage.opened(database)
-          : const RemoteCacheStatus(),
-    );
+    var started = false;
+    try {
+      if (!ref.mounted) return;
+      started = await _start(
+        args,
+        database.ref,
+        args.keyFile?.ref,
+        kdbx,
+        fileHash: fileHashOf(database.bytes),
+        cacheStatus: databaseStorage is CachedDatabaseStorage
+            ? await databaseStorage.opened(database)
+            : const RemoteCacheStatus(),
+      );
+    } finally {
+      if (!started) kdbx.clearSensitiveData();
+    }
   }
 
   /// Proposta dello sblocco biometrico (D23): file ricordato tra i recenti,
@@ -217,7 +227,7 @@ class UnlockViewModel extends AsyncNotifier<void> {
     }
   }
 
-  Future<void> _start(
+  Future<bool> _start(
     UnlockArgs args,
     FileRef database,
     FileRef? keyFile,
@@ -225,7 +235,7 @@ class UnlockViewModel extends AsyncNotifier<void> {
     required String fileHash,
     required RemoteCacheStatus cacheStatus,
   }) async {
-    if (!ref.mounted) return;
+    if (!ref.mounted) return false;
     final settings = ref.read(appSettingsProvider);
     if (settings.rememberRecentFiles) {
       await ref
@@ -243,18 +253,18 @@ class UnlockViewModel extends AsyncNotifier<void> {
                       .openSessions) ...[session.file, ?session.keyFile],
             },
           );
-      if (!ref.mounted) return;
+      if (!ref.mounted) return false;
       final previous = args.replacing ?? args.database.ref;
       final biometrics = ref.read(biometricKeyStoreProvider);
       if (previous != database &&
           (biometrics.isEnabled(previous) ||
               biometrics.isOfferDeclined(previous))) {
         await biometrics.remove(previous);
-        if (!ref.mounted) return;
+        if (!ref.mounted) return false;
       }
       // File remoto ricordato: con "ricorda" le credenziali vanno nell'archivio.
       await ref.read(remoteStorageProvider).commit(database);
-      if (!ref.mounted) return;
+      if (!ref.mounted) return false;
     }
 
     final session = DatabaseSession(
@@ -278,6 +288,7 @@ class UnlockViewModel extends AsyncNotifier<void> {
         // conserva l'errore e le modifiche non caricate (ADR-017).
       }
     }
+    return true;
   }
 
   static Future<StoredFile> _load(FileStorage storage, PickedFile file) async =>

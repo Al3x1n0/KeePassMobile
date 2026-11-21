@@ -37,9 +37,12 @@ class KpmAutofillService : AutofillService() {
     cancellationSignal: CancellationSignal,
     callback: FillCallback,
   ) {
-    val read = request.fillContexts.lastOrNull()?.structure?.let { AssistStructureReader.read(it) }
-    val app = read?.view?.packageId
-    if (read == null || app == null || app in excludedPackages()) {
+    val structure = request.fillContexts.lastOrNull()?.structure
+    val app = structure?.activityComponent?.packageName
+    val read = structure?.let { AssistStructureReader.read(it) }
+    val recipient = app?.takeUnless { it in excludedPackages() }
+      ?.let { AutofillRecipient.resolve(packageManager, it) }
+    if (read == null || recipient == null) {
       callback.onSuccess(null)
       return
     }
@@ -57,7 +60,7 @@ class KpmAutofillService : AutofillService() {
       return
     }
 
-    val intent = AutofillActivity.intent(this, app, read.view.webDomain, userNameIds, secretIds)
+    val intent = AutofillActivity.intent(this, recipient, read.view.webDomain, userNameIds, secretIds)
     // Il sistema aggiunge la struttura all'intent: serve mutabile (esplicito).
     val flags = PendingIntent.FLAG_CANCEL_CURRENT or
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0
@@ -96,11 +99,13 @@ class KpmAutofillService : AutofillService() {
     val structure = request.fillContexts.lastOrNull()?.structure
     if (structure?.activityComponent == null) { callback.onFailure(null); return }
     val read = AssistStructureReader.read(structure, true)
-    val app = read?.view?.packageId
-    if (read == null || app == null || app in excludedPackages()) { callback.onFailure(null); return }
+    val app = structure.activityComponent?.packageName
+    val recipient = app?.takeUnless { it in excludedPackages() }
+      ?.let { AutofillRecipient.resolve(packageManager, it) }
+    if (read == null || recipient == null) { callback.onFailure(null); return }
     val credentials = selectSaveCredentials(AutofillStructureParser.parse(read.view), read.values)
     if (credentials == null) { callback.onFailure(null); return }
-    val token = PendingSave.put(app, read.view.webDomain, credentials.user, credentials.password)
+    val token = PendingSave.put(recipient, read.view.webDomain, credentials.user, credentials.password)
     val intent = AutofillActivity.saveIntent(this, token)
     val pending = PendingIntent.getActivity(this, requestCodes.incrementAndGet(), intent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE)
     callback.onSuccess(pending.intentSender)
@@ -115,26 +120,5 @@ class KpmAutofillService : AutofillService() {
 
   companion object {
     private val requestCodes = AtomicInteger()
-
-    /**
-     * Browser di cui ci si fida per il dominio dichiarato (elenco di
-     * `Kp2aDigitalAssetLinksDataSource` di Keepass2Android, decisione D27): nelle
-     * altre app il dominio si usa solo dopo una conferma.
-     */
-    // Elenco da Keepass2Android, Kp2aDigitalAssetLinksDataSource.cs,
-    // revisione 8b60a72fc8eb23e8580df053a49ca813a686c838.
-    // Copyright 2025 Philipp Crocoll; GPL versione 3 o successiva, senza
-    // garanzia. Trascritto in Kotlin nel 2026; vedi LICENSE.
-    val TRUSTED_BROWSERS = setOf(
-      "org.mozilla.firefox", "org.mozilla.firefox_beta", "org.mozilla.klar", "org.mozilla.focus",
-      "org.mozilla.fenix", "org.mozilla.reference.browser",
-      "com.android.browser", "com.android.chrome", "com.chrome.beta", "com.chrome.dev", "com.chrome.canary",
-      "com.google.android.apps.chrome", "com.google.android.apps.chrome_dev",
-      "com.opera.browser", "com.opera.browser.beta", "com.opera.mini.native", "com.opera.mini.native.beta",
-      "com.opera.touch", "com.brave.browser", "com.yandex.browser", "com.microsoft.emmx", "com.amazon.cloud9",
-      "com.sec.android.app.sbrowser", "com.sec.android.app.sbrowser.beta", "org.codeaurora.swe.browser",
-      "mark.via.gp", "org.bromite.bromite", "org.mozilla.fennec_fdroid", "com.vivaldi.browser",
-      "com.kiwibrowser.browser", "acr.browser.lightning", "acr.browser.barebones", "jp.hazuki.yuzubrowser",
-    )
   }
 }

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:document_access/document_access.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
+import 'package:kpasslib/kpasslib.dart';
 
 /// Documenti in memoria al posto del plugin nativo.
 class _FakeDocuments extends DocumentAccess {
@@ -71,6 +72,22 @@ void main() {
       );
     });
 
+    test(
+      'rifiuta un file locale oltre il limite prima della lettura',
+      () async {
+        final ref = local('db.kdbx');
+        final file = await File.fromUri(Uri.parse(ref.uri))
+            .open(mode: FileMode.write);
+        await file.truncate(KdbxResourceLimits.maxFileBytes + 1);
+        await file.close();
+
+        await expectLater(
+          storage.read(ref),
+          throwsA(isA<KdbxResourceLimitError>()),
+        );
+      },
+    );
+
     test('cartella inesistente in scrittura: FileUnavailableException', () {
       final ref = FileRef(
         uri: File('${dir.path}/manca/db.kdbx').uri.toString(),
@@ -111,6 +128,11 @@ void main() {
 
     test('documento non raggiungibile: FileUnavailableException', () {
       expect(storage.read(ref), throwsA(isA<FileUnavailableException>()));
+    });
+
+    test('propaga il limite di lettura del plugin', () {
+      documents.failWith = const DocumentAccessException('too_large');
+      expect(storage.read(ref), throwsA(isA<KdbxResourceLimitError>()));
     });
 
     test('errore di scrittura: FileWriteException', () {

@@ -404,6 +404,24 @@ abstract class AppLocalizations {
   /// **'Unsupported database format or algorithm.'**
   String get errorUnsupported;
 
+  /// No description provided for @errorFileTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The file exceeds the 128 MiB size limit.'**
+  String get errorFileTooLarge;
+
+  /// No description provided for @errorDatabasePayloadTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The database exceeds the size limit after decompression.'**
+  String get errorDatabasePayloadTooLarge;
+
+  /// No description provided for @errorDatabaseKdfTooCostly.
+  ///
+  /// In en, this message translates to:
+  /// **'The key derivation settings exceed the supported memory or computation limits.'**
+  String get errorDatabaseKdfTooCostly;
+
   /// No description provided for @errorKeyFileUnavailable.
   ///
   /// In en, this message translates to:
@@ -956,6 +974,18 @@ abstract class AppLocalizations {
   /// **'Secure screen'**
   String get settingsSecureScreen;
 
+  /// No description provided for @screenProtectionWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Screen protection could not be applied. Continuing may allow screenshots or screen recordings to capture your database.'**
+  String get screenProtectionWarning;
+
+  /// No description provided for @screenProtectionContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with this risk'**
+  String get screenProtectionContinue;
+
   /// No description provided for @settingsSecureScreenHint.
   ///
   /// In en, this message translates to:
@@ -1027,6 +1057,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Entries for this app or site'**
   String get autofillMatches;
+
+  /// No description provided for @autofillSiteInApp.
+  ///
+  /// In en, this message translates to:
+  /// **'{domain} in {app}'**
+  String autofillSiteInApp(String domain, String app);
+
+  /// No description provided for @autofillApproximateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the recipient'**
+  String get autofillApproximateTitle;
+
+  /// No description provided for @autofillApproximateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'“{entry}” matched only by a related domain or search text. Fill its credentials in {target}?'**
+  String autofillApproximateBody(String entry, String target);
+
+  /// No description provided for @autofillAppIdentityWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'“{entry}” is linked to {app}. Confirm that you recognize this installed app before filling its credentials.'**
+  String autofillAppIdentityWarning(String entry, String app);
+
+  /// No description provided for @autofillFillAndRememberApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill and remember app'**
+  String get autofillFillAndRememberApp;
+
+  /// No description provided for @autofillSaveAndRememberApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Create entry and remember app'**
+  String get autofillSaveAndRememberApp;
+
+  /// No description provided for @autofillRememberAppSignature.
+  ///
+  /// In en, this message translates to:
+  /// **'Remembering this app saves its signing certificate on this device for future fills of entries linked to it.'**
+  String get autofillRememberAppSignature;
 
   /// No description provided for @autofillNoMatches.
   ///
@@ -2071,6 +2143,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep an encrypted KDBX copy excluded from backups. Turning this off does not delete changes awaiting upload.'**
   String get settingsRemoteCacheHint;
+
+  /// No description provided for @settingsRemoteCacheClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete synced local copies'**
+  String get settingsRemoteCacheClear;
+
+  /// No description provided for @settingsRemoteCacheClearConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes awaiting upload will be kept. A server connection is needed to recreate the local copies.'**
+  String get settingsRemoteCacheClearConfirm;
+
+  /// No description provided for @settingsRemoteCacheClearDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced copies cleanup complete.'**
+  String get settingsRemoteCacheClearDone;
+
+  /// No description provided for @settingsRemoteCacheClearIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Some copies could not be verified or changed during cleanup.'**
+  String get settingsRemoteCacheClearIncomplete;
 
   /// No description provided for @cacheOffline.
   ///

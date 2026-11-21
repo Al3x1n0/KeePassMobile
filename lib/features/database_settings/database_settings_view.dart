@@ -30,10 +30,13 @@ class DatabaseSettingsView extends ConsumerStatefulWidget {
 
 /// Limiti dei valori numerici (AES-KDF e Argon2 su un telefono).
 abstract final class _Limits {
-  static const rounds = (1, 2000000000);
-  static const memoryMiB = (1, 1024);
-  static const iterations = (1, 100);
-  static const parallelism = (1, 16);
+  static const rounds = (1, KdbxResourceLimits.maxAesRounds);
+  static const memoryMiB = (
+    1,
+    KdbxResourceLimits.maxArgon2Memory ~/ DataSize.mebi,
+  );
+  static const iterations = (1, KdbxResourceLimits.maxArgon2Iterations);
+  static const parallelism = (1, KdbxResourceLimits.maxArgon2Parallelism);
   static const historyItems = (0, 9999);
   static const historySizeMiB = (0, 1024);
 }

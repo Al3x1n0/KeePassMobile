@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,14 +8,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Keepass2Android).
 const androidAppScheme = 'androidapp://';
 
+final _hostnameLabel = RegExp(
+  r'^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$',
+);
+
+/// Canonical ASCII hostname for display and signer-bound trust.
+String? canonicalAutofillDomain(String? value) {
+  if (value == null) return null;
+  final hostname = value.endsWith('.')
+      ? value.substring(0, value.length - 1)
+      : value;
+  if (hostname.length > 253 || !hostname.contains('.')) return null;
+  if (!hostname.split('.').every(_hostnameLabel.hasMatch)) return null;
+  return hostname.toLowerCase();
+}
+
 /// Richiesta di compilazione automatica: app che chiede i valori e dominio che
 /// dichiara (solo Android, `AutofillActivity`).
 @immutable
 class AutofillRequest {
   const AutofillRequest({
     required this.packageName,
-    this.webDomain,
-    this.isBrowser = false,
+    this._webDomain,
+    this.signingIds = const [],
     this.hasUserName = true,
     this.hasPassword = true,
     this.save = false,
@@ -22,11 +39,13 @@ class AutofillRequest {
 
   final String packageName;
 
-  /// Dominio dichiarato dalla pagina; un'app qualsiasi può dichiararne uno.
-  final String? webDomain;
+  final String? _webDomain;
 
-  /// L'app è un browser noto: il dominio si usa senza conferma (D27).
-  final bool isBrowser;
+  /// Dominio dichiarato dalla pagina, dopo la validazione della sintassi.
+  String? get webDomain => canonicalAutofillDomain(_webDomain);
+
+  /// Identità di firma verificate da Android, con la corrente in coda.
+  final List<String> signingIds;
 
   final bool hasUserName;
   final bool hasPassword;
@@ -36,12 +55,21 @@ class AutofillRequest {
   /// Richiesta per l'app: `androidapp://<pacchetto>`.
   String get appQuery => '$androidAppScheme$packageName';
 
-  /// Coppia dominio-app ricordata dopo la conferma (`AutoFillTrustedLinks` di
-  /// Keepass2Android); `null` senza dominio.
-  String? get trustLink => switch (webDomain) {
-    final domain? => '$domain + $packageName',
-    null => null,
-  };
+  /// Conferme valide anche dopo una rotazione verificata da Android.
+  Iterable<String> get trustLinks {
+    final domain = webDomain;
+    if (domain == null) return const [];
+    return signingIds.map(
+      (id) => jsonEncode(['site', domain, packageName, id]),
+    );
+  }
+
+  /// Conferme per le associazioni KDBX a un'app, indipendenti dai siti.
+  Iterable<String> get appTrustLinks =>
+      signingIds.map((id) => jsonEncode(['app', packageName, id]));
+
+  bool get canRememberDomain => webDomain != null && signingIds.isNotEmpty;
+  bool get canRememberApp => signingIds.isNotEmpty;
 }
 
 /// Canale con `AutofillActivity`: la richiesta e la risposta, una volta sola.
@@ -61,12 +89,12 @@ class AutofillChannel {
       if (map == null || app is! String || app.isEmpty) return null;
       return AutofillRequest(
         packageName: app,
-        webDomain: switch (map['webDomain']) {
-          final String domain when domain.trim().isNotEmpty =>
-            domain.trim().toLowerCase(),
-          _ => null,
-        },
-        isBrowser: map['isBrowser'] == true,
+        webDomain: map['webDomain'] is String
+            ? map['webDomain'] as String
+            : null,
+        signingIds: List.unmodifiable(
+          (map['signingIds'] as List<Object?>? ?? const []).whereType<String>(),
+        ),
         hasUserName: map['hasUserName'] == true,
         hasPassword: map['hasPassword'] == true,
         save: map['save'] == true,

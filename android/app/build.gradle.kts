@@ -68,6 +68,11 @@ flutter {
 
 dependencies {
     implementation("androidx.autofill:autofill:1.3.0")
+    constraints {
+        implementation("com.google.guava:guava:33.7.2-android") {
+            because("CVE-2026-102554")
+        }
+    }
     // Test del parser della compilazione automatica, solo nei test:
     // JUnit 4 (EPL-1.0) e org.json (pubblico dominio) per le strutture di esempio.
     testImplementation("junit:junit:4.13.2")

@@ -7,6 +7,19 @@ sealed class KdbxError implements Exception {
   String get message => _message;
 }
 
+/// Resource ceilings applied while opening a KDBX file.
+enum KdbxResourceLimit { fileSize, payloadSize, kdfCost }
+
+/// A file requires more resources than the reader allows.
+final class KdbxResourceLimitError extends KdbxError {
+  /// Creates an error for the specified [limit].
+  const KdbxResourceLimitError(this.limit)
+      : super('Database exceeds the supported resource limits');
+
+  /// The ceiling that would be exceeded.
+  final KdbxResourceLimit limit;
+}
+
 /// A error thrown if a KDBX file corruption detected.
 class FileCorruptedError extends KdbxError {
   /// Creates a [FileCorruptedError] with [message].

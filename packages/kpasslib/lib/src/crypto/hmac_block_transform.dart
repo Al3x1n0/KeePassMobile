@@ -48,9 +48,12 @@ abstract final class HmacBlockTransform {
     final writer = BytesWriter();
     var index = 0;
 
-    next() => (reader.readBytes(_hashSize), reader.readUint32());
-
-    for (var (hash, size) = next(); size > 0; (hash, size) = next()) {
+    while (reader.bytesLeft >= _hashSize + Uint32List.bytesPerElement) {
+      final hash = reader.readBytes(_hashSize);
+      final size = reader.readUint32();
+      if (size > reader.bytesLeft) {
+        throw const FileCorruptedError('truncated HMAC block');
+      }
       final blockData = reader.readBytes(size);
 
       if (!ListEquality()
@@ -58,10 +61,17 @@ abstract final class HmacBlockTransform {
         throw FileCorruptedError('invalid block hash');
       }
 
+      if (size == 0) {
+        if (reader.bytesLeft != 0) {
+          throw const FileCorruptedError('unexpected data after HMAC stream');
+        }
+        return writer.bytes;
+      }
+
       writer.writeBytes(blockData);
     }
 
-    return writer.bytes;
+    throw const FileCorruptedError('missing HMAC end block');
   }
 
   /// Returns hash of the [key].

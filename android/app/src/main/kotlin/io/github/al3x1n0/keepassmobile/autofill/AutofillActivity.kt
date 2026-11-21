@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.service.autofill.Dataset
+import android.view.MotionEvent
 import android.view.autofill.AutofillId
 import android.view.autofill.AutofillManager
 import android.view.autofill.AutofillValue
@@ -16,6 +17,8 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.github.al3x1n0.keepassmobile.R
+import io.github.al3x1n0.keepassmobile.hideUntrustedOverlays
+import io.github.al3x1n0.keepassmobile.isObscured
 
 /**
  * Schermata della compilazione automatica (`ChooseForAutofillActivity` di
@@ -42,6 +45,7 @@ class AutofillActivity : FlutterActivity() {
 
   override fun onCreate(savedInstanceState: android.os.Bundle?) {
     super.onCreate(savedInstanceState)
+    window.hideUntrustedOverlays()
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED)
     } else {
@@ -51,6 +55,9 @@ class AutofillActivity : FlutterActivity() {
   }
 
   override fun getDartEntrypointFunctionName(): String = "autofillMain"
+
+  override fun dispatchTouchEvent(event: MotionEvent): Boolean =
+    event.isObscured() || super.dispatchTouchEvent(event)
 
   override fun onDestroy() {
     unregisterReceiver(screenOffReceiver)
@@ -72,11 +79,18 @@ class AutofillActivity : FlutterActivity() {
       "takeSavePassword" -> {
         val token = intent.getStringExtra(EXTRA_SAVE_TOKEN)
         intent.removeExtra(EXTRA_SAVE_TOKEN)
-        result.success(token?.let { PendingSave.remove(it)?.password })
+        val save = token?.let(PendingSave::remove)
+        result.success(save?.takeIf {
+          verifyRecipient(it.recipient.packageName, it.recipient.currentSigningId) != null
+        }?.password)
       }
       "fill" -> {
-        fill(call.argument<String>("userName"), call.argument<String>("password"))
-        result.success(null)
+        if (fillRecipient() == null) {
+          result.error("recipient_changed", null, null)
+        } else {
+          fill(call.argument<String>("userName"), call.argument<String>("password"))
+          result.success(null)
+        }
       }
       "cancel" -> {
         intent.getStringExtra(EXTRA_SAVE_TOKEN)?.let { PendingSave.remove(it) }
@@ -93,18 +107,31 @@ class AutofillActivity : FlutterActivity() {
     val token = intent.getStringExtra(EXTRA_SAVE_TOKEN)
     if (token != null) {
       val save = PendingSave.peek(token) ?: return null
-      return mapOf("packageName" to save.app, "webDomain" to save.domain,
-        "isBrowser" to (save.app in KpmAutofillService.TRUSTED_BROWSERS),
+      val recipient = verifyRecipient(save.recipient.packageName, save.recipient.currentSigningId)
+        ?: return null
+      return mapOf("packageName" to recipient.packageName, "webDomain" to save.domain,
+        "signingIds" to recipient.signingIds,
         "save" to true, "userName" to save.user)
     }
-    val app = intent.getStringExtra(EXTRA_PACKAGE) ?: return null
+    val recipient = fillRecipient() ?: return null
     return mapOf(
-      "packageName" to app,
+      "packageName" to recipient.packageName,
       "webDomain" to intent.getStringExtra(EXTRA_DOMAIN),
-      "isBrowser" to (app in KpmAutofillService.TRUSTED_BROWSERS),
+      "signingIds" to recipient.signingIds,
       "hasUserName" to ids(EXTRA_USER_NAME_IDS).isNotEmpty(),
       "hasPassword" to ids(EXTRA_SECRET_IDS).isNotEmpty(),
     )
+  }
+
+  private fun fillRecipient(): AutofillRecipient? {
+    val app = intent.getStringExtra(EXTRA_PACKAGE)
+    if (callingPackage?.let { it != app } == true) return null
+    return verifyRecipient(app, intent.getStringExtra(EXTRA_SIGNER))
+  }
+
+  private fun verifyRecipient(app: String?, signer: String?): AutofillRecipient? {
+    if (app == null || signer == null) return null
+    return AutofillRecipient.resolve(packageManager, app)?.takeIf { it.currentSigningId == signer }
   }
 
   @Suppress("DEPRECATION")
@@ -147,6 +174,7 @@ class AutofillActivity : FlutterActivity() {
     private const val CHANNEL = "io.github.al3x1n0.keepassmobile/autofill"
     private const val EXTRA_SAVE_TOKEN = "io.github.al3x1n0.keepassmobile.autofill.SAVE_TOKEN"
     private const val EXTRA_PACKAGE = "io.github.al3x1n0.keepassmobile.autofill.PACKAGE"
+    private const val EXTRA_SIGNER = "io.github.al3x1n0.keepassmobile.autofill.SIGNER"
     private const val EXTRA_DOMAIN = "io.github.al3x1n0.keepassmobile.autofill.DOMAIN"
     private const val EXTRA_USER_NAME_IDS = "io.github.al3x1n0.keepassmobile.autofill.USER_NAME_IDS"
     private const val EXTRA_SECRET_IDS = "io.github.al3x1n0.keepassmobile.autofill.SECRET_IDS"
@@ -154,14 +182,15 @@ class AutofillActivity : FlutterActivity() {
     fun saveIntent(context: Context, token: String): Intent =
       Intent(context, AutofillActivity::class.java).putExtra(EXTRA_SAVE_TOKEN, token)
 
-    fun intent(
+    internal fun intent(
       context: Context,
-      app: String,
+      recipient: AutofillRecipient,
       webDomain: String?,
       userNameIds: ArrayList<AutofillId>,
       secretIds: ArrayList<AutofillId>,
     ): Intent = Intent(context, AutofillActivity::class.java)
-      .putExtra(EXTRA_PACKAGE, app)
+      .putExtra(EXTRA_PACKAGE, recipient.packageName)
+      .putExtra(EXTRA_SIGNER, recipient.currentSigningId)
       .putExtra(EXTRA_DOMAIN, webDomain)
       .putParcelableArrayListExtra(EXTRA_USER_NAME_IDS, userNameIds)
       .putParcelableArrayListExtra(EXTRA_SECRET_IDS, secretIds)

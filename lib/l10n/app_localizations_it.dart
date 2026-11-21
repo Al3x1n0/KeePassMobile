@@ -178,6 +178,17 @@ class AppLocalizationsIt extends AppLocalizations {
       'Formato o algoritmo del database non supportato.';
 
   @override
+  String get errorFileTooLarge => 'Il file supera il limite di 128 MiB.';
+
+  @override
+  String get errorDatabasePayloadTooLarge =>
+      'Il database supera il limite di dimensione dopo la decompressione.';
+
+  @override
+  String get errorDatabaseKdfTooCostly =>
+      'Le impostazioni di derivazione della chiave superano i limiti di memoria o di calcolo supportati.';
+
+  @override
   String get errorKeyFileUnavailable =>
       'Impossibile leggere il file chiave. Sceglilo di nuovo.';
 
@@ -499,6 +510,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsSecureScreen => 'Schermo protetto';
 
   @override
+  String get screenProtectionWarning =>
+      'Impossibile applicare la protezione dello schermo. Se continui, screenshot o registrazioni potrebbero catturare il contenuto del database.';
+
+  @override
+  String get screenProtectionContinue => 'Continua accettando il rischio';
+
+  @override
   String get settingsSecureScreenHint =>
       'Impedisce screenshot e registrazioni dello schermo e nasconde l\'anteprima tra le app recenti.';
 
@@ -540,6 +558,34 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get autofillMatches => 'Voci per questa app o sito';
+
+  @override
+  String autofillSiteInApp(String domain, String app) {
+    return '$domain in $app';
+  }
+
+  @override
+  String get autofillApproximateTitle => 'Conferma il destinatario';
+
+  @override
+  String autofillApproximateBody(String entry, String target) {
+    return '“$entry” corrisponde per un dominio simile o per il testo della ricerca. Vuoi usare le sue credenziali in $target?';
+  }
+
+  @override
+  String autofillAppIdentityWarning(String entry, String app) {
+    return '“$entry” è associata a $app. Prima di compilare le credenziali, conferma che riconosci l’app installata.';
+  }
+
+  @override
+  String get autofillFillAndRememberApp => 'Compila e ricorda l’app';
+
+  @override
+  String get autofillSaveAndRememberApp => 'Crea voce e ricorda l’app';
+
+  @override
+  String get autofillRememberAppSignature =>
+      'Se ricordi questa app, KeePassMobile conserva il suo certificato di firma sul dispositivo per le future compilazioni delle voci associate.';
 
   @override
   String get autofillNoMatches =>
@@ -1135,6 +1181,21 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get settingsRemoteCacheHint =>
       'Conserva una copia KDBX cifrata, esclusa dai backup. Disattivare non cancella le modifiche ancora da caricare.';
+
+  @override
+  String get settingsRemoteCacheClear => 'Elimina copie locali sincronizzate';
+
+  @override
+  String get settingsRemoteCacheClearConfirm =>
+      'Le modifiche in attesa di caricamento vengono conservate. Per ricreare le copie locali serve una connessione al server.';
+
+  @override
+  String get settingsRemoteCacheClearDone =>
+      'Pulizia delle copie sincronizzate completata.';
+
+  @override
+  String get settingsRemoteCacheClearIncomplete =>
+      'Alcune copie non erano verificabili o sono cambiate durante la pulizia.';
 
   @override
   String get cacheOffline =>

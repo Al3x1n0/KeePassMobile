@@ -12,7 +12,19 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
 {
   private static let channelName = "io.github.al3x1n0.keepassmobile/document_access"
   private static let bookmarkPrefix = "bookmark:"
+  private static let maxDocumentBytes = 128 * 1024 * 1024
   private static let cacheLock = NSLock()
+  // Inizializzata una volta per processo, anche con più motori Flutter.
+  private static let exportStaging = Result<URL, Error> {
+    let manager = FileManager.default
+    let folder = manager.temporaryDirectory.appendingPathComponent(
+      "keepassmobile-document-exports", isDirectory: true)
+    if manager.fileExists(atPath: folder.path) {
+      try manager.removeItem(at: folder)
+    }
+    try manager.createDirectory(at: folder, withIntermediateDirectories: false)
+    return folder
+  }
 
   private weak var registrar: FlutterPluginRegistrar?
   private var pendingPick: FlutterResult?
@@ -22,6 +34,7 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
   private let io = DispatchQueue(label: "io.github.al3x1n0.keepassmobile.document_access.io")
 
   public static func register(with registrar: FlutterPluginRegistrar) {
+    _ = exportStaging
     let channel = FlutterMethodChannel(name: channelName, binaryMessenger: registrar.messenger())
     let instance = DocumentAccessPlugin()
     instance.registrar = registrar
@@ -55,10 +68,7 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
         try self.write(uri, bytes.data)
         return nil
       }
-    case "readRemoteCache", "writeRemoteCache":
-      guard let id = args?["id"] as? String,
-        id.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil
-      else { return result(Self.error("io")) }
+    case "readRemoteCache", "writeRemoteCache", "listRemoteCacheIds", "deleteRemoteCache":
       runIo(result) {
         Self.cacheLock.lock()
         defer { Self.cacheLock.unlock() }
@@ -70,7 +80,23 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try folder.setResourceValues(values)
+        if call.method == "listRemoteCacheIds" {
+          return try manager.contentsOfDirectory(atPath: folder.path).filter(Self.isCacheId)
+        }
+        guard let id = args?["id"] as? String, Self.isCacheId(id) else {
+          throw Self.cacheError()
+        }
         let file = folder.appendingPathComponent(id)
+        if call.method == "deleteRemoteCache" {
+          guard let expected = (args?["expected"] as? FlutterStandardTypedData)?.data,
+            expected.count == 32 else { throw Self.cacheError() }
+          guard manager.fileExists(atPath: file.path) else { return false }
+          let handle = try FileHandle(forReadingFrom: file)
+          defer { try? handle.close() }
+          guard try handle.read(upToCount: 32) == expected else { return false }
+          try manager.removeItem(at: file)
+          return true
+        }
         let current = manager.fileExists(atPath: file.path) ? try Data(contentsOf: file) : nil
         if call.method == "readRemoteCache" {
           return current.map { FlutterStandardTypedData(bytes: $0) }
@@ -92,6 +118,11 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
     }
   }
 
+  private static func isCacheId(_ value: String) -> Bool {
+    value.utf8.count == 64 &&
+      value.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil
+  }
+
   private static func cacheError() -> NSError {
     NSError(domain: "document_access", code: 1)
   }
@@ -111,14 +142,13 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
 
   // MARK: - Creazione di un documento
 
-  /// Scrive il contenuto in un file temporaneo dell'app (è il database cifrato) e
-  /// lo fa spostare dall'utente nella posizione scelta.
+  /// Prepara l'esportazione finché il selettore consegna il file alla destinazione.
   private func create(_ name: String, _ data: Data, _ result: @escaping FlutterResult) {
     guard pendingPick == nil, pendingCreate == nil else { return result(Self.error("busy")) }
     guard let presenter = topViewController() else { return result(Self.error("no_activity")) }
+    guard let staging = try? Self.exportStaging.get() else { return result(Self.error("io")) }
     let fileManager = FileManager.default
-    let folder = fileManager.temporaryDirectory.appendingPathComponent(
-      UUID().uuidString, isDirectory: true)
+    let folder = staging.appendingPathComponent(UUID().uuidString, isDirectory: true)
     let fileName = (name as NSString).lastPathComponent
     let temp = folder.appendingPathComponent(fileName.isEmpty ? "database.kdbx" : fileName)
     do {
@@ -215,6 +245,7 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
   // MARK: - Lettura e scrittura
 
   private struct Unavailable: Error {}
+  private struct DocumentTooLarge: Error {}
 
   /// URL del documento; `stale` se il bookmark va rigenerato.
   private func resolve(_ uri: String) throws -> (url: URL, stale: Bool) {
@@ -271,7 +302,18 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
     var result: Result<Data, Error> = .failure(Unavailable())
     NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinationError) {
       target in
-      result = Result { try Data(contentsOf: target) }
+      result = Result {
+        let file = try FileHandle(forReadingFrom: target)
+        defer { try? file.close() }
+        var data = Data()
+        while let chunk = try file.read(upToCount: min(64 * 1024, Self.maxDocumentBytes - data.count + 1)),
+          !chunk.isEmpty
+        {
+          if chunk.count > Self.maxDocumentBytes - data.count { throw DocumentTooLarge() }
+          data.append(chunk)
+        }
+        return data
+      }
     }
     if let error = coordinationError { throw error }
     return try result.get()
@@ -291,6 +333,7 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
 
   private static func code(for error: Error) -> String {
     if error is Unavailable { return "unavailable" }
+    if error is DocumentTooLarge { return "too_large" }
     let nsError = error as NSError
     guard nsError.domain == NSCocoaErrorDomain else { return "io" }
     switch nsError.code {

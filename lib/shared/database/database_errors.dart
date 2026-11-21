@@ -17,22 +17,28 @@ final class KeyFileUnavailableException implements Exception {
   const KeyFileUnavailableException();
 }
 
+/// Messaggio per un errore durante la scelta del database.
+String describeFilePickError(AppLocalizations l10n, Object error) =>
+    error is KdbxResourceLimitError
+    ? _describeResourceLimit(l10n, error.limit)
+    : l10n.errorFileUnavailable;
+
 /// Messaggio per l'utente scelto per tipo di errore, mai dal testo
 /// dell'eccezione (SEC-01).
-String describeDatabaseError(AppLocalizations l10n, Object error) =>
-    switch (error) {
-      InvalidCredentialsError() => l10n.errorInvalidCredentials,
-      FileCorruptedError() => l10n.errorFileCorrupted,
-      UnsupportedValueError() => l10n.errorUnsupported,
-      KeyFileUnavailableException() => l10n.errorKeyFileUnavailable,
-      FileUnavailableException() => l10n.errorFileUnavailable,
-      BiometricKeyException(:final reason) => describeBiometricError(
-        l10n,
-        reason,
-      ),
-      _ when isRemoteError(error) => describeRemoteError(l10n, error),
-      _ => l10n.errorGeneric,
-    };
+String describeDatabaseError(
+  AppLocalizations l10n,
+  Object error,
+) => switch (error) {
+  InvalidCredentialsError() => l10n.errorInvalidCredentials,
+  FileCorruptedError() => l10n.errorFileCorrupted,
+  UnsupportedValueError() => l10n.errorUnsupported,
+  KdbxResourceLimitError(:final limit) => _describeResourceLimit(l10n, limit),
+  KeyFileUnavailableException() => l10n.errorKeyFileUnavailable,
+  FileUnavailableException() => l10n.errorFileUnavailable,
+  BiometricKeyException(:final reason) => describeBiometricError(l10n, reason),
+  _ when isRemoteError(error) => describeRemoteError(l10n, error),
+  _ => l10n.errorGeneric,
+};
 
 /// `true` per gli errori dei server remoti (ADR-014).
 bool isRemoteError(Object error) => switch (error) {
@@ -57,6 +63,10 @@ bool isRemoteError(Object error) => switch (error) {
 /// (SEC-01).
 String describeRemoteError(AppLocalizations l10n, Object error) =>
     switch (error) {
+      KdbxResourceLimitError(:final limit) => _describeResourceLimit(
+        l10n,
+        limit,
+      ),
       SshHostKeyChangedException() => l10n.errorSshHostChanged,
       InvalidSshKeyException() => l10n.errorSshKey,
       RemoteSftpException() => l10n.errorSftp,
@@ -99,6 +109,10 @@ String describeSaveError(AppLocalizations l10n, Object error) =>
     switch (error) {
       FieldReferenceException() => l10n.errorFieldReference,
       InvalidItemEditException() => l10n.errorItemOperation,
+      KdbxResourceLimitError(:final limit) => _describeResourceLimit(
+        l10n,
+        limit,
+      ),
       FileUnavailableException() => l10n.errorSaveUnavailable,
       DatabaseBusyException() => l10n.errorSaveBusy,
       DatabaseLockedException() => l10n.errorSaveLocked,
@@ -109,4 +123,11 @@ String describeSaveError(AppLocalizations l10n, Object error) =>
       SyncDifferentDatabaseException() => l10n.errorSyncDifferentDatabase,
       _ when isRemoteError(error) => describeRemoteError(l10n, error),
       _ => l10n.errorSaveFailed,
+    };
+
+String _describeResourceLimit(AppLocalizations l10n, KdbxResourceLimit limit) =>
+    switch (limit) {
+      KdbxResourceLimit.fileSize => l10n.errorFileTooLarge,
+      KdbxResourceLimit.payloadSize => l10n.errorDatabasePayloadTooLarge,
+      KdbxResourceLimit.kdfCost => l10n.errorDatabaseKdfTooCostly,
     };

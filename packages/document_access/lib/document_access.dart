@@ -83,7 +83,7 @@ final class DocumentUnavailableException implements Exception {
 final class DocumentAccessException implements Exception {
   const DocumentAccessException(this.code);
 
-  /// `io`, `busy` (una scelta è già in corso) o `no_activity`.
+  /// `io`, `busy` (una scelta è già in corso), `no_activity` o `too_large`.
   final String code;
 
   @override
@@ -172,6 +172,23 @@ class DocumentAccess {
   /// Nessun nome o riferimento al file remoto attraversa il canale.
   Future<Uint8List?> readRemoteCache(String id) =>
       _invoke<Uint8List>('readRemoteCache', {'id': id});
+
+  /// Identificativi dei record, compresi quelli senza un file recente.
+  Future<List<String>> listRemoteCacheIds() async {
+    final ids = await _invoke<List<Object?>>('listRemoteCacheIds');
+    if (ids == null || ids.any((id) => id is! String)) {
+      throw const DocumentAccessException('io');
+    }
+    return ids.cast<String>();
+  }
+
+  /// Rimuove il record soltanto se corrisponde al token già letto.
+  Future<bool> deleteRemoteCache(String id, Uint8List expectedToken) async =>
+      await _invoke<bool>('deleteRemoteCache', {
+        'id': id,
+        'expected': expectedToken,
+      }) ??
+      false;
 
   /// Sostituzione atomica con confronto del token iniziale di 32 byte.
   /// `null` richiede un record assente; `false` indica una modifica concorrente.

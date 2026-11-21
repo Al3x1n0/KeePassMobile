@@ -49,6 +49,12 @@ void main() {
       EntryFields.userName: 'luigi',
       EntryFields.password: 'segreto-2',
     });
+    addTestEntry(db, db.root, {
+      EntryFields.title: 'Messaggi',
+      'AndroidApp1': 'androidapp://com.example.messenger',
+      EntryFields.userName: 'utente-app',
+      EntryFields.password: 'segreto-app',
+    });
     (databaseFile, _) = await saveToTempFile(db);
     calls = [];
     security = FakeAppSecurity();
@@ -69,10 +75,12 @@ void main() {
   /// sblocco si apre da solo) e sblocca con la password.
   Future<SharedPreferences> start(
     WidgetTester tester,
-    AutofillRequest request,
-  ) async {
+    AutofillRequest request, {
+    Map<String, Object> preferences = const {},
+  }) async {
     FakeClipboard(tester.binding);
     SharedPreferences.setMockInitialValues({
+      ...preferences,
       RecentFilesRepository.storageKey: [
         jsonEncode(RecentFile(database: fileRefOf(databaseFile)).toJson()),
       ],
@@ -110,15 +118,25 @@ void main() {
   }
 
   testWidgets(
-    'browser: voce del sito proposta, compilazione e database chiuso',
+    'browser: la conferma segue una rotazione verificata, poi compila e chiude',
     (tester) async {
       await start(
         tester,
         const AutofillRequest(
           packageName: 'com.android.chrome',
           webDomain: 'www.example.com',
-          isBrowser: true,
+          signingIds: ['signer-one', 'signer-two'],
         ),
+        preferences: {
+          AutofillTrustRepository.storageKey: [
+            jsonEncode([
+              'site',
+              'www.example.com',
+              'com.android.chrome',
+              'signer-one',
+            ]),
+          ],
+        },
       );
 
       expect(find.text('Esempio'), findsOneWidget);
@@ -139,14 +157,26 @@ void main() {
   );
 
   testWidgets(
-    'app che dichiara un dominio: avviso e ricerca per app; "Usa sempre" ricorda la coppia',
+    'app che dichiara un dominio: chiede conferma per la firma corrente',
     (tester) async {
       final prefs = await start(
         tester,
         const AutofillRequest(
           packageName: 'com.example.reader',
           webDomain: 'www.example.com',
+          signingIds: ['signer-new'],
         ),
+        preferences: {
+          'autofill.trusted_links': ['www.example.com + com.example.reader'],
+          AutofillTrustRepository.storageKey: [
+            jsonEncode([
+              'site',
+              'www.example.com',
+              'com.example.reader',
+              'signer-old',
+            ]),
+          ],
+        },
       );
 
       expect(
@@ -164,10 +194,112 @@ void main() {
 
       expect(find.text('Esempio'), findsOneWidget);
       expect(prefs.getStringList(AutofillTrustRepository.storageKey), [
-        'www.example.com + com.example.reader',
+        jsonEncode([
+          'site',
+          'www.example.com',
+          'com.example.reader',
+          'signer-new',
+        ]),
+        jsonEncode([
+          'site',
+          'www.example.com',
+          'com.example.reader',
+          'signer-old',
+        ]),
       ]);
     },
   );
+
+  testWidgets(
+    'associazione KDBX storica: conferma nuova firma prima del fill',
+    (tester) async {
+      final before = databaseFile.readAsBytesSync();
+      const app = 'com.example.messenger';
+      final old = jsonEncode(['app', app, 'firma-precedente']);
+      final prefs = await start(
+        tester,
+        const AutofillRequest(packageName: app, signingIds: ['nuova-firma']),
+        preferences: {
+          AutofillTrustRepository.storageKey: [old],
+        },
+      );
+
+      await tester.tap(find.text('Messaggi'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(l10n.autofillAppIdentityWarning('Messaggi', app)),
+        findsOneWidget,
+      );
+      expect(calls.where((call) => call.method == 'fill'), isEmpty);
+      expect(prefs.getStringList(AutofillTrustRepository.storageKey), [old]);
+
+      await tester.tap(find.text(l10n.autofillFillAndRememberApp));
+      expect(await filled(tester), {
+        'userName': 'utente-app',
+        'password': 'segreto-app',
+      });
+      expect(prefs.getStringList(AutofillTrustRepository.storageKey), [
+        old,
+        jsonEncode(['app', app, 'nuova-firma']),
+      ]);
+      expect(databaseFile.readAsBytesSync(), before);
+    },
+  );
+
+  testWidgets('la firma storica verificata vale dopo una rotazione dell’app', (
+    tester,
+  ) async {
+    const app = 'com.example.messenger';
+    await start(
+      tester,
+      const AutofillRequest(
+        packageName: app,
+        signingIds: ['firma-valida', 'firma-ruotata'],
+      ),
+      preferences: {
+        AutofillTrustRepository.storageKey: [
+          jsonEncode(['app', app, 'firma-valida']),
+        ],
+      },
+    );
+
+    await tester.tap(find.text('Messaggi'));
+    expect(await filled(tester), {
+      'userName': 'utente-app',
+      'password': 'segreto-app',
+    });
+  });
+
+  testWidgets('un sottodominio richiede conferma prima della compilazione', (
+    tester,
+  ) async {
+    await start(
+      tester,
+      const AutofillRequest(
+        packageName: 'com.example.reader',
+        webDomain: 'login.www.example.com',
+      ),
+    );
+    await tester.tap(find.text(l10n.autofillUseDomainOnce));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Esempio'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        l10n.autofillApproximateBody(
+          'Esempio',
+          l10n.autofillSiteInApp('login.www.example.com', 'com.example.reader'),
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(calls.where((call) => call.method == 'fill'), isEmpty);
+    await tester.tap(find.text(l10n.autofillFillOnly));
+    expect(await filled(tester), {
+      'userName': 'mario',
+      'password': 'segreto-1',
+    });
+  });
 
   testWidgets(
     'voce trovata con la ricerca: "Compila e ricorda" aggiunge AndroidApp1 e salva',
@@ -226,11 +358,12 @@ void main() {
       calls.add(call);
       return call.method == 'takeSavePassword' ? 'test-secret' : null;
     });
-    await start(
+    final prefs = await start(
       tester,
       const AutofillRequest(
         packageName: 'com.example.app',
         webDomain: 'untrusted.example',
+        signingIds: ['test-signer'],
         save: true,
         userName: 'test-user',
       ),
@@ -238,8 +371,11 @@ void main() {
     expect(find.text('com.example.app'), findsOneWidget);
     expect(find.text('test-secret'), findsNothing);
     expect(calls.where((c) => c.method == 'takeSavePassword'), isEmpty);
-    await tester.ensureVisible(find.text(l10n.autofillSaveConfirm));
-    await tester.tap(find.text(l10n.autofillSaveConfirm));
+    expect(prefs.getStringList(AutofillTrustRepository.storageKey), isNull);
+    final confirm = find.text(l10n.autofillSaveAndRememberApp);
+    await tester.scrollUntilVisible(confirm, 150);
+    await tester.pumpAndSettle();
+    await tester.tap(confirm);
     for (var i = 0; i < 250 && !calls.any((c) => c.method == 'cancel'); i++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 20)),
@@ -247,6 +383,9 @@ void main() {
       await tester.pump();
     }
     expect(calls.where((c) => c.method == 'takeSavePassword'), hasLength(1));
+    expect(prefs.getStringList(AutofillTrustRepository.storageKey), [
+      jsonEncode(['app', 'com.example.app', 'test-signer']),
+    ]);
     final saved = (await tester.runAsync(() => reopenFile(databaseFile)))!;
     final entry = saved.root.allEntries.singleWhere(
       (e) => entryTitle(e) == 'com.example.app',
@@ -344,7 +483,7 @@ void main() {
         await tester.runAsync(
           () => container
               .read(autofillPickViewModelProvider.notifier)
-              .fill(entry.uuid, remember: true),
+              .fill(entry.uuid, choice: AutofillChoice.rememberEntry),
         );
         await tester.pumpAndSettle();
         if (broken) {

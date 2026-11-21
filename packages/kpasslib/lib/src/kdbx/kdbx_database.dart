@@ -119,6 +119,7 @@ class KdbxDatabase {
     required List<int> data,
     required KdbxCredentials credentials,
   }) async {
+    KdbxResourceLimits.checkFileSize(data.length);
     final reader = BytesReader(data);
     final header = KdbxHeader.fromBytes(
       credentials: credentials,
@@ -179,6 +180,24 @@ class KdbxDatabase {
 
   /// The database binaries.
   KdbxBinaries get binaries => header.binaries;
+
+  /// Erases mutable buffers containing secrets before discarding the database.
+  void clearSensitiveData() {
+    header.clearSensitiveData();
+    final entries = [
+      for (final group in _groups) ...group.allEntries,
+    ];
+    while (entries.isNotEmpty) {
+      final entry = entries.removeLast();
+      for (final field in entry.fields.values.whereType<ProtectedTextField>()) {
+        field.protectedText.clear();
+      }
+      entries.addAll(entry.history);
+    }
+    for (final binary in binaries.all.whereType<ProtectedBinary>()) {
+      binary.protectedData.clear();
+    }
+  }
 
   /// The database groups.
   List<KdbxGroup> get groups => _groups;
@@ -516,31 +535,30 @@ class KdbxDatabase {
 
     final (cipherKey, hmacKey, hmac) = await header.computeKeysV4(headerBytes);
 
-    final expectedHeaderHmac = reader.readBytes(hmac.length);
-    if (!ListEquality().equals(expectedHeaderHmac, hmac)) {
-      throw InvalidCredentialsError('invalid key');
+    final key = Uint8List.fromList(cipherKey);
+    final Uint8List data;
+    try {
+      final expectedHeaderHmac = reader.readBytes(hmac.length);
+      if (!ListEquality().equals(expectedHeaderHmac, hmac)) {
+        throw InvalidCredentialsError('invalid key');
+      }
+      final content = HmacBlockTransform.decrypt(
+        data: reader.readBytesToEnd(),
+        key: hmacKey,
+      );
+      data = await _transformData(
+        header: header,
+        data: content,
+        cipherKey: key,
+        encrypt: false,
+      );
+    } finally {
+      CryptoUtils.wipeData(key);
+      CryptoUtils.wipeData(cipherKey);
+      CryptoUtils.wipeData(hmacKey);
     }
-
-    final content = HmacBlockTransform.decrypt(
-      data: reader.readBytesToEnd(),
-      key: hmacKey,
-    );
-    CryptoUtils.wipeData(hmacKey);
-
-    var data = await _transformData(
-      header: header,
-      data: content,
-      cipherKey: Uint8List.fromList(cipherKey),
-      encrypt: false,
-    );
-
-    CryptoUtils.wipeData(cipherKey);
-
-    if (header.compression == CompressionAlgorithm.gzip) {
-      data = GZipDecoder().decodeBytes(data);
-    }
-
-    reader = BytesReader(data);
+    reader = BytesReader(header.decodePayload(data,
+        compressed: header.compression == CompressionAlgorithm.gzip));
     header.readInnerHeader(reader);
     final xml = XmlDocument.parse(
       utf8.decode(
@@ -637,22 +655,25 @@ class KdbxDatabase {
     required KdbxHeader header,
   }) async {
     final masterKey = await header.masterKeyV3;
-    var data = await _transformData(
-      header: header,
-      data: bytes,
-      cipherKey: Uint8List.fromList(masterKey),
-      encrypt: false,
-    );
-    CryptoUtils.wipeData(masterKey);
+    final key = Uint8List.fromList(masterKey);
+    Uint8List data;
+    try {
+      data = await _transformData(
+        header: header,
+        data: bytes,
+        cipherKey: key,
+        encrypt: false,
+      );
+    } finally {
+      CryptoUtils.wipeData(key);
+      CryptoUtils.wipeData(masterKey);
+    }
 
     data = _trimStartBytesV3(data: data, header: header);
     data = HashedBlockTransform.decrypt(data);
 
-    if (header.compression == CompressionAlgorithm.gzip) {
-      data = GZipDecoder().decodeBytes(data);
-    }
-
-    return utf8.decode(data);
+    return utf8.decode(header.decodePayload(data,
+        compressed: header.compression == CompressionAlgorithm.gzip));
   }
 
   Future<Uint8List> _getXmlV3Bytes(XmlDocument xml) async {

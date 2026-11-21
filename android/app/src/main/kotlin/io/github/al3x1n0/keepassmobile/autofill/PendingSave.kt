@@ -6,13 +6,13 @@ import java.util.UUID
 
 /** Credenziali transitorie, mai inserite nell'Intent o persistite su disco. */
 internal object PendingSave {
-  class Request(val app: String, val domain: String?, val user: String?, val password: String)
+  class Request(val recipient: AutofillRecipient, val domain: String?, val user: String?, val password: String)
   private val requests = mutableMapOf<String, Request>()
   private val handler = Handler(Looper.getMainLooper())
 
-  @Synchronized fun put(app: String, domain: String?, user: String?, password: String): String {
+  @Synchronized fun put(recipient: AutofillRecipient, domain: String?, user: String?, password: String): String {
     val token = UUID.randomUUID().toString()
-    requests[token] = Request(app, domain, user, password)
+    requests[token] = Request(recipient, domain, user, password)
     handler.postDelayed({ remove(token) }, 120_000)
     return token
   }

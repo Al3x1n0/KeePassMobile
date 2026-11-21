@@ -6,6 +6,7 @@ import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../storage/file_storage.dart';
 import '../storage/key_file.dart';
+import 'sensitive_text_editing.dart';
 
 /// Chiave principale nuova: password con conferma e file chiave facoltativo
 /// (creazione del database e cambio della chiave, SetPasswordDialog di
@@ -89,24 +90,31 @@ class _MasterKeyFormState extends ConsumerState<MasterKeyForm> {
     String? Function(String?) validator,
   ) {
     final l10n = AppLocalizations.of(context);
-    return TextFormField(
-      controller: controller,
-      enabled: widget.enabled,
-      obscureText: _obscure,
-      autocorrect: false,
-      enableSuggestions: false,
-      enableIMEPersonalizedLearning: false,
-      keyboardType: TextInputType.visiblePassword,
-      inputFormatters: [
-        LengthLimitingTextInputFormatter(AppLimits.masterPassword),
-      ],
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        suffixIcon: IconButton(
-          tooltip: _obscure ? l10n.unlockShowPassword : l10n.unlockHidePassword,
-          icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
-          onPressed: () => setState(() => _obscure = !_obscure),
+    return SensitiveTextEditing(
+      child: TextFormField(
+        selectionControls: SensitiveTextEditing.selectionControls,
+        controller: controller,
+        enabled: widget.enabled,
+        obscureText: _obscure,
+        autocorrect: false,
+        smartDashesType: SmartDashesType.disabled,
+        smartQuotesType: SmartQuotesType.disabled,
+        enableSuggestions: false,
+        enableIMEPersonalizedLearning: false,
+        keyboardType: TextInputType.visiblePassword,
+        inputFormatters: [
+          LengthLimitingTextInputFormatter(AppLimits.masterPassword),
+        ],
+        validator: validator,
+        decoration: InputDecoration(
+          labelText: label,
+          suffixIcon: IconButton(
+            tooltip: _obscure
+                ? l10n.unlockShowPassword
+                : l10n.unlockHidePassword,
+            icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+            onPressed: () => setState(() => _obscure = !_obscure),
+          ),
         ),
       ),
     );

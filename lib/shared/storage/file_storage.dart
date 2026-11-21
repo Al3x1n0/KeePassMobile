@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:typed_data' show BytesBuilder;
 
 import 'package:document_access/document_access.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kpasslib/kpasslib.dart';
 
 import 'remote_storage.dart';
 import 'sftp_client.dart';
@@ -107,11 +109,22 @@ class FileStorage {
         );
       } on RemoteNotFoundException {
         throw const FileUnavailableException();
+      } on RemoteHttpException catch (error) {
+        if (error.status == 413) {
+          throw const KdbxResourceLimitError(KdbxResourceLimit.fileSize);
+        }
+        rethrow;
       }
     }
     if (_localFile(ref) case final file?) {
       try {
-        return StoredFile(ref: ref, bytes: await file.readAsBytes());
+        KdbxResourceLimits.checkFileSize(await file.length());
+        final bytes = BytesBuilder(copy: false);
+        await for (final chunk in file.openRead()) {
+          KdbxResourceLimits.checkFileSize(bytes.length + chunk.length);
+          bytes.add(chunk);
+        }
+        return StoredFile(ref: ref, bytes: bytes.takeBytes());
       } on FileSystemException {
         throw const FileUnavailableException();
       }
@@ -125,7 +138,10 @@ class FileStorage {
       return StoredFile(ref: refreshed, bytes: data.bytes);
     } on DocumentUnavailableException {
       throw const FileUnavailableException();
-    } on DocumentAccessException {
+    } on DocumentAccessException catch (error) {
+      if (error.code == 'too_large') {
+        throw const KdbxResourceLimitError(KdbxResourceLimit.fileSize);
+      }
       throw const FileUnavailableException();
     }
   }
@@ -146,6 +162,11 @@ class FileStorage {
       );
     } on RemoteNotFoundException {
       throw const FileUnavailableException();
+    } on RemoteHttpException catch (error) {
+      if (error.status == 413) {
+        throw const KdbxResourceLimitError(KdbxResourceLimit.fileSize);
+      }
+      rethrow;
     }
   }
 
@@ -282,9 +303,9 @@ class RestrictedFileRead {
     try {
       if (_canceled) throw const FileUnavailableException();
       final result = await port.first;
-      if (_canceled || result is! RemoteFile) {
-        throw const FileUnavailableException();
-      }
+      if (_canceled) throw const FileUnavailableException();
+      if (result is KdbxResourceLimitError) throw result;
+      if (result is! RemoteFile) throw const FileUnavailableException();
       final tag = result.etag;
       return StoredFile(
         ref: file,
@@ -321,6 +342,14 @@ Future<void> _restrictedReadWorker(
             trusted: trusted,
           );
     port.send(result);
+  } on KdbxResourceLimitError catch (error) {
+    port.send(error);
+  } on RemoteHttpException catch (error) {
+    port.send(
+      error.status == 413
+          ? const KdbxResourceLimitError(KdbxResourceLimit.fileSize)
+          : null,
+    );
   } catch (_) {
     port.send(null);
   }
@@ -334,7 +363,15 @@ class FilePickerService {
 
   /// `null` se l'utente annulla.
   Future<PickedFile?> pick() async {
-    final picked = await _documents.pick();
+    final PickedDocument? picked;
+    try {
+      picked = await _documents.pick();
+    } on DocumentAccessException catch (error) {
+      if (error.code == 'too_large') {
+        throw const KdbxResourceLimitError(KdbxResourceLimit.fileSize);
+      }
+      rethrow;
+    }
     if (picked == null) return null;
     return PickedFile(
       ref: FileRef(uri: picked.uri, name: picked.name),

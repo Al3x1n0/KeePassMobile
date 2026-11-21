@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:keepass_mobile/features/autofill/autofill_channel.dart';
 import 'package:keepass_mobile/features/autofill/autofill_matcher.dart';
 import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:kpasslib/kpasslib.dart';
@@ -6,6 +7,26 @@ import 'package:kpasslib/kpasslib.dart';
 import '../../helpers/test_database.dart';
 
 void main() {
+  test('il dominio autofill è una sequenza canonica di etichette ASCII', () {
+    expect(canonicalAutofillDomain('WWW.Example.COM.'), 'www.example.com');
+    expect(
+      canonicalAutofillDomain('xn--test-7qa.example'),
+      'xn--test-7qa.example',
+    );
+    for (final invalid in [
+      'example.com + altra.app',
+      'example.com/entra',
+      'example.com:443',
+      'example.com..',
+      'example.-com',
+      'exàmplè.com',
+      'example.com\n',
+      '${'x' * 64}.com',
+    ]) {
+      expect(canonicalAutofillDomain(invalid), isNull, reason: invalid);
+    }
+  });
+
   late KdbxDatabase db;
 
   KdbxEntry add(String title, Map<String, String> fields, {KdbxGroup? group}) =>

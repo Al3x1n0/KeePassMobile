@@ -85,7 +85,10 @@ final databaseSessionProvider =
 
 class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
   bool _saving = false;
+  _DatabaseSaveWorker? _saveWorker;
+  KdbxDatabase? _stagedDatabase;
   final _otherSessions = <DatabaseSession>[];
+  final _retired = <FileRef, List<WeakReference<KdbxDatabase>>>{};
   int _lockGeneration = 0;
   List<FileRef> _closedFiles = const [];
   List<FileRef> takeClosedFiles() {
@@ -102,8 +105,17 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
     if (state == null || generation != _lockGeneration) {
       throw const DatabaseLockedException();
     }
-    _otherSessions.removeWhere((other) => other.file == session.file);
-    if (state!.file != session.file) _otherSessions.add(state!);
+    final previous = state!;
+    if (previous.file == session.file) {
+      _retire(previous, session.database);
+    } else {
+      _otherSessions.add(previous);
+    }
+    _otherSessions.removeWhere((other) {
+      if (other.file != session.file) return false;
+      _retire(other, session.database);
+      return true;
+    });
     state = session;
   }
 
@@ -134,15 +146,52 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
       closed = _otherSessions.removeAt(index);
       state = current.copyWith();
     }
+    _clearDatabase(closed);
     return (file: closed.file, keyFile: closed.keyFile);
   }
 
   @override
-  DatabaseSession? build() => null;
+  DatabaseSession? build() {
+    DatabaseSession? active;
+    listenSelf((_, next) => active = next);
+    ref.onDispose(() {
+      _saveWorker?.cancel();
+      _stagedDatabase?.clearSensitiveData();
+      active?.database.clearSensitiveData();
+      active = null;
+      for (final session in _otherSessions) {
+        session.database.clearSensitiveData();
+      }
+      _otherSessions.clear();
+      for (final reference in _retired.values.expand((values) => values)) {
+        reference.target?.clearSensitiveData();
+      }
+      _retired.clear();
+    });
+    return null;
+  }
 
   void open(DatabaseSession session) {
+    for (final previous in openSessions) {
+      if (previous.database != session.database) _clearDatabase(previous);
+    }
     _otherSessions.clear();
     state = session;
+  }
+
+  void _retire(DatabaseSession session, KdbxDatabase replacement) {
+    if (session.database == replacement) return;
+    final versions = _retired.putIfAbsent(session.file, () => []);
+    versions
+      ..removeWhere((reference) => reference.target == null)
+      ..add(WeakReference(session.database));
+  }
+
+  void _clearDatabase(DatabaseSession session) {
+    session.database.clearSensitiveData();
+    for (final reference in _retired.remove(session.file) ?? const []) {
+      reference.target?.clearSensitiveData();
+    }
   }
 
   /// `true` mentre un salvataggio è in corso.
@@ -162,13 +211,17 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
 
   /// Chiude il database: il router torna alla scelta del file e i provider
   /// derivati (gruppi, voci) vengono ricalcolati senza dati. Svuota anche gli
-  /// appunti, se contengono ancora un valore copiato dall'app. Dopo il blocco
-  /// in memoria non resta nessuna chiave (D22, ADR-011).
+  /// appunti, se contengono ancora un valore copiato dall'app.
   void lock() {
     _lockGeneration++;
+    _saveWorker?.cancel();
+    _stagedDatabase?.clearSensitiveData();
     _closedFiles = [
       for (final session in openSessions) ...[session.file, ?session.keyFile],
     ];
+    for (final session in openSessions) {
+      _clearDatabase(session);
+    }
     _otherSessions.clear();
     state = null;
     ref.read(biometricOfferProvider.notifier).clear();
@@ -208,6 +261,15 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
     final session = state;
     if (session == null) throw const DatabaseLockedException();
     if (_saving) throw const DatabaseBusyException();
+    final lockGeneration = _lockGeneration;
+    void requireCurrentSession() {
+      if (!ref.mounted ||
+          lockGeneration != _lockGeneration ||
+          state?.database != session.database) {
+        throw const DatabaseLockedException();
+      }
+    }
+
     _saving = true;
     try {
       final storage = ref.read(
@@ -220,6 +282,7 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
         state = session.copyWith(cacheStatus: session.cacheStatus.duringSync());
       }
       final external = await _externalChanges(session, storage, syncOnly);
+      requireCurrentSession();
       final mergeWith = external.bytes;
       final current = external.current;
       final cachedRead = current is CachedDatabaseRead ? current : null;
@@ -233,23 +296,22 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
         }
         return false;
       }
-      if (!ref.mounted || state?.database != session.database) {
-        throw const DatabaseLockedException();
-      }
-      final (database, bytes) = await saveDatabase(
+      final worker = _saveWorker = _DatabaseSaveWorker();
+      final (database, bytes) = await worker.run(
         session.database,
         edit,
-        mergeWith: mergeWith,
+        mergeWith,
       );
-      if (!ref.mounted || state?.database != session.database) {
-        throw const DatabaseLockedException();
-      }
+      _saveWorker = null;
+      _stagedDatabase = database;
+      requireCurrentSession();
       RemoteCacheStatus cacheStatus = const RemoteCacheStatus();
       if (storage is CachedDatabaseStorage) {
         cacheStatus = await storage.writeAfterRead(
           session.file,
           bytes,
           current,
+          checkBeforeUpload: requireCurrentSession,
         );
       } else {
         await storage.write(
@@ -261,13 +323,18 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
       if (!ref.mounted) return true;
       // Bloccato durante il salvataggio: il file è scritto, la sessione resta
       // chiusa.
-      if (state?.database != session.database) return true;
+      if (lockGeneration != _lockGeneration ||
+          state?.database != session.database) {
+        return true;
+      }
+      _retire(session, database);
       state = session.copyWith(
         database: database,
         keyFile: keyFile,
         fileHash: fileHashOf(bytes),
         cacheStatus: cacheStatus,
       );
+      _stagedDatabase = null;
       return true;
     } on Object catch (error) {
       if (ref.mounted &&
@@ -279,6 +346,9 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
       }
       rethrow;
     } finally {
+      _saveWorker = null;
+      _stagedDatabase?.clearSensitiveData();
+      _stagedDatabase = null;
       if (ref.mounted &&
           state?.database == session.database &&
           (state?.cacheStatus.synchronizing ?? false)) {
@@ -337,13 +407,24 @@ Future<KdbxDatabase> openDatabase({
     // motore con Argon2 nativo anche qui.
     AppCryptoEngine.install();
 
-    Future<KdbxDatabase> attempt(String? pw) => KdbxDatabase.fromBytes(
-      data: data,
-      credentials: KdbxCredentials(
-        password: pw == null ? null : ProtectedData.fromString(pw),
-        keyData: keyFile,
-      ),
-    );
+    Future<KdbxDatabase> attempt(String? pw) async {
+      final secret = pw == null ? null : ProtectedData.fromString(pw);
+      final KdbxCredentials credentials;
+      try {
+        credentials = KdbxCredentials(password: secret, keyData: keyFile);
+      } finally {
+        secret?.clear();
+      }
+      try {
+        return await KdbxDatabase.fromBytes(
+          data: data,
+          credentials: credentials,
+        );
+      } on Object {
+        credentials.clearRawKey();
+        rethrow;
+      }
+    }
 
     if (password.isEmpty && keyFile != null) {
       try {
@@ -361,6 +442,7 @@ Future<KdbxDatabase> openDatabase({
 void withTransformedKeyOnly(KdbxDatabase database) {
   final key = database.header.transformedKey;
   if (key == null) throw StateError('chiave derivata assente');
+  database.header.credentials.clearRawKey();
   database.header.credentials = KdbxCredentials.fromTransformedKey(key);
 }
 
@@ -435,28 +517,89 @@ Future<(KdbxDatabase, Uint8List)> saveDatabase(
   DatabaseEdit edit, {
   Uint8List? mergeWith,
 }) {
-  return Isolate.run(() async {
-    AppCryptoEngine.install();
-    // `database` qui è la copia dell'isolate.
-    final external = mergeWith == null
-        ? null
-        : await _openExternal(mergeWith, database);
-    edit(database);
-    if (external != null) {
-      try {
-        database.merge(external);
-      } on MergeError {
-        throw const SyncDifferentDatabaseException();
-      }
+  return Isolate.run(() => _saveInWorker(database, edit, mergeWith));
+}
+
+Future<(KdbxDatabase, Uint8List)> _saveInWorker(
+  KdbxDatabase database,
+  DatabaseEdit edit,
+  Uint8List? mergeWith,
+) async {
+  AppCryptoEngine.install();
+  final external = mergeWith == null
+      ? null
+      : await _openExternal(mergeWith, database);
+  edit(database);
+  if (external != null) {
+    try {
+      database.merge(external);
+    } on MergeError {
+      throw const SyncDifferentDatabaseException();
     }
-    final bytes = Uint8List.fromList(await database.save());
-    final key = database.header.transformedKey;
-    await KdbxDatabase.fromBytes(
-      data: bytes,
-      credentials: key == null
-          ? database.header.credentials
-          : KdbxCredentials.fromTransformedKey(key),
-    );
-    return (database, bytes);
-  });
+  }
+  final bytes = Uint8List.fromList(await database.save());
+  final key = database.header.transformedKey!;
+  await KdbxDatabase.fromBytes(
+    data: bytes,
+    credentials: KdbxCredentials.fromTransformedKey(key),
+  );
+  return (database, bytes);
+}
+
+class _DatabaseSaveWorker {
+  Isolate? _isolate;
+  bool _canceled = false;
+
+  void cancel() {
+    _canceled = true;
+    _isolate?.kill(priority: Isolate.immediate);
+  }
+
+  Future<(KdbxDatabase, Uint8List)> run(
+    KdbxDatabase database,
+    DatabaseEdit edit,
+    Uint8List? mergeWith,
+  ) async {
+    final reply = ReceivePort();
+    try {
+      final isolate = _isolate = await Isolate.spawn(
+        _execute,
+        (reply.sendPort, database, edit, mergeWith),
+        onExit: reply.sendPort,
+        onError: reply.sendPort,
+        paused: true,
+      );
+      if (_canceled) {
+        isolate.kill(priority: Isolate.immediate);
+      } else {
+        isolate.resume(isolate.pauseCapability!);
+      }
+      final response = await reply.first;
+      if (_canceled) {
+        if (response case (final KdbxDatabase db, _)) db.clearSensitiveData();
+        throw const DatabaseLockedException();
+      }
+      return switch (response) {
+        (final KdbxDatabase db, final Uint8List bytes) => (db, bytes),
+        (final Object error, final StackTrace stack) =>
+          Error.throwWithStackTrace(error, stack),
+        _ => throw StateError('salvataggio interrotto'),
+      };
+    } finally {
+      reply.close();
+      _isolate = null;
+    }
+  }
+
+  static Future<void> _execute(
+    (SendPort, KdbxDatabase, DatabaseEdit, Uint8List?) request,
+  ) async {
+    final (reply, database, edit, mergeWith) = request;
+    try {
+      final result = await _saveInWorker(database, edit, mergeWith);
+      Isolate.exit(reply, result);
+    } on Object catch (error, stack) {
+      Isolate.exit(reply, (error, stack));
+    }
+  }
 }

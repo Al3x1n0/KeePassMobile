@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/shared/database/database_session.dart';
+import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:kpasslib/kpasslib.dart';
 
 import '../../helpers/test_database.dart';
@@ -13,6 +15,11 @@ void _rename(KdbxDatabase database) => database.meta.name = 'Nuovo';
 
 void _changeKdf(KdbxDatabase database) =>
     database.header.kdfSettings = const AesKdfSettings(rounds: 1234);
+
+DatabaseEdit _signalEdit(SendPort started) => (db) {
+  started.send(null);
+  db.meta.name = 'Modifica in corso';
+};
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -145,5 +152,38 @@ void main() {
       );
       expect(bytesOf(file), bytes);
     });
+  });
+
+  test('il blocco azzera i buffer e annulla un salvataggio in corso', () async {
+    final db = newTestDatabase();
+    addTestEntry(
+      db,
+      db.root,
+      {EntryFields.password: 'valore di prova'},
+      protectedKeys: {EntryFields.password},
+    );
+    final (file, database) = await saveToTempFile(db);
+    addTearDown(() => file.parent.deleteSync(recursive: true));
+    final container = await newTestContainer(file: file, database: database);
+    addTearDown(container.dispose);
+    final session = container.read(databaseSessionProvider.notifier);
+    final key = database.header.transformedKey!.key;
+    final field =
+        database.root.allEntries.single.fields[EntryFields.password]
+            as ProtectedTextField;
+    final before = bytesOf(file);
+    final started = ReceivePort();
+    addTearDown(started.close);
+
+    final save = session.apply(_signalEdit(started.sendPort));
+    final canceled = expectLater(save, throwsA(isA<DatabaseLockedException>()));
+    await started.first;
+    session.lock();
+    await canceled;
+
+    expect(container.read(databaseSessionProvider), isNull);
+    expect(key.bytes, everyElement(0));
+    expect(field.protectedText.bytes, everyElement(0));
+    expect(bytesOf(file), before);
   });
 }

@@ -21,6 +21,7 @@ import '../../shared/ui/date_format.dart';
 import '../../shared/ui/entry_icon.dart';
 import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/icon_picker_dialog.dart';
+import '../../shared/ui/sensitive_text_editing.dart';
 import '../../shared/ui/size_format.dart';
 import '../totp/totp.dart';
 import 'entry_edit_view_model.dart';
@@ -385,6 +386,14 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
     final busy = state.isLoading;
     final isNew = widget.target.entryId == null;
     final template = _template(ref);
+    final database = ref.watch(databaseSessionProvider)?.database;
+    final sourceId = widget.target.entryId ?? widget.target.templateId;
+    final source = database != null && sourceId != null
+        ? findEntry(database, sourceId)
+        : null;
+    final memoryProtection = database?.meta.memoryProtection;
+    bool sensitive(String key, bool? setting) =>
+        setting == true || source?.fields[key] is ProtectedTextField;
     bool show(String key, bool hasValue) =>
         template == null ||
         _showAllTemplateFields ||
@@ -442,15 +451,33 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
                   child: Text(l10n.entryEditChooseIcon),
                 ),
               ),
-              _textField(_title, l10n.entryTitle, enabled: !busy),
+              _textField(
+                _title,
+                l10n.entryTitle,
+                enabled: !busy,
+                sensitive: sensitive(
+                  EntryFields.title,
+                  memoryProtection?.title,
+                ),
+              ),
               if (show(EntryFields.userName, _userName.text.isNotEmpty))
-                _textField(_userName, l10n.entryUserName, enabled: !busy),
+                _textField(
+                  _userName,
+                  l10n.entryUserName,
+                  enabled: !busy,
+                  sensitive: sensitive(
+                    EntryFields.userName,
+                    memoryProtection?.userName,
+                  ),
+                ),
               if (show(EntryFields.password, _password.text.isNotEmpty))
                 _textField(
                   _password,
                   l10n.entryPassword,
                   enabled: !busy,
                   obscure: _obscurePassword,
+                  sensitive: true,
+                  keyboardType: TextInputType.visiblePassword,
                   suffix: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -480,15 +507,25 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
                   _url,
                   l10n.entryUrl,
                   enabled: !busy,
+                  sensitive: true,
                   keyboardType: TextInputType.url,
                 ),
               if (show('@override', _overrideUrl.text.isNotEmpty))
-                _textField(_overrideUrl, l10n.entryOverrideUrl, enabled: !busy),
+                _textField(
+                  _overrideUrl,
+                  l10n.entryOverrideUrl,
+                  enabled: !busy,
+                  sensitive: true,
+                ),
               if (show(EntryFields.notes, _notes.text.isNotEmpty))
                 _textField(
                   _notes,
                   l10n.entryNotes,
                   enabled: !busy,
+                  sensitive: sensitive(
+                    EntryFields.notes,
+                    memoryProtection?.notes,
+                  ),
                   maxLength: AppLimits.notes,
                   multiline: true,
                 ),
@@ -601,33 +638,44 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
     _CustomFieldControllers field, {
     required bool enabled,
   }) {
+    final sensitive = field.protected || isTotpField(field.key.text.trim());
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.m),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.s),
         child: Column(
           children: [
-            TextFormField(
-              controller: field.key,
-              enabled: enabled,
-              enableIMEPersonalizedLearning: false,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(AppLimits.fieldName),
-              ],
-              validator: (_) => _fieldNameError(l10n, index),
-              decoration: InputDecoration(labelText: l10n.entryEditFieldName),
+            SensitiveTextEditing(
+              child: TextFormField(
+                selectionControls: SensitiveTextEditing.selectionControls,
+                controller: field.key,
+                enabled: enabled,
+                enableIMEPersonalizedLearning: false,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(AppLimits.fieldName),
+                ],
+                validator: (_) => _fieldNameError(l10n, index),
+                decoration: InputDecoration(labelText: l10n.entryEditFieldName),
+              ),
             ),
-            TextFormField(
-              controller: field.value,
-              enabled: enabled,
-              obscureText: field.protected,
-              autocorrect: !field.protected,
-              enableSuggestions: !field.protected,
-              enableIMEPersonalizedLearning: false,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(AppLimits.fieldValue),
-              ],
-              decoration: InputDecoration(labelText: l10n.entryEditFieldValue),
+            SensitiveTextEditing(
+              child: TextFormField(
+                selectionControls: SensitiveTextEditing.selectionControls,
+                controller: field.value,
+                enabled: enabled,
+                obscureText: field.protected,
+                autocorrect: !sensitive,
+                smartDashesType: sensitive ? SmartDashesType.disabled : null,
+                smartQuotesType: sensitive ? SmartQuotesType.disabled : null,
+                enableSuggestions: !sensitive,
+                enableIMEPersonalizedLearning: false,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(AppLimits.fieldValue),
+                ],
+                decoration: InputDecoration(
+                  labelText: l10n.entryEditFieldValue,
+                ),
+              ),
             ),
             Row(
               children: [
@@ -661,6 +709,7 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
     String label, {
     required bool enabled,
     bool obscure = false,
+    bool sensitive = false,
     bool multiline = false,
     int maxLength = AppLimits.fieldValue,
     TextInputType? keyboardType,
@@ -669,24 +718,29 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.m),
-      child: TextFormField(
-        controller: controller,
-        enabled: enabled,
-        obscureText: obscure,
-        autocorrect: !obscure,
-        enableSuggestions: !obscure,
-        // La tastiera non deve imparare i valori delle voci (decisione D8).
-        enableIMEPersonalizedLearning: false,
-        keyboardType:
-            keyboardType ??
-            (multiline ? TextInputType.multiline : TextInputType.text),
-        minLines: multiline ? 3 : 1,
-        maxLines: multiline ? null : 1,
-        inputFormatters: [LengthLimitingTextInputFormatter(maxLength)],
-        decoration: InputDecoration(
-          labelText: label,
-          helperText: helper,
-          suffixIcon: suffix,
+      child: SensitiveTextEditing(
+        child: TextFormField(
+          selectionControls: SensitiveTextEditing.selectionControls,
+          controller: controller,
+          enabled: enabled,
+          obscureText: obscure,
+          autocorrect: !sensitive,
+          smartDashesType: sensitive ? SmartDashesType.disabled : null,
+          smartQuotesType: sensitive ? SmartQuotesType.disabled : null,
+          enableSuggestions: !sensitive,
+          // La tastiera non deve imparare i valori delle voci (decisione D8).
+          enableIMEPersonalizedLearning: false,
+          keyboardType:
+              keyboardType ??
+              (multiline ? TextInputType.multiline : TextInputType.text),
+          minLines: multiline ? 3 : 1,
+          maxLines: multiline ? null : 1,
+          inputFormatters: [LengthLimitingTextInputFormatter(maxLength)],
+          decoration: InputDecoration(
+            labelText: label,
+            helperText: helper,
+            suffixIcon: suffix,
+          ),
         ),
       ),
     );
@@ -750,20 +804,25 @@ class _TotpSetupDialogState extends State<_TotpSetupDialog> {
             label: Text(l10n.entryEditTotpScan),
           ),
           const SizedBox(height: AppSpacing.m),
-          TextField(
-            controller: _uri,
-            autofocus: true,
-            autocorrect: false,
-            enableSuggestions: false,
-            enableIMEPersonalizedLearning: false,
-            keyboardType: TextInputType.url,
-            inputFormatters: [
-              LengthLimitingTextInputFormatter(AppLimits.fieldValue),
-            ],
-            onSubmitted: (_) => _apply(),
-            decoration: InputDecoration(
-              labelText: l10n.entryEditTotpUri,
-              errorText: _invalid ? l10n.entryEditTotpInvalid : null,
+          SensitiveTextEditing(
+            child: TextField(
+              selectionControls: SensitiveTextEditing.selectionControls,
+              controller: _uri,
+              autofocus: true,
+              autocorrect: false,
+              smartDashesType: SmartDashesType.disabled,
+              smartQuotesType: SmartQuotesType.disabled,
+              enableSuggestions: false,
+              enableIMEPersonalizedLearning: false,
+              keyboardType: TextInputType.url,
+              inputFormatters: [
+                LengthLimitingTextInputFormatter(AppLimits.fieldValue),
+              ],
+              onSubmitted: (_) => _apply(),
+              decoration: InputDecoration(
+                labelText: l10n.entryEditTotpUri,
+                errorText: _invalid ? l10n.entryEditTotpInvalid : null,
+              ),
             ),
           ),
         ],

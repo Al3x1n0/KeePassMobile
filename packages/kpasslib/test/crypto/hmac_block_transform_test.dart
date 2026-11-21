@@ -35,5 +35,23 @@ void main() {
         ),
       );
     });
+
+    test('autentica il terminatore anche per un flusso vuoto', () {
+      final encoded = HmacBlockTransform.encrypt(data: [], key: key);
+      expect(HmacBlockTransform.decrypt(data: encoded, key: key), isEmpty);
+      encoded[0] ^= 1;
+      expect(
+        () => HmacBlockTransform.decrypt(data: encoded, key: key),
+        throwsA(isA<FileCorruptedError>()),
+      );
+    });
+
+    test('rifiuta un flusso con byte oltre il terminatore', () {
+      final encoded = HmacBlockTransform.encrypt(data: [1, 2, 3], key: key);
+      expect(
+        () => HmacBlockTransform.decrypt(data: [...encoded, 0], key: key),
+        throwsA(isA<FileCorruptedError>()),
+      );
+    });
   });
 }

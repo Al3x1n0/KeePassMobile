@@ -94,8 +94,15 @@ class BiometricKeyStore {
     required BiometricPromptTexts texts,
   }) async {
     final id = keyIdOf(file);
+    final clearKey = key.key.bytes;
+    final String encodedKey;
+    try {
+      encodedKey = base64.encode(clearKey);
+    } finally {
+      clearKey.fillRange(0, clearKey.length, 0);
+    }
     final value = jsonEncode({
-      'k': base64.encode(key.key.bytes),
+      'k': encodedKey,
       'f': base64.encode(key.fingerprint),
     });
     await _guard(
@@ -217,10 +224,16 @@ class BiometricKeyStore {
     try {
       final json = jsonDecode(raw);
       if (json case {'k': final String k, 'f': final String f}) {
-        return KdbxTransformedKey(
-          key: ProtectedData.fromBytes(base64.decode(k)),
-          fingerprint: base64.decode(f),
-        );
+        final fingerprint = base64.decode(f);
+        final clearKey = base64.decode(k);
+        try {
+          return KdbxTransformedKey(
+            key: ProtectedData.fromBytes(clearKey),
+            fingerprint: fingerprint,
+          );
+        } finally {
+          clearKey.fillRange(0, clearKey.length, 0);
+        }
       }
     } on FormatException {
       // Valore illeggibile: come se non ci fosse.

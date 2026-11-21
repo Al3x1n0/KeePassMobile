@@ -18,7 +18,10 @@ class _FakeProtection extends ScreenProtection {
   final applied = <bool>[];
 
   @override
-  Future<void> apply({required bool enabled}) async => applied.add(enabled);
+  Future<bool> apply({required bool enabled}) async {
+    applied.add(enabled);
+    return true;
+  }
 }
 
 class _RecordingStorage extends FileStorage {
@@ -213,6 +216,7 @@ void main() {
     tester,
   ) async {
     final container = await start(tester);
+    await tester.pump();
     expect(protection.applied, [true]);
 
     await tester.runAsync(
@@ -220,6 +224,7 @@ void main() {
           .read(appSettingsProvider.notifier)
           .update(const AppSettings(secureScreen: false)),
     );
+    await tester.pump();
 
     expect(protection.applied, [true, false]);
   });

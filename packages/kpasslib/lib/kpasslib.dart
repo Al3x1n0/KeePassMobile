@@ -21,5 +21,6 @@ export 'src/kdbx/kdbx_header.dart';
 export 'src/kdbx/kdbx_item.dart';
 export 'src/kdbx/kdbx_kdf_settings.dart';
 export 'src/kdbx/kdbx_meta.dart';
+export 'src/kdbx/kdbx_resource_limits.dart' show KdbxResourceLimits;
 export 'src/kdbx/kdbx_time.dart';
 export 'src/kdbx/kdbx_uuid.dart';

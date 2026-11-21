@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/screen_protection.dart';
 
@@ -95,15 +96,44 @@ void main() {
     expect(const ScreenProtection().enforce, kReleaseMode);
   });
 
-  test('errore del codice nativo: nessuna eccezione verso l\'app', () async {
+  test('errore del codice nativo: richiede una conferma esplicita', () async {
     messenger.setMockMethodCallHandler(
       channel,
       (_) async => throw PlatformException(code: 'x'),
     );
 
-    await const ScreenProtection(
-      enforce: true,
-      deviceTest: false,
-    ).apply(enabled: true);
+    final container = ProviderContainer.test(
+      overrides: [
+        screenProtectionProvider.overrideWithValue(
+          const ScreenProtection(enforce: true, deviceTest: false),
+        ),
+      ],
+    );
+    final notifier = container.read(screenProtectionStatusProvider.notifier);
+    expect(await notifier.apply(enabled: true), isFalse);
+    expect(
+      container.read(screenProtectionStatusProvider),
+      ScreenProtectionStatus.warning,
+    );
+    notifier.acknowledge();
+    expect(await notifier.apply(enabled: true), isTrue);
+    expect(
+      container.read(screenProtectionStatusProvider),
+      ScreenProtectionStatus.acknowledged,
+    );
   });
+
+  test(
+    'un esito falso del plugin segnala protezione non disponibile',
+    () async {
+      messenger.setMockMethodCallHandler(channel, (_) async => false);
+      expect(
+        await const ScreenProtection(
+          enforce: true,
+          deviceTest: false,
+        ).apply(enabled: true),
+        isFalse,
+      );
+    },
+  );
 }

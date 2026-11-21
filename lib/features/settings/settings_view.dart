@@ -189,6 +189,7 @@ class SettingsView extends ConsumerWidget {
             value: settings.cacheRemoteFiles,
             onChanged: (v) => update(settings.copyWith(cacheRemoteFiles: v)),
           ),
+          const _RemoteCacheClearTile(),
           SwitchListTile(
             title: Text(l10n.settingsRememberRecentFiles),
             value: settings.rememberRecentFiles,
@@ -289,6 +290,67 @@ class _AutofillTileState extends ConsumerState<_AutofillTile> {
       ),
       trailing: const Icon(Icons.open_in_new),
       onTap: () => ref.read(autofillSettingsProvider).openSystemSettings(),
+    );
+  }
+}
+
+class _RemoteCacheClearTile extends ConsumerStatefulWidget {
+  const _RemoteCacheClearTile();
+
+  @override
+  ConsumerState<_RemoteCacheClearTile> createState() =>
+      _RemoteCacheClearTileState();
+}
+
+class _RemoteCacheClearTileState extends ConsumerState<_RemoteCacheClearTile> {
+  bool _busy = false;
+
+  Future<void> _clear(AppLocalizations l10n) async {
+    setState(() => _busy = true);
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.settingsRemoteCacheClear),
+          content: Text(l10n.settingsRemoteCacheClearConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l10n.entryDelete),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+      final complete = await ref
+          .read(settingsViewModelProvider.notifier)
+          .clearSynchronizedRemoteCache();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            complete
+                ? l10n.settingsRemoteCacheClearDone
+                : l10n.settingsRemoteCacheClearIncomplete,
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return ListTile(
+      title: Text(l10n.settingsRemoteCacheClear),
+      enabled: !_busy,
+      onTap: _busy ? null : () => _clear(l10n),
     );
   }
 }

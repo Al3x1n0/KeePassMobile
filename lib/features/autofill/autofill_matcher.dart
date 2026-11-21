@@ -57,7 +57,7 @@ List<KdbxEntry> autofillMatches(KdbxDatabase database, String query) {
     ),
   );
 
-  final exact = entries.where((e) => _associated(e).contains(wanted));
+  final exact = entries.where((e) => isExactAutofillMatch(e, wanted));
   if (exact.isNotEmpty) return sorted(exact);
 
   final host = hostOf(wanted);
@@ -76,6 +76,9 @@ List<KdbxEntry> autofillMatches(KdbxDatabase database, String query) {
   }
   return const [];
 }
+
+bool isExactAutofillMatch(KdbxEntry entry, String query) =>
+    _associated(entry).contains(query.trim().toLowerCase());
 
 /// URL della voce e campi di Keepass2Android, in minuscolo; per i siti anche
 /// senza `https://`.

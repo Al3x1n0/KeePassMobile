@@ -114,9 +114,13 @@ class SessionGuard {
   Future<void> _resumeWork() async {
     await _ref.read(integrityStatusProvider.notifier).recheck();
     if (!_ref.mounted ||
-        !_isOpen ||
-        _ref.read(integrityStatusProvider) != IntegrityStatus.trusted ||
-        !_settings.cacheRemoteFiles) {
+        _ref.read(integrityStatusProvider) != IntegrityStatus.trusted) {
+      return;
+    }
+    if (_ref.read(screenProtectionProvider).availableInBuild) {
+      await _applyScreenProtection(_settings.secureScreen);
+    }
+    if (!_ref.mounted || !_isOpen || !_settings.cacheRemoteFiles) {
       return;
     }
     final session = _ref.read(databaseSessionProvider);
@@ -155,9 +159,7 @@ class SessionGuard {
 
   void _onSettings(AppSettings? previous, AppSettings next) {
     if (previous?.secureScreen != next.secureScreen) {
-      unawaited(
-        _ref.read(screenProtectionProvider).apply(enabled: next.secureScreen),
-      );
+      unawaited(_applyScreenProtection(next.secureScreen));
     }
     if (previous != null && previous.lockTimeout != next.lockTimeout) {
       _schedule();
@@ -170,6 +172,13 @@ class SessionGuard {
     }
     _updateScreenOff();
     _updateNotification();
+  }
+
+  Future<void> _applyScreenProtection(bool enabled) async {
+    final canContinue = await _ref
+        .read(screenProtectionStatusProvider.notifier)
+        .apply(enabled: enabled);
+    if (!canContinue && _ref.mounted && _isOpen) _lock();
   }
 
   void _schedule() {

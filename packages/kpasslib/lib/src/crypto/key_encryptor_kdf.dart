@@ -61,6 +61,11 @@ abstract final class KeyEncryptorKdf {
     if (memory is! int || memory < _minMemory || memory % DataSize.kibi != 0) {
       throw FileCorruptedError('bad argon2 memory');
     }
+    KdbxResourceLimits.checkArgon2Cost(
+      memory: memory,
+      iterations: iterations,
+      parallelism: parallelism,
+    );
 
     final v = kdfParams.get('V');
     final version = Argon2Version.values.firstWhere(
@@ -99,6 +104,7 @@ abstract final class KeyEncryptorKdf {
     if (rounds is! int || rounds < _minRounds) {
       throw FileCorruptedError('bad aes rounds');
     }
+    KdbxResourceLimits.checkAesRounds(rounds);
 
     return KeyEncryptorAes.transform(
       aes: Crypto.engine.createAes256(key: Uint8List.fromList(salt)),

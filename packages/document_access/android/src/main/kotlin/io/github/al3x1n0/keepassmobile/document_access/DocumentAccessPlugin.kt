@@ -36,6 +36,8 @@ class DocumentAccessPlugin :
     ActivityAware,
     PluginRegistry.ActivityResultListener {
 
+    private class DocumentTooLarge : Exception()
+
     private lateinit var channel: MethodChannel
     private lateinit var context: Context
     private var activityBinding: ActivityPluginBinding? = null
@@ -92,14 +94,27 @@ class DocumentAccessPlugin :
                     null
                 }
             }
-            "readRemoteCache", "writeRemoteCache" -> {
-                val id = call.argument<String>("id") ?: return result.error(IO, null, null)
-                if (!id.matches(Regex("[a-f0-9]{64}"))) return result.error(IO, null, null)
+            "readRemoteCache", "writeRemoteCache", "listRemoteCacheIds", "deleteRemoteCache" -> {
+                val id = call.argument<String>("id")
+                if (call.method != "listRemoteCacheIds" && (id == null || !cacheId.matches(id))) {
+                    return result.error(IO, null, null)
+                }
                 runIo(result) {
                     synchronized(cacheLock) {
                         val folder = File(context.noBackupFilesDir, "remote_database_cache")
                         if (!folder.exists() && !folder.mkdirs()) throw java.io.IOException()
+                        if (call.method == "listRemoteCacheIds") {
+                            val names = folder.list() ?: throw java.io.IOException()
+                            return@synchronized names.map { it.removeSuffix(".bak") }
+                                .filter(cacheId::matches).distinct()
+                        }
+                        requireNotNull(id)
                         val file = AtomicFile(File(folder, id))
+                        if (call.method == "deleteRemoteCache") {
+                            val expected = call.argument<ByteArray>("expected")
+                                ?: throw java.io.IOException()
+                            return@synchronized deleteRemoteCache(file, expected)
+                        }
                         val current = try { file.readFully() } catch (_: FileNotFoundException) { null }
                         if (call.method == "readRemoteCache") {
                             current
@@ -136,6 +151,25 @@ class DocumentAccessPlugin :
             }
             else -> result.notImplemented()
         }
+    }
+
+    private fun deleteRemoteCache(file: AtomicFile, expected: ByteArray): Boolean {
+        require(expected.size == 32)
+        val token = ByteArray(32)
+        try {
+            java.io.DataInputStream(file.openRead()).use { it.readFully(token) }
+        } catch (_: FileNotFoundException) {
+            return false
+        } catch (_: java.io.EOFException) {
+            return false
+        }
+        if (!token.contentEquals(expected)) return false
+        val base = file.baseFile
+        file.delete()
+        if (base.exists() || File(base.path + ".bak").exists() || File(base.path + ".new").exists()) {
+            throw java.io.IOException()
+        }
+        return true
     }
 
     private fun pick(result: Result) {
@@ -206,11 +240,13 @@ class DocumentAccessPlugin :
             return true
         }
         runIo(result) {
+            val name = displayName(uri)
+            val bytes = readBytes(uri)
             val persistent = persist(uri)
             mapOf(
                 "uri" to uri.toString(),
-                "name" to displayName(uri),
-                "bytes" to readBytes(uri),
+                "name" to name,
+                "bytes" to bytes,
                 "persistent" to persistent,
             )
         }
@@ -285,8 +321,36 @@ class DocumentAccessPlugin :
     }
 
     private fun readBytes(uri: Uri): ByteArray =
-        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            ?: throw FileNotFoundException()
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            val chunks = ArrayList<ByteArray>()
+            var buffer = ByteArray(DOCUMENT_CHUNK_BYTES)
+            var buffered = 0
+            var size = 0
+            while (true) {
+                val count = stream.read(
+                    buffer,
+                    buffered,
+                    minOf(buffer.size - buffered, MAX_DOCUMENT_BYTES - size + 1),
+                )
+                if (count < 0) break
+                if (count > MAX_DOCUMENT_BYTES - size) throw DocumentTooLarge()
+                buffered += count
+                size += count
+                if (buffered == buffer.size) {
+                    chunks.add(buffer)
+                    buffer = ByteArray(DOCUMENT_CHUNK_BYTES)
+                    buffered = 0
+                }
+            }
+            val bytes = ByteArray(size)
+            var offset = 0
+            for (chunk in chunks) {
+                chunk.copyInto(bytes, offset)
+                offset += chunk.size
+            }
+            buffer.copyInto(bytes, offset, endIndex = buffered)
+            bytes
+        } ?: throw FileNotFoundException()
 
     /** "wt" tronca il file: senza, un contenuto più corto lascerebbe byte residui. */
     private fun writeBytes(uri: Uri, bytes: ByteArray) {
@@ -308,6 +372,8 @@ class DocumentAccessPlugin :
                 UNAVAILABLE to null
             } catch (e: IllegalArgumentException) {
                 UNAVAILABLE to null
+            } catch (e: DocumentTooLarge) {
+                TOO_LARGE to null
             } catch (e: Exception) {
                 IO to null
             }
@@ -320,6 +386,7 @@ class DocumentAccessPlugin :
 
     private companion object {
         val cacheLock = Any()
+        val cacheId = Regex("[a-f0-9]{64}")
         const val CHANNEL = "io.github.al3x1n0.keepassmobile/document_access"
         const val REQUEST_PICK = 0x4B50 // "KP"
         const val REQUEST_CREATE = 0x4B43 // "KC"
@@ -327,6 +394,9 @@ class DocumentAccessPlugin :
         const val READ = Intent.FLAG_GRANT_READ_URI_PERMISSION
         const val WRITE = Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         const val UNAVAILABLE = "unavailable"
+        const val TOO_LARGE = "too_large"
+        const val MAX_DOCUMENT_BYTES = 128 * 1024 * 1024
+        const val DOCUMENT_CHUNK_BYTES = 64 * 1024
         const val IO = "io"
         const val BUSY = "busy"
         const val NO_ACTIVITY = "no_activity"

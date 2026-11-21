@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 
@@ -9,17 +10,23 @@ class ProtectedData {
   final List<int> _data;
   final List<int> _salt;
 
-  const ProtectedData._(this._data, this._salt);
+  ProtectedData._(this._data, this._salt);
 
   /// Constructs [ProtectedData] from [bytes] already protected with [salt].
-  const ProtectedData.fromProtectedBytes({
+  ProtectedData.fromProtectedBytes({
     required List<int> bytes,
     required List<int> salt,
-  }) : this._(bytes, salt);
+  }) : this._(Uint8List.fromList(bytes), Uint8List.fromList(salt));
 
   /// Constructs [ProtectedData] from [text], protected with random salt.
-  factory ProtectedData.fromString(String text) =>
-      ProtectedData.fromBytes(utf8.encode(text));
+  factory ProtectedData.fromString(String text) {
+    final bytes = utf8.encode(text);
+    try {
+      return ProtectedData.fromBytes(bytes);
+    } finally {
+      bytes.fillRange(0, bytes.length, 0);
+    }
+  }
 
   /// Constructs [ProtectedData] from [bytes] protected with random salt.
   factory ProtectedData.fromBytes(List<int> bytes) {
@@ -37,7 +44,20 @@ class ProtectedData {
   }
 
   /// The plain data as text.
-  String get text => utf8.decode(bytes);
+  String get text {
+    final plain = bytes;
+    try {
+      return utf8.decode(plain);
+    } finally {
+      plain.fillRange(0, plain.length, 0);
+    }
+  }
+
+  /// Erases the owned buffers. Previously returned values are independent.
+  void clear() {
+    _data.fillRange(0, _data.length, 0);
+    _salt.fillRange(0, _salt.length, 0);
+  }
 
   /// The plain data as bytes.
   List<int> get bytes => CryptoUtils.transformXor(

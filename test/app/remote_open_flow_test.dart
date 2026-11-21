@@ -92,7 +92,7 @@ void main() {
       find.widgetWithText(TextField, l10n.remotePassword),
       server.password,
     );
-    if (!remember) await tester.tap(find.text(l10n.remoteRemember));
+    if (remember) await tester.tap(find.text(l10n.remoteRemember));
     await tester.tap(find.text(l10n.remoteConnect));
     await pumpUntilFound(tester, find.text('prova.kdbx'));
     await tester.tap(find.text('prova.kdbx'));
@@ -178,9 +178,6 @@ void main() {
         ),
         server.password,
       );
-      await tester.tap(
-        find.descendant(of: dialog, matching: find.text(l10n.remoteRemember)),
-      );
       await tester.tap(find.text(l10n.remoteSignIn));
       await pumpUntilFound(tester, find.text('Conto remoto'));
 
@@ -252,6 +249,7 @@ void main() {
         find.widgetWithText(TextField, l10n.remotePassword),
         server.password,
       );
+      await tester.tap(find.text(l10n.remoteRemember));
       await tester.tap(find.text(l10n.remoteConnect));
       await pumpUntilFound(tester, find.text(l10n.sshHostTitle));
       expect(find.text('ssh-ed25519 SHA256:synthetic'), findsOneWidget);

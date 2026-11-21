@@ -72,6 +72,9 @@
   "errorInvalidCredentials": "Wrong password or key file.",
   "errorFileCorrupted": "The file is damaged or is not a KeePass database.",
   "errorUnsupported": "Unsupported database format or algorithm.",
+  "errorFileTooLarge": "The file exceeds the 128 MiB size limit.",
+  "errorDatabasePayloadTooLarge": "The database exceeds the size limit after decompression.",
+  "errorDatabaseKdfTooCostly": "The key derivation settings exceed the supported memory or computation limits.",
   "errorKeyFileUnavailable": "The key file could not be read. Choose it again.",
   "errorFileUnavailable": "The database could not be read. Open the file again.",
   "errorGeneric": "The database could not be opened.",
@@ -213,6 +216,8 @@
   "settingsLockOnScreenOff": "Lock when the screen turns off",
   "settingsLockOnScreenOffHint": "On iOS the database locks when the device locks, only if a passcode is set.",
   "settingsSecureScreen": "Secure screen",
+  "screenProtectionWarning": "Screen protection could not be applied. Continuing may allow screenshots or screen recordings to capture your database.",
+  "screenProtectionContinue": "Continue with this risk",
   "settingsSecureScreenHint": "Blocks screenshots and screen recordings and hides the preview in recent apps.",
   "settingsOpenNotification": "Open database notification",
   "settingsOpenNotificationHint": "While a database is open, shows a notification with the Lock action.",
@@ -232,6 +237,31 @@
     }
   },
   "autofillMatches": "Entries for this app or site",
+  "autofillSiteInApp": "{domain} in {app}",
+  "@autofillSiteInApp": {
+    "placeholders": {
+      "domain": {"type": "String"},
+      "app": {"type": "String"}
+    }
+  },
+  "autofillApproximateTitle": "Confirm the recipient",
+  "autofillApproximateBody": "“{entry}” matched only by a related domain or search text. Fill its credentials in {target}?",
+  "@autofillApproximateBody": {
+    "placeholders": {
+      "entry": {"type": "String"},
+      "target": {"type": "String"}
+    }
+  },
+  "autofillAppIdentityWarning": "“{entry}” is linked to {app}. Confirm that you recognize this installed app before filling its credentials.",
+  "@autofillAppIdentityWarning": {
+    "placeholders": {
+      "entry": {"type": "String"},
+      "app": {"type": "String"}
+    }
+  },
+  "autofillFillAndRememberApp": "Fill and remember app",
+  "autofillSaveAndRememberApp": "Create entry and remember app",
+  "autofillRememberAppSignature": "Remembering this app saves its signing certificate on this device for future fills of entries linked to it.",
   "autofillNoMatches": "No entries found: search the database below.",
   "autofillSearchAll": "Search the database",
   "autofillSearchHint": "Search",
@@ -558,6 +588,10 @@
   "errorRemoteConflict": "The server file changed during saving. Nothing was written to the server. Synchronize and try again.",
   "settingsRemoteCache": "Local cache of remote databases",
   "settingsRemoteCacheHint": "Keep an encrypted KDBX copy excluded from backups. Turning this off does not delete changes awaiting upload.",
+  "settingsRemoteCacheClear": "Delete synced local copies",
+  "settingsRemoteCacheClearConfirm": "Changes awaiting upload will be kept. A server connection is needed to recreate the local copies.",
+  "settingsRemoteCacheClearDone": "Synced copies cleanup complete.",
+  "settingsRemoteCacheClearIncomplete": "Some copies could not be verified or changed during cleanup.",
   "cacheOffline": "Offline: using the encrypted local copy.",
   "cachePending": "Changes saved on this device, awaiting upload to the server.",
   "cacheUnavailable": "Local cache unavailable. An offline copy is not guaranteed.",

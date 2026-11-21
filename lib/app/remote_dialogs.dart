@@ -7,6 +7,7 @@ import '../shared/storage/remote_storage.dart';
 import '../shared/storage/webdav_client.dart';
 import '../shared/ui/ssh_key_field.dart';
 import 'router.dart';
+import '../shared/ui/sensitive_text_editing.dart';
 import 'theme.dart';
 
 BuildContext? _dialogContext(Ref ref) {
@@ -111,7 +112,7 @@ class _RemoteCredentialsDialogState extends State<RemoteCredentialsDialog> {
   final _secret = TextEditingController();
   final _privateKey = TextEditingController();
   late bool _useKey = widget.previous?.privateKey != null;
-  bool _remember = true;
+  bool _remember = false;
   bool _obscure = true;
 
   @override
@@ -173,9 +174,7 @@ class _RemoteCredentialsDialogState extends State<RemoteCredentialsDialog> {
               inputFormatters: [
                 LengthLimitingTextInputFormatter(AppLimits.remoteUserName),
               ],
-              decoration: InputDecoration(
-                labelText: l10n.remoteUserName,
-              ),
+              decoration: InputDecoration(labelText: l10n.remoteUserName),
             ),
             const SizedBox(height: AppSpacing.m),
             if (widget.ssh)
@@ -188,31 +187,36 @@ class _RemoteCredentialsDialogState extends State<RemoteCredentialsDialog> {
                   _secret.clear();
                 }),
               ),
-            TextField(
-              controller: _secret,
-              autofocus: widget.previous != null,
-              obscureText: _obscure,
-              autocorrect: false,
-              enableSuggestions: false,
-              enableIMEPersonalizedLearning: false,
-              keyboardType: TextInputType.visiblePassword,
-              textInputAction: TextInputAction.done,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(AppLimits.masterPassword),
-              ],
-              onSubmitted: (_) => _submit(),
-              decoration: InputDecoration(
-                labelText: widget.ssh && _useKey
-                    ? l10n.sshPassphrase
-                    : l10n.remotePassword,
-                suffixIcon: IconButton(
-                  tooltip: _obscure
-                      ? l10n.unlockShowPassword
-                      : l10n.unlockHidePassword,
-                  icon: Icon(
-                    _obscure ? Icons.visibility : Icons.visibility_off,
+            SensitiveTextEditing(
+              child: TextField(
+                selectionControls: SensitiveTextEditing.selectionControls,
+                controller: _secret,
+                autofocus: widget.previous != null,
+                obscureText: _obscure,
+                autocorrect: false,
+                smartDashesType: SmartDashesType.disabled,
+                smartQuotesType: SmartQuotesType.disabled,
+                enableSuggestions: false,
+                enableIMEPersonalizedLearning: false,
+                keyboardType: TextInputType.visiblePassword,
+                textInputAction: TextInputAction.done,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(AppLimits.masterPassword),
+                ],
+                onSubmitted: (_) => _submit(),
+                decoration: InputDecoration(
+                  labelText: widget.ssh && _useKey
+                      ? l10n.sshPassphrase
+                      : l10n.remotePassword,
+                  suffixIcon: IconButton(
+                    tooltip: _obscure
+                        ? l10n.unlockShowPassword
+                        : l10n.unlockHidePassword,
+                    icon: Icon(
+                      _obscure ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () => setState(() => _obscure = !_obscure),
                   ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
             ),

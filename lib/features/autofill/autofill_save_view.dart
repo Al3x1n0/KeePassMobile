@@ -7,6 +7,7 @@ import '../../shared/database/database_errors.dart';
 import '../../shared/database/database_session.dart';
 import '../entry_edit/entry_edit_view_model.dart';
 import 'autofill_channel.dart';
+import 'autofill_pick_view.dart';
 import 'autofill_pick_view_model.dart';
 
 class AutofillSaveView extends ConsumerStatefulWidget {
@@ -21,21 +22,10 @@ class _AutofillSaveViewState extends ConsumerState<AutofillSaveView> {
   bool _attempted = false;
   Object? _error;
 
-  String? _validDomain(AutofillRequest request) {
-    final domain = request.webDomain;
-    if (!request.isBrowser ||
-        domain == null ||
-        !RegExp(r'^[a-z0-9.-]+$').hasMatch(domain) ||
-        !domain.contains('.') ||
-        domain.startsWith('.') ||
-        domain.endsWith('.') ||
-        domain.contains('..')) {
-      return null;
-    }
-    return domain;
-  }
-
-  Future<void> _save() async {
+  Future<void> _save({
+    required String? domain,
+    required bool rememberApp,
+  }) async {
     if (_saving) return;
     setState(() {
       _saving = true;
@@ -44,6 +34,7 @@ class _AutofillSaveViewState extends ConsumerState<AutofillSaveView> {
     });
     try {
       final request = ref.read(autofillRequestProvider);
+      final trust = ref.read(autofillTrustRepositoryProvider);
       final session = ref.read(databaseSessionProvider);
       if (session == null) {
         throw const DatabaseLockedException();
@@ -56,7 +47,6 @@ class _AutofillSaveViewState extends ConsumerState<AutofillSaveView> {
           ref.read(databaseSessionProvider) != session) {
         throw const DatabaseLockedException();
       }
-      final domain = _validDomain(request);
       final useDomain = domain != null;
       final target = domain ?? request.packageName;
       final uuid = KdbxUuid.random(
@@ -80,6 +70,8 @@ class _AutofillSaveViewState extends ConsumerState<AutofillSaveView> {
       await ref
           .read(databaseSessionProvider.notifier)
           .apply(createEntryEdit(session.database.root.uuid, uuid, draft));
+      if (rememberApp) await trust.trustApp(request);
+      if (!mounted) return;
       ref.read(autofillDoneProvider.notifier).done();
       ref.read(databaseSessionProvider.notifier).lock();
       await ref.read(autofillChannelProvider).cancel();
@@ -98,13 +90,24 @@ class _AutofillSaveViewState extends ConsumerState<AutofillSaveView> {
     final l10n = AppLocalizations.of(context);
     final request = ref.watch(autofillRequestProvider);
     final session = ref.watch(databaseSessionProvider);
-    final target = _validDomain(request) ?? request.packageName;
+    final useDomain = ref.watch(autofillUseDomainProvider);
+    final domain = request.webDomain;
+    final selectedDomain = useDomain ? domain : null;
+    final rememberApp =
+        selectedDomain == null &&
+        request.canRememberApp &&
+        !ref.watch(autofillTrustRepositoryProvider).isAppTrusted(request);
+    final target = selectedDomain != null
+        ? l10n.autofillSiteInApp(selectedDomain, request.packageName)
+        : request.packageName;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.autofillSaveTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(l10n.autofillSaveDescription),
+          if (domain != null && !useDomain)
+            AutofillDomainWarning(request: request),
           ListTile(
             title: Text(l10n.autofillSaveTarget),
             subtitle: Text(target),
@@ -133,10 +136,20 @@ class _AutofillSaveViewState extends ConsumerState<AutofillSaveView> {
               ],
             ),
           if (_saving) const LinearProgressIndicator(),
+          if (rememberApp) Text(l10n.autofillRememberAppSignature),
           FilledButton(
-            onPressed: _saving || _attempted ? null : _save,
+            onPressed: _saving || _attempted
+                ? null
+                : () => _save(domain: selectedDomain, rememberApp: false),
             child: Text(l10n.autofillSaveConfirm),
           ),
+          if (rememberApp)
+            FilledButton.tonal(
+              onPressed: _saving || _attempted
+                  ? null
+                  : () => _save(domain: selectedDomain, rememberApp: true),
+              child: Text(l10n.autofillSaveAndRememberApp),
+            ),
           TextButton(
             onPressed: _saving
                 ? null

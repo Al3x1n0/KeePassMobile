@@ -44,39 +44,89 @@ class _AutofillPickViewState extends ConsumerState<AutofillPickView> {
             false)) {
       return;
     }
-    if (matched) {
+    final query = ref.read(autofillQueryProvider);
+    final request = ref.read(autofillRequestProvider);
+    final appNeedsConfirmation =
+        query == request.appQuery &&
+        !ref.read(autofillTrustRepositoryProvider).isAppTrusted(request);
+    final exact = matched && isExactAutofillMatch(entry, query);
+    if (exact && !appNeedsConfirmation) {
       await viewModel.fill(entry.uuid);
       return;
     }
-    final remember = await _askRemember(entry);
-    if (remember == null || !mounted) return;
-    await viewModel.fill(entry.uuid, remember: remember);
+    final choice = await _confirm(
+      entry,
+      request,
+      query,
+      approximate: matched && !exact,
+      confirmApp: exact && appNeedsConfirmation,
+    );
+    if (choice == null ||
+        !mounted ||
+        ref.read(autofillQueryProvider) != query) {
+      return;
+    }
+    await viewModel.fill(entry.uuid, choice: choice);
   }
 
-  Future<bool?> _askRemember(KdbxEntry entry) {
+  Future<AutofillChoice?> _confirm(
+    KdbxEntry entry,
+    AutofillRequest request,
+    String query, {
+    required bool approximate,
+    required bool confirmApp,
+  }) {
     final l10n = AppLocalizations.of(context);
-    final query = ref.read(autofillQueryProvider);
-    final title = entryTitle(entry);
-    return showDialog<bool>(
+    final appTarget = query == request.appQuery;
+    final target = appTarget
+        ? request.packageName
+        : l10n.autofillSiteInApp(query, request.packageName);
+    final title = entryTitle(entry).isEmpty
+        ? l10n.entryUntitled
+        : entryTitle(entry);
+    final rememberBody = l10n.autofillRememberBody(
+      target,
+      title,
+      nextAutofillField(entry, query),
+    );
+    final message = switch ((confirmApp, approximate)) {
+      (true, _) => l10n.autofillAppIdentityWarning(title, target),
+      (_, true) => l10n.autofillApproximateBody(title, target),
+      _ => rememberBody,
+    };
+    final description =
+        !approximate &&
+            appTarget &&
+            request.canRememberApp &&
+            !ref.read(autofillTrustRepositoryProvider).isAppTrusted(request)
+        ? '$message\n\n${l10n.autofillRememberAppSignature}'
+        : message;
+    return showDialog<AutofillChoice>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.autofillRememberTitle),
-        content: Text(
-          l10n.autofillRememberBody(
-            _targetOf(query),
-            title.isEmpty ? l10n.entryUntitled : title,
-            nextAutofillField(entry, query),
-          ),
+        title: Text(
+          approximate || confirmApp
+              ? l10n.autofillApproximateTitle
+              : l10n.autofillRememberTitle,
         ),
+        content: Text(description),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(context).pop(AutofillChoice.once),
             child: Text(l10n.autofillFillOnly),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.autofillFillAndRemember),
-          ),
+          if (confirmApp && request.canRememberApp)
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(AutofillChoice.rememberApp),
+              child: Text(l10n.autofillFillAndRememberApp),
+            ),
+          if (!approximate && !confirmApp)
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(AutofillChoice.rememberEntry),
+              child: Text(l10n.autofillFillAndRemember),
+            ),
         ],
       ),
     );
@@ -121,9 +171,10 @@ class _AutofillPickViewState extends ConsumerState<AutofillPickView> {
                   : Icons.language_outlined,
             ),
             title: Text(l10n.autofillFor(_targetOf(query))),
+            subtitle: useDomain ? Text(request.packageName) : null,
           ),
           if (domain != null && !useDomain)
-            _DomainWarning(app: request.packageName, domain: domain),
+            AutofillDomainWarning(request: request),
           if (state.isLoading) const LinearProgressIndicator(),
           if (state case AsyncError(:final error))
             Padding(
@@ -185,12 +236,11 @@ class _AutofillPickViewState extends ConsumerState<AutofillPickView> {
   }
 }
 
-/// Avviso di D27: un'app non browser dichiara un dominio.
-class _DomainWarning extends ConsumerWidget {
-  const _DomainWarning({required this.app, required this.domain});
+/// Chiede conferma per un dominio dichiarato dalla app destinataria.
+class AutofillDomainWarning extends ConsumerWidget {
+  const AutofillDomainWarning({super.key, required this.request});
 
-  final String app;
-  final String domain;
+  final AutofillRequest request;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -215,7 +265,10 @@ class _DomainWarning extends ConsumerWidget {
                 const SizedBox(width: AppSpacing.s),
                 Expanded(
                   child: Text(
-                    l10n.autofillDomainWarning(app, domain),
+                    l10n.autofillDomainWarning(
+                      request.packageName,
+                      request.webDomain!,
+                    ),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onErrorContainer,
                     ),
@@ -232,10 +285,11 @@ class _DomainWarning extends ConsumerWidget {
                   onPressed: notifier.useOnce,
                   child: Text(l10n.autofillUseDomainOnce),
                 ),
-                FilledButton.tonal(
-                  onPressed: notifier.useAlways,
-                  child: Text(l10n.autofillUseDomainAlways),
-                ),
+                if (request.canRememberDomain)
+                  FilledButton.tonal(
+                    onPressed: notifier.useAlways,
+                    child: Text(l10n.autofillUseDomainAlways),
+                  ),
               ],
             ),
           ],

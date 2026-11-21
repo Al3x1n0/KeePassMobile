@@ -192,9 +192,7 @@ class WebDavClient {
     required RemoteCredentials credentials,
     Set<String> trusted = const {},
   }) {
-    final dir = directory.path.endsWith('/')
-        ? directory
-        : directory.replace(path: '${directory.path}/');
+    final dir = _asDirectory(directory);
     return _send(
       dir,
       'PROPFIND',
@@ -223,6 +221,7 @@ class WebDavClient {
   /// Elementi di una risposta `207 Multi-Status` per la cartella [dir].
   @visibleForTesting
   static List<RemoteEntry> parseMultistatus(Uri dir, String body) {
+    dir = _asDirectory(dir);
     final XmlDocument document;
     try {
       document = XmlDocument.parse(body);
@@ -240,13 +239,13 @@ class WebDavClient {
           ?.innerText
           .trim();
       if (href == null || href.isEmpty) continue;
-      final uri = dir.resolve(href);
-      if (_samePath(uri.path, dir.path)) continue;
+      final uri = _resolveServerUri(dir, href);
+      if (uri == null || uri.hasQuery) continue;
+      final name = _directChildName(dir, uri);
+      if (name == null) continue;
       final isDirectory = response
           .findAllElements('collection', namespace: 'DAV:')
           .isNotEmpty;
-      final segments = uri.pathSegments.where((s) => s.isNotEmpty);
-      if (segments.isEmpty) continue;
       final length = response
           .findAllElements('getcontentlength', namespace: 'DAV:')
           .firstOrNull
@@ -254,8 +253,8 @@ class WebDavClient {
           .trim();
       entries.add(
         RemoteEntry(
-          name: segments.last,
-          uri: uri,
+          name: name,
+          uri: isDirectory ? _asDirectory(uri) : uri,
           isDirectory: isDirectory,
           size: int.tryParse(length ?? ''),
         ),
@@ -268,10 +267,52 @@ class WebDavClient {
     return List.unmodifiable(entries);
   }
 
-  static bool _samePath(String a, String b) {
-    String normalized(String p) =>
-        Uri.decodeFull(p.endsWith('/') ? p.substring(0, p.length - 1) : p);
-    return normalized(a) == normalized(b);
+  static Uri _asDirectory(Uri uri) =>
+      uri.path.endsWith('/') ? uri : uri.replace(path: '${uri.path}/');
+
+  static bool _sameHttpsOrigin(Uri base, Uri uri) =>
+      base.scheme == 'https' &&
+      uri.scheme == 'https' &&
+      uri.host == base.host &&
+      uri.port == base.port;
+
+  static Uri? _resolveServerUri(Uri base, String reference) {
+    // Dart normalizza i backslash negli URL HTTP. Rifiutare i riferimenti
+    // ambigui prima che vengano interpretati come separatori.
+    if (reference.isEmpty || reference.contains(r'\')) return null;
+    final relative = Uri.tryParse(reference);
+    if (relative == null || relative.authority.contains('@')) return null;
+    final uri = base.resolveUri(relative);
+    if (!_sameHttpsOrigin(base, uri) || uri.hasFragment) return null;
+    return uri;
+  }
+
+  static final _invalidChildName = RegExp(r'[/\\\x00-\x1f\x7f]');
+
+  static String? _directChildName(Uri dir, Uri uri) {
+    final directoryPath = dir.path;
+    final path = uri.path;
+    if (!path.startsWith(directoryPath) ||
+        path.length == directoryPath.length) {
+      return null;
+    }
+    final segment = path.substring(
+      directoryPath.length,
+      path.endsWith('/') ? path.length - 1 : path.length,
+    );
+    final String name;
+    try {
+      name = Uri.decodeComponent(segment);
+    } on FormatException {
+      return null;
+    }
+    if (name.isEmpty ||
+        name == '.' ||
+        name == '..' ||
+        _invalidChildName.hasMatch(name)) {
+      return null;
+    }
+    return name;
   }
 
   Future<T> _send<T>(
@@ -288,6 +329,9 @@ class WebDavClient {
     if (uri.scheme != 'https' || uri.host.isEmpty) {
       throw const InsecureRemoteException();
     }
+    if (uri.authority.contains('@') || uri.hasFragment) {
+      throw const InvalidRemoteAddressException();
+    }
     String? rejected;
     // Basic inviata subito (la connessione è cifrata). Digest solo se il
     // server la chiede: HttpClient ripete la richiesta da sé, ma senza il
@@ -300,13 +344,17 @@ class WebDavClient {
       ..connectionTimeout = connectTimeout
       ..autoUncompress = true
       ..badCertificateCallback = (certificate, host, port) {
+        if (host != uri.host || port != uri.port) return false;
         final fingerprint = certificateFingerprint(certificate.der);
         if (trusted.contains(fingerprint)) return true;
         rejected = fingerprint;
         return false;
       }
       ..authenticate = (url, scheme, realm) async {
-        if (scheme.toLowerCase() != 'digest' || digestAdded || !allowRetry) {
+        if (!_sameHttpsOrigin(uri, url) ||
+            scheme.toLowerCase() != 'digest' ||
+            digestAdded ||
+            !allowRetry) {
           return false;
         }
         digest = digestAdded = true;
@@ -329,7 +377,7 @@ class WebDavClient {
     }) async {
       allowRetry = content == null;
       final request = await client.openUrl(verb, uri);
-      request.followRedirects = verb == 'GET' && followRedirects;
+      request.followRedirects = false;
       if (!digest) {
         request.headers.set(HttpHeaders.authorizationHeader, basic);
       }
@@ -347,6 +395,23 @@ class WebDavClient {
     try {
       return await () async {
         var response = await attempt(method, content: body);
+        if (method == 'GET' && followRedirects) {
+          var current = uri;
+          while (response.isRedirect) {
+            final locations = response.headers[HttpHeaders.locationHeader];
+            final target = locations != null && locations.length == 1
+                ? _resolveServerUri(current, locations.single)
+                : null;
+            if (target == null ||
+                target == current ||
+                response.redirects.length >= 5) {
+              throw RemoteHttpException(response.statusCode);
+            }
+            await response.drain<void>();
+            response = await response.redirect('GET', target);
+            current = target;
+          }
+        }
         if (response.statusCode == HttpStatus.unauthorized && body != null) {
           final challenge =
               response.headers.value(HttpHeaders.wwwAuthenticateHeader) ?? '';

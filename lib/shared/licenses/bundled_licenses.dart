@@ -17,7 +17,7 @@ void registerBundledLicenses() {
       'KeePassMobile — attributions',
     ], await rootBundle.loadString('NOTICE'));
     final raw = await rootBundle.loadString(
-      'assets/licenses/qr_scanner_0_2_0_alpha_1.json',
+      'assets/licenses/qr_scanner_0_2_0_alpha_2.json',
     );
     final entries = jsonDecode(raw) as List<dynamic>;
     for (final entry in entries) {

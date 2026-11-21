@@ -7,12 +7,13 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Prova tecnica D21: file recenti (solo riferimenti) per l'estensione.
-    AutofillSpikeBridge.syncRecentFiles()
-    recentsObserver = NotificationCenter.default.addObserver(
-      forName: UserDefaults.didChangeNotification, object: nil, queue: .main
-    ) { _ in AutofillSpikeBridge.syncRecentFiles() }
-    #if DEBUG
+    #if KPM_AUTOFILL_SPIKE
+      AutofillSpikeBridge.syncRecentFiles()
+      recentsObserver = NotificationCenter.default.addObserver(
+        forName: UserDefaults.didChangeNotification, object: nil, queue: .main
+      ) { _ in AutofillSpikeBridge.syncRecentFiles() }
+    #endif
+    #if KPM_AUTOFILL_SPIKE && DEBUG
       if ProcessInfo.processInfo.arguments.contains("-kpmSpikeStoreKey") {
         AutofillSpikeBridge.storeTestKey()
       }
@@ -20,7 +21,9 @@ import UIKit
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  private var recentsObserver: NSObjectProtocol?
+  #if KPM_AUTOFILL_SPIKE
+    private var recentsObserver: NSObjectProtocol?
+  #endif
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
@@ -30,6 +33,7 @@ import UIKit
 /// Prova tecnica D21: dati per l'estensione di compilazione automatica
 /// nell'App Group e nel portachiavi condiviso. La chiave di prova si salva
 /// solo nelle build Debug.
+#if KPM_AUTOFILL_SPIKE
 enum AutofillSpikeBridge {
   static let appGroup = "group.io.github.al3x1n0.keepassmobile"
 
@@ -46,6 +50,7 @@ enum AutofillSpikeBridge {
   /// Chiave casuale di prova (non è una chiave di un database) nel portachiavi
   /// condiviso, protetta dalla biometria: la legge l'estensione (G5). Stato in
   /// `spike_store_status` dell'App Group.
+  #if DEBUG
   static func storeTestKey() {
     guard let group = Bundle.main.object(forInfoDictionaryKey: "KPMSharedKeychainGroup") as? String,
       let shared = UserDefaults(suiteName: appGroup)
@@ -76,4 +81,6 @@ enum AutofillSpikeBridge {
     }
     shared.set(statuses, forKey: "spike_store_status")
   }
+  #endif
 }
+#endif

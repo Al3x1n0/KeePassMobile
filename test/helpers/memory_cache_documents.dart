@@ -7,6 +7,25 @@ class MemoryCacheDocuments extends DocumentAccess {
   bool unavailable = false;
 
   @override
+  Future<List<String>> listRemoteCacheIds() async {
+    if (unavailable) throw const DocumentAccessException('io');
+    return records.keys.toList();
+  }
+
+  @override
+  Future<bool> deleteRemoteCache(String id, Uint8List expectedToken) async {
+    if (unavailable) throw const DocumentAccessException('io');
+    final current = records[id];
+    if (current == null ||
+        current.length < 32 ||
+        !listEquals(current.sublist(0, 32), expectedToken)) {
+      return false;
+    }
+    records.remove(id);
+    return true;
+  }
+
+  @override
   Future<Uint8List?> readRemoteCache(String id) async {
     if (unavailable) throw const DocumentAccessException('io');
     final bytes = records[id];

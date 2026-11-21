@@ -12,6 +12,7 @@ import '../../shared/security/biometric_key_store.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/remote_cache.dart';
 import '../../shared/storage/remote_storage.dart';
+import '../../shared/ui/sensitive_text_editing.dart';
 import 'unlock_view_model.dart';
 
 /// Schermata di sblocco: password principale e file chiave facoltativo; con la
@@ -141,10 +142,11 @@ class _UnlockViewState extends ConsumerState<UnlockView> {
           replacing: widget.args.replacing ?? widget.args.database.ref,
         ),
       );
-    } on Exception {
+    } on Exception catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l10n.errorFileUnavailable)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(describeFilePickError(l10n, error))),
+        );
       }
     }
   }
@@ -181,34 +183,39 @@ class _UnlockViewState extends ConsumerState<UnlockView> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.l),
-                  TextField(
-                    controller: _password,
-                    enabled: !busy,
-                    // Con la richiesta biometrica la tastiera resterebbe sotto.
-                    autofocus: !biometric,
-                    obscureText: _obscure,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    enableIMEPersonalizedLearning: false,
-                    keyboardType: TextInputType.visiblePassword,
-                    textInputAction: TextInputAction.done,
-                    inputFormatters: [
-                      LengthLimitingTextInputFormatter(
-                        AppLimits.masterPassword,
-                      ),
-                    ],
-                    onSubmitted: (_) => _unlock(),
-                    decoration: InputDecoration(
-                      labelText: l10n.unlockPassword,
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        tooltip: _obscure
-                            ? l10n.unlockShowPassword
-                            : l10n.unlockHidePassword,
-                        icon: Icon(
-                          _obscure ? Icons.visibility : Icons.visibility_off,
+                  SensitiveTextEditing(
+                    child: TextField(
+                      selectionControls: SensitiveTextEditing.selectionControls,
+                      controller: _password,
+                      enabled: !busy,
+                      // Con la richiesta biometrica la tastiera resterebbe sotto.
+                      autofocus: !biometric,
+                      obscureText: _obscure,
+                      autocorrect: false,
+                      smartDashesType: SmartDashesType.disabled,
+                      smartQuotesType: SmartQuotesType.disabled,
+                      enableSuggestions: false,
+                      enableIMEPersonalizedLearning: false,
+                      keyboardType: TextInputType.visiblePassword,
+                      textInputAction: TextInputAction.done,
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(
+                          AppLimits.masterPassword,
                         ),
-                        onPressed: () => setState(() => _obscure = !_obscure),
+                      ],
+                      onSubmitted: (_) => _unlock(),
+                      decoration: InputDecoration(
+                        labelText: l10n.unlockPassword,
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          tooltip: _obscure
+                              ? l10n.unlockShowPassword
+                              : l10n.unlockHidePassword,
+                          icon: Icon(
+                            _obscure ? Icons.visibility : Icons.visibility_off,
+                          ),
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                        ),
                       ),
                     ),
                   ),
