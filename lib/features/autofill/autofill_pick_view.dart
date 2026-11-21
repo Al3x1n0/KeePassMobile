@@ -199,6 +199,7 @@ class _AutofillPickViewState extends ConsumerState<AutofillPickView> {
             for (final entry in matches)
               EntryTile(
                 entry: entry,
+                showChevron: false,
                 onTap: () => _choose(entry, matched: true),
               ),
           _Section(l10n.autofillSearchAll),
@@ -224,6 +225,7 @@ class _AutofillPickViewState extends ConsumerState<AutofillPickView> {
             EntryTile(
               entry: result.entry,
               groupName: result.groupName,
+              showChevron: false,
               onTap: () => _choose(
                 result.entry,
                 matched: matches.contains(result.entry),

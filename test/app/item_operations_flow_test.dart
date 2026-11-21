@@ -55,18 +55,42 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
   }
 
-  testWidgets('apre il gruppo della voce trovata dalla ricerca', (tester) async {
+  testWidgets('apre il gruppo della voce trovata dalla ricerca', (
+    tester,
+  ) async {
     await open(tester);
     await tester.tap(find.byTooltip(l10n.searchTitle));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Voce sintetica');
     await tester.pumpAndSettle();
-    await tester.longPress(find.widgetWithText(ListTile, 'Voce sintetica'));
+    final entry = find.widgetWithText(ListTile, 'Voce sintetica');
+    final chevron = find.descendant(
+      of: entry,
+      matching: find.byIcon(Icons.chevron_right),
+    );
+    final detail = find.widgetWithText(AppBar, 'Voce sintetica');
+    expect(chevron, findsOneWidget);
+    await tester.tap(entry);
     await tester.pumpAndSettle();
+    expect(detail, findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.longPress(entry);
+    await tester.pumpAndSettle();
+    expect(chevron, findsNothing);
     await tester.tap(find.byTooltip(l10n.searchGoToGroup));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Origine'), findsOneWidget);
-    expect(find.text('Voce sintetica'), findsOneWidget);
+    expect(chevron, findsOneWidget);
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    expect(detail, findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.longPress(entry);
+    await tester.pumpAndSettle();
+    expect(chevron, findsNothing);
   });
 
   testWidgets('aggiunge i modelli predefiniti al database', (tester) async {

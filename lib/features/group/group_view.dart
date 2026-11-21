@@ -374,6 +374,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
                           return EntryTile(
                             entry: entry,
                             selected: _selected.contains(entryId),
+                            showChevron: _selected.isEmpty,
                             onLongPress: () => _toggle(entryId),
                             onTap: _selected.isEmpty
                                 ? null

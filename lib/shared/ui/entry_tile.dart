@@ -29,6 +29,7 @@ class EntryTile extends ConsumerWidget {
     this.onTap,
     this.onLongPress,
     this.selected = false,
+    this.showChevron = true,
   });
 
   final KdbxEntry entry;
@@ -41,6 +42,9 @@ class EntryTile extends ConsumerWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final bool selected;
+
+  /// Se mostrare la freccia verso il dettaglio della voce.
+  final bool showChevron;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -92,6 +96,7 @@ class EntryTile extends ConsumerWidget {
                 fontSize: (textSize * .75).roundToDouble(),
               ),
             ),
+      trailing: showChevron ? const Icon(Icons.chevron_right) : null,
       onTap: onTap ?? () => context.push(AppRoutes.entry(itemIdOf(entry))),
       onLongPress: onLongPress,
       selected: selected,

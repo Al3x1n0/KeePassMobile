@@ -449,6 +449,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
                     entry: hit.entry,
                     databaseOverride: hit.session.database,
                     selected: active && _selected.contains(id),
+                    showChevron: _selected.isEmpty,
                     onLongPress: () {
                       if (!active && _selected.isNotEmpty) return;
                       if (!active) {
