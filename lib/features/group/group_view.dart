@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kpasslib/kpasslib.dart';
 
+import '../../app/database_navigation_bar.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -228,12 +229,6 @@ class _GroupViewState extends ConsumerState<GroupView> {
                             : () => _chooseDatabase(context, ref),
                       ),
                     IconButton(
-                      tooltip: l10n.settingsTitle,
-                      icon: const Icon(Icons.settings_outlined),
-                      onPressed: () =>
-                          context.push(AppRoutes.appSettingsInDatabase),
-                    ),
-                    IconButton(
                       tooltip: l10n.groupLock,
                       icon: const Icon(Icons.lock_outline),
                       onPressed: () =>
@@ -338,6 +333,9 @@ class _GroupViewState extends ConsumerState<GroupView> {
                     ),
                   ],
           ),
+          bottomNavigationBar: _selected.isEmpty
+              ? const DatabaseNavigationBar()
+              : null,
           floatingActionButton: inBin || _selected.isNotEmpty
               ? null
               : FloatingActionButton(

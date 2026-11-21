@@ -9,6 +9,7 @@ import 'package:keepass_mobile/app/app.dart';
 import 'package:keepass_mobile/features/entry/totp_tile.dart';
 import 'package:keepass_mobile/features/file_select/recent_files.dart';
 import 'package:keepass_mobile/l10n/app_localizations.dart';
+import 'package:keepass_mobile/shared/database/database_session.dart';
 import 'package:keepass_mobile/shared/database/external_change.dart';
 import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:keepass_mobile/shared/settings/app_settings.dart';
@@ -321,18 +322,76 @@ void main() {
     },
   );
 
-  testWidgets('impostazioni a database aperto: dal gruppo, senza bloccarlo', (
-    tester,
-  ) async {
-    await pumpApp(tester);
-    await unlock(tester);
+  testWidgets(
+    'barra di navigazione: Home, impostazioni e blocco del database',
+    (tester) async {
+      // given
+      await pumpApp(tester);
+      await unlock(tester);
+      final dispatcher = tester.binding.platformDispatcher;
+      dispatcher.localesTestValue = const [Locale('it')];
+      addTearDown(dispatcher.clearLocalesTestValue);
+      await tester.pumpAndSettle();
+      final localizations = lookupAppLocalizations(const Locale('it'));
 
-    await tester.tap(find.byTooltip(l10n.settingsTitle));
-    await tester.pumpAndSettle();
-    expect(find.text(l10n.settingsTitle), findsOneWidget);
+      final bar = find.byType(NavigationBar);
+      NavigationBar navigation() => tester.widget<NavigationBar>(bar);
+      Finder tab(String label) =>
+          find.descendant(of: bar, matching: find.text(label));
+      final destinations = navigation().destinations
+          .cast<NavigationDestination>();
+      expect(destinations.map((item) => (item.label, item.enabled)), [
+        ('Home', true),
+        ('Genera', false),
+        ('Controllo', false),
+        (localizations.settingsTitle, true),
+      ]);
+      expect(navigation().selectedIndex, 0);
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byTooltip(localizations.settingsTitle),
+        ),
+        findsNothing,
+      );
 
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    expect(find.text('Banca'), findsOneWidget);
-  });
+      // when: apre le impostazioni da un sottogruppo
+      await tester.tap(find.text('Banca'));
+      await tester.pumpAndSettle();
+      await tester.tap(tab(localizations.settingsTitle));
+      await tester.pumpAndSettle();
+
+      // then: impostazioni esistenti, con la destinazione selezionata
+      expect(find.text(localizations.settingsSecurity), findsOneWidget);
+      expect(navigation().selectedIndex, 3);
+
+      // when: torna alla consultazione con Home o con Indietro di sistema
+      await tester.tap(tab('Home'));
+      await tester.pumpAndSettle();
+      expect(find.text('Conto'), findsOneWidget);
+      expect(navigation().selectedIndex, 0);
+      await tester.tap(tab(localizations.settingsTitle));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Conto'), findsOneWidget);
+      await tester.tap(tab('Home'));
+      await tester.pumpAndSettle();
+      expect(find.text('Banca'), findsOneWidget);
+
+      // when: il database viene bloccato mentre sono aperte le impostazioni
+      await tester.tap(tab(localizations.settingsTitle));
+      await tester.pumpAndSettle();
+      ProviderScope.containerOf(
+        tester.element(bar),
+        listen: false,
+      ).read(databaseSessionProvider.notifier).lock();
+      await tester.pumpAndSettle();
+
+      // then: l'app torna alla scelta del file, senza barra del database
+      expect(find.text(localizations.fileSelectTitle), findsOneWidget);
+      expect(find.text('Banca'), findsNothing);
+      expect(bar, findsNothing);
+    },
+  );
 }

@@ -54,6 +54,10 @@ ThemeData _buildTheme(Brightness brightness) {
         onSurface: dark ? AppColors.white : AppColors.ink,
       );
   final barColor = dark ? const Color(0xFF20202E) : const Color(0xFFF5F5F7);
+  final navigationAccent = dark
+      ? const Color(0xFF6DA7FF)
+      : const Color(0xFF005CE6);
+  final navigationLabel = Typography.material2021().englishLike.labelMedium;
   final buttonShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(16),
   );
@@ -68,6 +72,23 @@ ThemeData _buildTheme(Brightness brightness) {
       foregroundColor: scheme.onSurface,
       centerTitle: true,
       scrolledUnderElevation: 0,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: barColor,
+      elevation: 0,
+      indicatorColor: Colors.transparent,
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? IconThemeData(color: navigationAccent)
+            : null,
+      ),
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => navigationLabel?.copyWith(
+          color: states.contains(WidgetState.selected)
+              ? navigationAccent
+              : scheme.onSurfaceVariant,
+        ),
+      ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(

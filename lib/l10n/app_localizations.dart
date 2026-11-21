@@ -116,6 +116,24 @@ abstract class AppLocalizations {
   /// **'KeePassMobile'**
   String get appTitle;
 
+  /// No description provided for @navigationHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navigationHome;
+
+  /// No description provided for @navigationGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate'**
+  String get navigationGenerate;
+
+  /// No description provided for @navigationCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check'**
+  String get navigationCheck;
+
   /// No description provided for @fileSelectDemo.
   ///
   /// In en, this message translates to:

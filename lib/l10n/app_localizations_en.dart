@@ -19,6 +19,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'KeePassMobile';
 
   @override
+  String get navigationHome => 'Home';
+
+  @override
+  String get navigationGenerate => 'Generate';
+
+  @override
+  String get navigationCheck => 'Check';
+
+  @override
   String get fileSelectDemo => 'Save a demo copy';
 
   @override

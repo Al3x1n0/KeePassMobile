@@ -134,7 +134,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: 'search', builder: (_, _) => const SearchView()),
           GoRoute(path: 'generator', builder: (_, _) => const GeneratorView()),
-          GoRoute(path: 'settings', builder: (_, _) => const SettingsView()),
+          GoRoute(
+            path: 'settings',
+            builder: (_, _) => const SettingsView(showDatabaseNavigation: true),
+          ),
           GoRoute(
             path: 'database-settings',
             builder: (_, _) => const DatabaseSettingsView(),

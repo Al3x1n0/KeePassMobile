@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/database_navigation_bar.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../autofill/autofill_channel.dart';
@@ -12,7 +13,9 @@ import 'settings_view_model.dart';
 
 /// Impostazioni dell'app, raggiungibili con il database aperto o chiuso.
 class SettingsView extends ConsumerWidget {
-  const SettingsView({super.key});
+  const SettingsView({super.key, this.showDatabaseNavigation = false});
+
+  final bool showDatabaseNavigation;
 
   /// Valore delle voci "mai" negli elenchi a scelta.
   static const _never = -1;
@@ -26,6 +29,9 @@ class SettingsView extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
+      bottomNavigationBar: showDatabaseNavigation
+          ? const DatabaseNavigationBar(settingsSelected: true)
+          : null,
       body: ListView(
         children: [
           _Header(l10n.settingsSecurity),
