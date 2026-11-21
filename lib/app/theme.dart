@@ -39,12 +39,6 @@ abstract final class AppColors {
   static const blue = Color(0xFF0066FF);
   static const white = Color(0xFFFFFFFF);
   static const ink = Color(0xFF161622);
-
-  /// Blu usato per le selezioni, adattato al contrasto del tema.
-  static Color selectionAccent(Brightness brightness) =>
-      brightness == Brightness.dark
-      ? const Color(0xFF6DA7FF)
-      : const Color(0xFF005CE6);
 }
 
 ThemeData _buildTheme(Brightness brightness) {
@@ -56,11 +50,20 @@ ThemeData _buildTheme(Brightness brightness) {
       ).copyWith(
         primary: AppColors.blue,
         onPrimary: AppColors.white,
+        primaryContainer: AppColors.blue,
+        onPrimaryContainer: AppColors.white,
+        secondary: AppColors.blue,
+        onSecondary: AppColors.white,
+        secondaryContainer: AppColors.blue,
+        onSecondaryContainer: AppColors.white,
+        tertiaryContainer: AppColors.blue,
+        onTertiaryContainer: AppColors.white,
+        inversePrimary: AppColors.blue,
+        surfaceTint: AppColors.blue,
         surface: dark ? AppColors.ink : AppColors.white,
         onSurface: dark ? AppColors.white : AppColors.ink,
       );
   final barColor = dark ? const Color(0xFF20202E) : const Color(0xFFF5F5F7);
-  final selectionAccent = AppColors.selectionAccent(brightness);
   final navigationLabel = Typography.material2021().englishLike.labelMedium;
   final buttonShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(16),
@@ -83,13 +86,13 @@ ThemeData _buildTheme(Brightness brightness) {
       indicatorColor: Colors.transparent,
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.selected)
-            ? IconThemeData(color: selectionAccent)
+            ? IconThemeData(color: scheme.primary)
             : null,
       ),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => navigationLabel?.copyWith(
           color: states.contains(WidgetState.selected)
-              ? selectionAccent
+              ? scheme.primary
               : scheme.onSurfaceVariant,
         ),
       ),
@@ -119,6 +122,9 @@ ThemeData _buildTheme(Brightness brightness) {
       backgroundColor: AppColors.blue,
       foregroundColor: AppColors.white,
     ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      linearTrackColor: scheme.surfaceContainerHighest,
+    ),
     switchTheme: SwitchThemeData(
       trackColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled) ||
@@ -127,13 +133,10 @@ ThemeData _buildTheme(Brightness brightness) {
         }
         return dark ? const Color(0xFF464655) : const Color(0xFFDBDDE4);
       }),
-      thumbColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.disabled) ||
-            states.contains(WidgetState.selected)) {
-          return null;
-        }
-        return AppColors.white;
-      }),
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.disabled) ? null : AppColors.white,
+      ),
       trackOutlineColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled) ||
             states.contains(WidgetState.selected)) {

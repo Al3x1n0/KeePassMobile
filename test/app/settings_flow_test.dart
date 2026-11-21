@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/app.dart';
+import 'package:keepass_mobile/app/theme.dart';
 import 'package:keepass_mobile/features/entry/totp_tile.dart';
 import 'package:keepass_mobile/features/file_select/recent_files.dart';
 import 'package:keepass_mobile/l10n/app_localizations.dart';
@@ -338,6 +339,19 @@ void main() {
       NavigationBar navigation() => tester.widget<NavigationBar>(bar);
       Finder tab(String label) =>
           find.descendant(of: bar, matching: find.text(label));
+      const selected = {WidgetState.selected};
+      for (final theme in [buildLightTheme(), buildDarkTheme()]) {
+        final blue = theme.floatingActionButtonTheme.backgroundColor;
+        expect(blue, AppColors.blue);
+        expect(
+          theme.navigationBarTheme.iconTheme?.resolve(selected)?.color,
+          blue,
+        );
+        expect(
+          theme.navigationBarTheme.labelTextStyle?.resolve(selected)?.color,
+          blue,
+        );
+      }
       final destinations = navigation().destinations
           .cast<NavigationDestination>();
       expect(destinations.map((item) => (item.label, item.enabled)), [

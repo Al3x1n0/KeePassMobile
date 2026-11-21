@@ -144,7 +144,7 @@ class _AutofillSaveViewState extends ConsumerState<AutofillSaveView> {
             child: Text(l10n.autofillSaveConfirm),
           ),
           if (rememberApp)
-            FilledButton.tonal(
+            OutlinedButton(
               onPressed: _saving || _attempted
                   ? null
                   : () => _save(domain: selectedDomain, rememberApp: true),

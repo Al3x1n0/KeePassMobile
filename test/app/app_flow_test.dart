@@ -115,10 +115,9 @@ void main() {
       final title = tester.element(
         find.descendant(of: option, matching: find.text(label)),
       );
-      expect(
-        DefaultTextStyle.of(title).style.color,
-        AppColors.selectionAccent(Theme.of(title).brightness),
-      );
+      final blue = DefaultTextStyle.of(title).style.color;
+      expect(blue, AppColors.blue);
+      expect(blue, Theme.of(title).floatingActionButtonTheme.backgroundColor);
     }
 
     // when: apre il pannello e passa all'ordine alfabetico inverso
