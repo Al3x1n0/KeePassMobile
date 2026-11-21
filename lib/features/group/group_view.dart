@@ -591,26 +591,16 @@ class _GroupViewState extends ConsumerState<GroupView> {
       return;
     }
     final l10n = AppLocalizations.of(context);
-    final selected = await showDialog<String>(
+    final selected = await showSelectionSheet<String>(
       context: context,
-      builder: (context) => SimpleDialog(
-        title: Text(l10n.entryTemplateChoose),
-        children: [
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, ''),
-            child: Text(l10n.entryTemplateEmpty),
-          ),
-          for (final template in templates)
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, itemIdOf(template)),
-              child: Text(
-                entryTitle(template).isEmpty
-                    ? l10n.entryUntitled
-                    : entryTitle(template),
-              ),
-            ),
-        ],
-      ),
+      title: l10n.entryTemplateChoose,
+      options: {
+        '': l10n.entryTemplateEmpty,
+        for (final template in templates)
+          itemIdOf(template): entryTitle(template).isEmpty
+              ? l10n.entryUntitled
+              : entryTitle(template),
+      },
     );
     if (selected == null || !context.mounted) return;
     await context.push(

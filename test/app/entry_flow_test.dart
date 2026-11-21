@@ -86,10 +86,43 @@ void main() {
       await openApp(tester);
       await tester.tap(find.text('Banca'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip(l10n.groupAddEntry));
+
+      Future<void> openEntryChoices() async {
+        await tester.tap(find.byTooltip(l10n.groupAddEntry));
+        await tester.pumpAndSettle();
+      }
+
+      await openEntryChoices();
+      final sheet = find.byType(BottomSheet);
+      expect(tester.widget<BottomSheet>(sheet).showDragHandle, isTrue);
+      expect(
+        find.widgetWithText(BottomSheet, l10n.entryTemplateChoose),
+        findsOneWidget,
+      );
+      final empty = find.widgetWithText(ListTile, l10n.entryTemplateEmpty);
+      final template = find.widgetWithText(ListTile, 'Sample template');
+      expect(empty, findsOneWidget);
+      expect(template, findsOneWidget);
+
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
-      expect(find.text(l10n.entryTemplateEmpty), findsOneWidget);
-      await tester.tap(find.text('Sample template'));
+      expect(sheet, findsNothing);
+      expect(find.widgetWithText(AppBar, 'Banca'), findsOneWidget);
+
+      await openEntryChoices();
+      await tester.tap(empty);
+      await tester.pumpAndSettle();
+      expect(
+        find.widgetWithText(AppBar, l10n.entryEditTitleNew),
+        findsOneWidget,
+      );
+      final userName = find.widgetWithText(TextFormField, l10n.entryUserName);
+      expect(tester.widget<TextFormField>(userName).controller?.text, isEmpty);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      await openEntryChoices();
+      await tester.tap(template);
       await tester.pumpAndSettle();
       expect(find.text('sample-user'), findsOneWidget);
       await tester.enterText(
