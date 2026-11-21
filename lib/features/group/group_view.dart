@@ -330,15 +330,9 @@ class _GroupViewState extends ConsumerState<GroupView> {
                           child: Text(l10n.groupEmpty),
                         ),
                       )
-                    : ListView.separated(
+                    : ListView.builder(
                         itemCount:
                             content.groups.length + content.entries.length,
-                        separatorBuilder: (_, _) => const Divider(
-                          height: 1,
-                          thickness: 1,
-                          indent: AppSpacing.m,
-                          endIndent: AppSpacing.m,
-                        ),
                         itemBuilder: (context, index) {
                           if (index < content.groups.length) {
                             final group = content.groups[index];
