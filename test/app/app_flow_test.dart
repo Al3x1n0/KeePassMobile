@@ -95,6 +95,17 @@ void main() {
     expect(top('Alfa'), lessThan(top('zeta')));
     expect(find.text('z@example.org'), findsOneWidget);
 
+    final list = find.byType(ListView);
+    final dividers = find.descendant(of: list, matching: find.byType(Divider));
+    final rows = find.descendant(of: list, matching: find.byType(ListTile));
+    expect(dividers, findsNWidgets(rows.evaluate().length - 1));
+    for (final divider in tester.widgetList<Divider>(dividers)) {
+      expect(divider.height, 1);
+      expect(divider.thickness, 1);
+      expect(divider.indent, AppSpacing.m);
+      expect(divider.endIndent, AppSpacing.m);
+    }
+
     final sortSheet = find.byType(BottomSheet);
     Finder sortOption(String label) => find.descendant(
       of: sortSheet,
@@ -150,6 +161,7 @@ void main() {
     await tester.tap(find.text('Banca'));
     await tester.pumpAndSettle();
     expect(find.text('Conto'), findsOneWidget);
+    expect(dividers, findsNothing);
 
     // when: blocca il database
     await tester.tap(find.byTooltip(l10n.groupLock));
