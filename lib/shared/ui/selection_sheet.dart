@@ -9,6 +9,30 @@ Future<T?> showSelectionSheet<T>({
   T? selected,
   Set<T> disabled = const {},
   required Map<T, String> options,
+}) => showListSheet<T>(
+  context: context,
+  title: title,
+  buildItems: (context) => [
+    for (final option in options.entries)
+      ListTile(
+        title: Text(option.value),
+        enabled: !disabled.contains(option.key),
+        selected: selected != null && option.key == selected,
+        trailing: selected != null && option.key == selected
+            ? const Icon(Icons.check_circle)
+            : null,
+        onTap: disabled.contains(option.key)
+            ? null
+            : () => Navigator.of(context).pop(option.key),
+      ),
+  ],
+);
+
+/// Mostra un elenco scorrevole in un pannello con titolo e maniglia.
+Future<T?> showListSheet<T>({
+  required BuildContext context,
+  required String title,
+  required List<Widget> Function(BuildContext) buildItems,
 }) => showModalBottomSheet<T>(
   context: context,
   showDragHandle: true,
@@ -38,18 +62,7 @@ Future<T?> showSelectionSheet<T>({
                 ),
               ),
             ),
-            for (final option in options.entries)
-              ListTile(
-                title: Text(option.value),
-                enabled: !disabled.contains(option.key),
-                selected: selected != null && option.key == selected,
-                trailing: selected != null && option.key == selected
-                    ? const Icon(Icons.check_circle)
-                    : null,
-                onTap: disabled.contains(option.key)
-                    ? null
-                    : () => Navigator.of(context).pop(option.key),
-              ),
+            ...buildItems(context),
             const SizedBox(height: AppSpacing.m),
           ],
         ),

@@ -480,37 +480,33 @@ class _GroupViewState extends ConsumerState<GroupView> {
     if (sessions.isSaving) return;
     final current = ref.read(databaseSessionProvider);
     final l10n = AppLocalizations.of(context);
-    final selection = await showModalBottomSheet<({FileRef? file, bool close})>(
+    final selection = await showListSheet<({FileRef? file, bool close})>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final session in sessions.openSessions)
-              ListTile(
-                leading: Icon(
-                  session.file == current?.file
-                      ? Icons.check_circle
-                      : Icons.folder_outlined,
-                ),
-                title: Text(session.file.name),
-                trailing: IconButton(
-                  tooltip: l10n.databasesClose,
-                  icon: const Icon(Icons.close),
-                  onPressed: () =>
-                      Navigator.pop(context, (file: session.file, close: true)),
-                ),
-                onTap: () =>
-                    Navigator.pop(context, (file: session.file, close: false)),
-              ),
-            ListTile(
-              leading: const Icon(Icons.add),
-              title: Text(l10n.databasesOpenAnother),
-              onTap: () => Navigator.pop(context, (file: null, close: false)),
+      title: l10n.databasesTitle,
+      buildItems: (context) => [
+        for (final session in sessions.openSessions)
+          ListTile(
+            leading: Icon(
+              session.file == current?.file
+                  ? Icons.check_circle
+                  : Icons.folder_outlined,
             ),
-          ],
+            title: Text(session.file.name),
+            trailing: IconButton(
+              tooltip: l10n.databasesClose,
+              icon: const Icon(Icons.close),
+              onPressed: () =>
+                  Navigator.pop(context, (file: session.file, close: true)),
+            ),
+            onTap: () =>
+                Navigator.pop(context, (file: session.file, close: false)),
+          ),
+        ListTile(
+          leading: const Icon(Icons.add),
+          title: Text(l10n.databasesOpenAnother),
+          onTap: () => Navigator.pop(context, (file: null, close: false)),
         ),
-      ),
+      ],
     );
     if (!context.mounted || selection == null) return;
     final file = selection.file;

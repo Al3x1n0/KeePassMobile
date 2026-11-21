@@ -60,6 +60,19 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(l10n.databasesTitle));
     await tester.pumpAndSettle();
+    final databaseSheet = find.byType(BottomSheet);
+    expect(tester.widget<BottomSheet>(databaseSheet).showDragHandle, isTrue);
+    expect(
+      find.descendant(
+        of: databaseSheet,
+        matching: find.text(l10n.databasesTitle),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: databaseSheet, matching: find.byType(Scrollable)),
+      findsOneWidget,
+    );
     await tester.tap(find.text(l10n.databasesOpenAnother));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Secondo.kdbx'));
