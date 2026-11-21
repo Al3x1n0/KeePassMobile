@@ -18,6 +18,7 @@ Future<T?> showSelectionSheet<T>({
         title: Text(option.value),
         enabled: !disabled.contains(option.key),
         selected: selected != null && option.key == selected,
+        selectedColor: AppColors.selectionAccent(Theme.of(context).brightness),
         trailing: selected != null && option.key == selected
             ? const Icon(Icons.check_circle)
             : null,

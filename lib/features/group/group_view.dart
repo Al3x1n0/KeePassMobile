@@ -190,35 +190,10 @@ class _GroupViewState extends ConsumerState<GroupView> {
                       icon: const Icon(Icons.search),
                       onPressed: () => context.push(AppRoutes.search),
                     ),
-                    PopupMenuButton<GroupSortOrder>(
+                    IconButton(
                       tooltip: l10n.groupSort,
                       icon: const Icon(Icons.sort),
-                      initialValue: ref.watch(groupSortOrderProvider),
-                      onSelected: ref
-                          .read(groupSortOrderProvider.notifier)
-                          .select,
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: GroupSortOrder.ascending,
-                          child: Text(l10n.groupSortAscending),
-                        ),
-                        PopupMenuItem(
-                          value: GroupSortOrder.descending,
-                          child: Text(l10n.groupSortDescending),
-                        ),
-                        PopupMenuItem(
-                          value: GroupSortOrder.database,
-                          child: Text(l10n.groupSortDatabase),
-                        ),
-                        PopupMenuItem(
-                          value: GroupSortOrder.modification,
-                          child: Text(l10n.groupSortModification),
-                        ),
-                        PopupMenuItem(
-                          value: GroupSortOrder.creation,
-                          child: Text(l10n.groupSortCreation),
-                        ),
-                      ],
+                      onPressed: () => _chooseSortOrder(context, ref),
                     ),
                     if (widget.groupId == null)
                       IconButton(
@@ -473,6 +448,25 @@ class _GroupViewState extends ConsumerState<GroupView> {
         .read(itemActionsProvider(id).notifier)
         .restoreItems(_selected.toList());
     if (success && mounted) setState(_selected.clear);
+  }
+
+  Future<void> _chooseSortOrder(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final order = await showSelectionSheet<GroupSortOrder>(
+      context: context,
+      title: l10n.groupSort,
+      selected: ref.read(groupSortOrderProvider),
+      options: {
+        GroupSortOrder.ascending: l10n.groupSortAscending,
+        GroupSortOrder.descending: l10n.groupSortDescending,
+        GroupSortOrder.database: l10n.groupSortDatabase,
+        GroupSortOrder.modification: l10n.groupSortModification,
+        GroupSortOrder.creation: l10n.groupSortCreation,
+      },
+    );
+    if (context.mounted && order != null) {
+      await ref.read(groupSortOrderProvider.notifier).select(order);
+    }
   }
 
   Future<void> _chooseDatabase(BuildContext context, WidgetRef ref) async {

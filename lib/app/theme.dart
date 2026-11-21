@@ -39,6 +39,12 @@ abstract final class AppColors {
   static const blue = Color(0xFF0066FF);
   static const white = Color(0xFFFFFFFF);
   static const ink = Color(0xFF161622);
+
+  /// Blu usato per le selezioni, adattato al contrasto del tema.
+  static Color selectionAccent(Brightness brightness) =>
+      brightness == Brightness.dark
+      ? const Color(0xFF6DA7FF)
+      : const Color(0xFF005CE6);
 }
 
 ThemeData _buildTheme(Brightness brightness) {
@@ -54,9 +60,7 @@ ThemeData _buildTheme(Brightness brightness) {
         onSurface: dark ? AppColors.white : AppColors.ink,
       );
   final barColor = dark ? const Color(0xFF20202E) : const Color(0xFFF5F5F7);
-  final navigationAccent = dark
-      ? const Color(0xFF6DA7FF)
-      : const Color(0xFF005CE6);
+  final selectionAccent = AppColors.selectionAccent(brightness);
   final navigationLabel = Typography.material2021().englishLike.labelMedium;
   final buttonShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(16),
@@ -79,13 +83,13 @@ ThemeData _buildTheme(Brightness brightness) {
       indicatorColor: Colors.transparent,
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.selected)
-            ? IconThemeData(color: navigationAccent)
+            ? IconThemeData(color: selectionAccent)
             : null,
       ),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => navigationLabel?.copyWith(
           color: states.contains(WidgetState.selected)
-              ? navigationAccent
+              ? selectionAccent
               : scheme.onSurfaceVariant,
         ),
       ),
