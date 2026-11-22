@@ -1,7 +1,7 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kpasslib/kpasslib.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../app/database_navigation_bar.dart';
 import '../../app/routes.dart';
@@ -17,20 +17,20 @@ import '../../shared/security/biometric_key_store.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/remote_storage.dart';
-import '../file_select/recent_files.dart';
-import '../recent_passwords/recent_passwords_view_model.dart';
-import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/cross_database_copy_dialog.dart';
-import '../../shared/ui/linked_database_edit_dialog.dart';
+import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/entry_tile.dart';
 import '../../shared/ui/group_destination_dialog.dart';
+import '../../shared/ui/linked_database_edit_dialog.dart';
 import '../../shared/ui/remote_cache_banner.dart';
 import '../../shared/ui/selection_sheet.dart';
 import '../database_settings/biometric_unlock_view_model.dart';
 import '../export/export_view_model.dart';
+import '../file_select/recent_files.dart';
+import '../recent_passwords/recent_passwords_view_model.dart';
 import '../unlock/relock.dart';
-import 'group_view_model.dart';
 import 'group_edit_dialog.dart';
+import 'group_view_model.dart';
 
 /// Elenco di sottogruppi e voci di un gruppo (GroupActivity di
 /// Keepass2Android).
@@ -76,6 +76,211 @@ class _GroupViewState extends ConsumerState<GroupView> {
       }
     });
 
+    final appBarActions = _selected.isNotEmpty
+        ? [
+            if (ref.read(databaseSessionProvider.notifier).openSessions.length >
+                    1 &&
+                !inBin)
+              IconButton(
+                tooltip: l10n.databasesCopy,
+                icon: const Icon(Icons.file_copy_outlined),
+                onPressed: busy
+                    ? null
+                    : () async {
+                        if (await copyToAnotherDatabase(
+                              context,
+                              ref,
+                              _selected.toList(),
+                            ) &&
+                            mounted) {
+                          setState(_selected.clear);
+                        }
+                      },
+              ),
+            if (ref.read(databaseSessionProvider.notifier).openSessions.length >
+                    1 &&
+                !inBin)
+              IconButton(
+                tooltip: l10n.databasesMove,
+                icon: const Icon(Icons.drive_file_move_outline),
+                onPressed: busy
+                    ? null
+                    : () async {
+                        if (await copyToAnotherDatabase(
+                              context,
+                              ref,
+                              _selected.toList(),
+                              move: true,
+                            ) &&
+                            mounted) {
+                          setState(_selected.clear);
+                        }
+                      },
+              ),
+            IconButton(
+              tooltip: l10n.itemsSelectAll,
+              icon: const Icon(Icons.select_all),
+              onPressed: busy
+                  ? null
+                  : () => setState(() {
+                      _selected.addAll(
+                        content.groups
+                            .where((g) => g != content.recycleBin)
+                            .map(itemIdOf),
+                      );
+                      _selected.addAll(content.entries.map(itemIdOf));
+                    }),
+            ),
+            if (inBin)
+              IconButton(
+                tooltip: l10n.itemRestore,
+                icon: const Icon(Icons.restore),
+                onPressed: busy ? null : () => _restoreSelection(ref, id),
+              ),
+            if (!inBin)
+              IconButton(
+                tooltip: l10n.itemMoveTitle,
+                icon: const Icon(Icons.drive_file_move_outline),
+                onPressed: busy ? null : () => _moveSelection(context, ref, id),
+              ),
+            IconButton(
+              tooltip: l10n.entryDelete,
+              icon: const Icon(Icons.delete_outline),
+              onPressed: busy
+                  ? null
+                  : () => _deleteSelection(
+                      context,
+                      ref,
+                      id,
+                      inBin || !session.database.meta.recycleBinEnabled,
+                    ),
+            ),
+          ]
+        : [
+            IconButton(
+              tooltip: l10n.searchTitle,
+              icon: const Icon(Icons.search),
+              onPressed: () => context.push(AppRoutes.search),
+            ),
+            IconButton(
+              tooltip: l10n.groupSort,
+              icon: const Icon(Icons.sort),
+              onPressed: () => _chooseSortOrder(context, ref),
+            ),
+            if (widget.groupId == null) ...[
+              IconButton(
+                tooltip: l10n.favoritesTitle,
+                icon: const Icon(Icons.star_border),
+                onPressed: () => context.push(AppRoutes.favorites),
+              ),
+              IconButton(
+                tooltip: l10n.databasesTitle,
+                icon: const Icon(Icons.folder_copy_outlined),
+                onPressed: busy ? null : () => _chooseDatabase(context, ref),
+              ),
+            ],
+            IconButton(
+              tooltip: l10n.groupLock,
+              icon: const Icon(Icons.lock_outline),
+              onPressed: () =>
+                  ref.read(relockProvider.notifier).lockAndReturn(),
+            ),
+            IconButton(
+              tooltip: l10n.groupMore,
+              icon: const Icon(Icons.more_vert),
+              onPressed: () async {
+                final route = await showSelectionSheet<String>(
+                  context: context,
+                  title: l10n.groupMore,
+                  options: {
+                    if (!inBin) ...{
+                      _createGroup: l10n.groupCreate,
+                      _editCurrent: l10n.groupEdit,
+                      _installTemplates: l10n.templatesInstall,
+                    },
+                    if (!protected) ...{
+                      if (!inBin) _moveCurrent: l10n.itemMoveTitle,
+                      if (inBin) _restoreCurrent: l10n.itemRestore,
+                      _deleteCurrent: l10n.groupDelete,
+                    },
+                    if (content.group == content.recycleBin)
+                      _emptyBin: l10n.recycleBinEmpty,
+                    if (widget.groupId == null &&
+                        ref
+                                .read(databaseSessionProvider.notifier)
+                                .openSessions
+                                .length >
+                            1)
+                      _linkedAdd: l10n.linkedDatabaseAdd,
+                    AppRoutes.databaseSettings: l10n.dbSettingsTitle,
+                    AppRoutes.changeMasterKey: l10n.changeKeyTitle,
+                    _export: l10n.exportTitle,
+                    _sync: l10n.syncNow,
+                  },
+                  disabled: busy
+                      ? {
+                          _createGroup,
+                          _installTemplates,
+                          _editCurrent,
+                          _moveCurrent,
+                          _deleteCurrent,
+                          _restoreCurrent,
+                          _emptyBin,
+                        }
+                      : const {},
+                );
+                if (!context.mounted || route == null) return;
+                switch (route) {
+                  case _linkedAdd:
+                    await addLinkedDatabase(context, ref);
+                  case _export:
+                    _exportDatabase(context, ref);
+                  case _sync:
+                    _synchronize(context, ref);
+                  case _createGroup:
+                    _editGroup(context, ref, id);
+                  case _installTemplates:
+                    _addBuiltInTemplates(context, ref, id);
+                  case _editCurrent:
+                    _editGroup(
+                      context,
+                      ref,
+                      id,
+                      initial: GroupDraft(
+                        name: content.group.name,
+                        icon: content.group.icon,
+                      ),
+                    );
+                  case _moveCurrent:
+                    _moveGroup(
+                      context,
+                      ref,
+                      id,
+                      content.group.parent == null
+                          ? null
+                          : itemIdOf(content.group.parent!),
+                    );
+                  case _deleteCurrent:
+                    _deleteGroup(
+                      context,
+                      ref,
+                      id,
+                      content.group.parent == null
+                          ? null
+                          : itemIdOf(content.group.parent!),
+                      deletesPermanently(session.database, content.group),
+                    );
+                  case _restoreCurrent:
+                    _restoreGroup(context, ref, id);
+                  case _emptyBin:
+                    _emptyRecycleBin(context, ref, id);
+                  default:
+                    context.push(route);
+                }
+              },
+            ),
+          ];
+
     return _BiometricOfferHost(
       enabled: widget.groupId == null,
       child: PopScope(
@@ -87,10 +292,14 @@ class _GroupViewState extends ConsumerState<GroupView> {
         },
         child: Scaffold(
           appBar: AppBar(
+            centerTitle: false,
+            toolbarHeight: 48,
             title: Text(
               _selected.isEmpty
                   ? content.group.name
                   : l10n.itemsSelected(_selected.length),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             leading: _selected.isEmpty
                 ? null
@@ -99,225 +308,33 @@ class _GroupViewState extends ConsumerState<GroupView> {
                     icon: const Icon(Icons.close),
                     onPressed: busy ? null : () => setState(_selected.clear),
                   ),
-            actions: _selected.isNotEmpty
-                ? [
-                    if (ref
-                                .read(databaseSessionProvider.notifier)
-                                .openSessions
-                                .length >
-                            1 &&
-                        !inBin)
-                      IconButton(
-                        tooltip: l10n.databasesCopy,
-                        icon: const Icon(Icons.file_copy_outlined),
-                        onPressed: busy
-                            ? null
-                            : () async {
-                                if (await copyToAnotherDatabase(
-                                      context,
-                                      ref,
-                                      _selected.toList(),
-                                    ) &&
-                                    mounted) {
-                                  setState(_selected.clear);
-                                }
-                              },
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(48),
+              child: SizedBox(
+                height: 48,
+                child: LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: constraints.maxWidth,
                       ),
-                    if (ref
-                                .read(databaseSessionProvider.notifier)
-                                .openSessions
-                                .length >
-                            1 &&
-                        !inBin)
-                      IconButton(
-                        tooltip: l10n.databasesMove,
-                        icon: const Icon(Icons.drive_file_move_outline),
-                        onPressed: busy
-                            ? null
-                            : () async {
-                                if (await copyToAnotherDatabase(
-                                      context,
-                                      ref,
-                                      _selected.toList(),
-                                      move: true,
-                                    ) &&
-                                    mounted) {
-                                  setState(_selected.clear);
-                                }
-                              },
+                      child: IntrinsicWidth(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.s,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: appBarActions,
+                          ),
+                        ),
                       ),
-                    IconButton(
-                      tooltip: l10n.itemsSelectAll,
-                      icon: const Icon(Icons.select_all),
-                      onPressed: busy
-                          ? null
-                          : () => setState(() {
-                              _selected.addAll(
-                                content.groups
-                                    .where((g) => g != content.recycleBin)
-                                    .map(itemIdOf),
-                              );
-                              _selected.addAll(content.entries.map(itemIdOf));
-                            }),
                     ),
-                    if (inBin)
-                      IconButton(
-                        tooltip: l10n.itemRestore,
-                        icon: const Icon(Icons.restore),
-                        onPressed: busy
-                            ? null
-                            : () => _restoreSelection(ref, id),
-                      ),
-                    if (!inBin)
-                      IconButton(
-                        tooltip: l10n.itemMoveTitle,
-                        icon: const Icon(Icons.drive_file_move_outline),
-                        onPressed: busy
-                            ? null
-                            : () => _moveSelection(context, ref, id),
-                      ),
-                    IconButton(
-                      tooltip: l10n.entryDelete,
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: busy
-                          ? null
-                          : () => _deleteSelection(
-                              context,
-                              ref,
-                              id,
-                              inBin || !session.database.meta.recycleBinEnabled,
-                            ),
-                    ),
-                  ]
-                : [
-                    IconButton(
-                      tooltip: l10n.searchTitle,
-                      icon: const Icon(Icons.search),
-                      onPressed: () => context.push(AppRoutes.search),
-                    ),
-                    IconButton(
-                      tooltip: l10n.groupSort,
-                      icon: const Icon(Icons.sort),
-                      onPressed: () => _chooseSortOrder(context, ref),
-                    ),
-                    if (widget.groupId == null) ...[
-                      IconButton(
-                        tooltip: l10n.favoritesTitle,
-                        icon: const Icon(Icons.star_border),
-                        onPressed: () => context.push(AppRoutes.favorites),
-                      ),
-                      IconButton(
-                        tooltip: l10n.databasesTitle,
-                        icon: const Icon(Icons.folder_copy_outlined),
-                        onPressed: busy
-                            ? null
-                            : () => _chooseDatabase(context, ref),
-                      ),
-                    ],
-                    IconButton(
-                      tooltip: l10n.groupLock,
-                      icon: const Icon(Icons.lock_outline),
-                      onPressed: () =>
-                          ref.read(relockProvider.notifier).lockAndReturn(),
-                    ),
-                    IconButton(
-                      tooltip: l10n.groupMore,
-                      icon: const Icon(Icons.more_vert),
-                      onPressed: () async {
-                        final route = await showSelectionSheet<String>(
-                          context: context,
-                          title: l10n.groupMore,
-                          options: {
-                            if (!inBin) ...{
-                              _createGroup: l10n.groupCreate,
-                              _editCurrent: l10n.groupEdit,
-                              _installTemplates: l10n.templatesInstall,
-                            },
-                            if (!protected) ...{
-                              if (!inBin) _moveCurrent: l10n.itemMoveTitle,
-                              if (inBin) _restoreCurrent: l10n.itemRestore,
-                              _deleteCurrent: l10n.groupDelete,
-                            },
-                            if (content.group == content.recycleBin)
-                              _emptyBin: l10n.recycleBinEmpty,
-                            if (widget.groupId == null &&
-                                ref
-                                        .read(databaseSessionProvider.notifier)
-                                        .openSessions
-                                        .length >
-                                    1)
-                              _linkedAdd: l10n.linkedDatabaseAdd,
-                            AppRoutes.databaseSettings: l10n.dbSettingsTitle,
-                            AppRoutes.changeMasterKey: l10n.changeKeyTitle,
-                            _export: l10n.exportTitle,
-                            _sync: l10n.syncNow,
-                          },
-                          disabled: busy
-                              ? {
-                                  _createGroup,
-                                  _installTemplates,
-                                  _editCurrent,
-                                  _moveCurrent,
-                                  _deleteCurrent,
-                                  _restoreCurrent,
-                                  _emptyBin,
-                                }
-                              : const {},
-                        );
-                        if (!context.mounted || route == null) return;
-                        switch (route) {
-                          case _linkedAdd:
-                            await addLinkedDatabase(context, ref);
-                          case _export:
-                            _exportDatabase(context, ref);
-                          case _sync:
-                            _synchronize(context, ref);
-                          case _createGroup:
-                            _editGroup(context, ref, id);
-                          case _installTemplates:
-                            _addBuiltInTemplates(context, ref, id);
-                          case _editCurrent:
-                            _editGroup(
-                              context,
-                              ref,
-                              id,
-                              initial: GroupDraft(
-                                name: content.group.name,
-                                icon: content.group.icon,
-                              ),
-                            );
-                          case _moveCurrent:
-                            _moveGroup(
-                              context,
-                              ref,
-                              id,
-                              content.group.parent == null
-                                  ? null
-                                  : itemIdOf(content.group.parent!),
-                            );
-                          case _deleteCurrent:
-                            _deleteGroup(
-                              context,
-                              ref,
-                              id,
-                              content.group.parent == null
-                                  ? null
-                                  : itemIdOf(content.group.parent!),
-                              deletesPermanently(
-                                session.database,
-                                content.group,
-                              ),
-                            );
-                          case _restoreCurrent:
-                            _restoreGroup(context, ref, id);
-                          case _emptyBin:
-                            _emptyRecycleBin(context, ref, id);
-                          default:
-                            context.push(route);
-                        }
-                      },
-                    ),
-                  ],
+                  ),
+                ),
+              ),
+            ),
           ),
           bottomNavigationBar: _selected.isEmpty
               ? const DatabaseNavigationBar()
