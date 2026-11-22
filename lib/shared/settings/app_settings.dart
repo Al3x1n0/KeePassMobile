@@ -21,6 +21,8 @@ class AppSettings {
     this.showUserNameInList = true,
     this.showGroupNameInSearch = true,
     this.showGroupInEntry = false,
+    this.showRecentPasswords = false,
+    this.recentPasswordLimit = defaultRecentPasswordLimit,
     this.listTextSize = 20,
     this.rememberRecentFiles = true,
     this.rememberKeyFile = true,
@@ -92,6 +94,15 @@ class AppSettings {
   /// Nome del gruppo nei risultati di ricerca.
   final bool showGroupNameInSearch;
   final bool showGroupInEntry;
+
+  /// Mostra in Home le voci di cui è stata copiata la password.
+  final bool showRecentPasswords;
+
+  /// Numero massimo di voci nella sezione delle password recenti.
+  final int recentPasswordLimit;
+  static const defaultRecentPasswordLimit = 5;
+  static const recentPasswordLimits = [defaultRecentPasswordLimit, 10, 15];
+
   final int listTextSize;
   static const listTextSizes = [15, 20, 28];
 
@@ -122,6 +133,8 @@ class AppSettings {
     bool? showUserNameInList,
     bool? showGroupNameInSearch,
     bool? showGroupInEntry,
+    bool? showRecentPasswords,
+    int? recentPasswordLimit,
     int? listTextSize,
     bool? rememberRecentFiles,
     bool? rememberKeyFile,
@@ -141,6 +154,8 @@ class AppSettings {
     showUserNameInList: showUserNameInList ?? this.showUserNameInList,
     showGroupNameInSearch: showGroupNameInSearch ?? this.showGroupNameInSearch,
     showGroupInEntry: showGroupInEntry ?? this.showGroupInEntry,
+    showRecentPasswords: showRecentPasswords ?? this.showRecentPasswords,
+    recentPasswordLimit: recentPasswordLimit ?? this.recentPasswordLimit,
     listTextSize: listTextSize ?? this.listTextSize,
     rememberRecentFiles: rememberRecentFiles ?? this.rememberRecentFiles,
     rememberKeyFile: rememberKeyFile ?? this.rememberKeyFile,
@@ -162,6 +177,8 @@ class AppSettings {
       other.showUserNameInList == showUserNameInList &&
       other.showGroupNameInSearch == showGroupNameInSearch &&
       other.showGroupInEntry == showGroupInEntry &&
+      other.showRecentPasswords == showRecentPasswords &&
+      other.recentPasswordLimit == recentPasswordLimit &&
       other.listTextSize == listTextSize &&
       other.rememberRecentFiles == rememberRecentFiles &&
       other.rememberKeyFile == rememberKeyFile &&
@@ -181,6 +198,8 @@ class AppSettings {
     showUserNameInList,
     showGroupNameInSearch,
     showGroupInEntry,
+    showRecentPasswords,
+    recentPasswordLimit,
     listTextSize,
     rememberRecentFiles,
     rememberKeyFile,
@@ -206,6 +225,8 @@ class AppSettingsRepository {
   static const _showUserNameInList = 'settings.show_user_name_in_list';
   static const _showGroupNameInSearch = 'settings.show_group_name_in_search';
   static const _showGroupInEntry = 'settings.show_group_in_entry';
+  static const _showRecentPasswords = 'settings.show_recent_passwords';
+  static const _recentPasswordLimit = 'settings.recent_password_limit';
   static const _listTextSize = 'settings.list_text_size';
   static const _rememberRecentFiles = 'settings.remember_recent_files';
   static const _rememberKeyFile = 'settings.remember_key_file';
@@ -258,6 +279,13 @@ class AppSettingsRepository {
         defaults.showGroupNameInSearch,
       ),
       showGroupInEntry: flag(_showGroupInEntry, defaults.showGroupInEntry),
+      showRecentPasswords: flag(
+        _showRecentPasswords,
+        defaults.showRecentPasswords,
+      ),
+      recentPasswordLimit: _validatedRecentPasswordLimit(
+        _prefs.get(_recentPasswordLimit),
+      ),
       listTextSize:
           AppSettings.listTextSizes.contains(_prefs.getInt(_listTextSize))
           ? _prefs.getInt(_listTextSize)!
@@ -295,6 +323,11 @@ class AppSettingsRepository {
       settings.showGroupNameInSearch,
     );
     await _prefs.setBool(_showGroupInEntry, settings.showGroupInEntry);
+    await _prefs.setBool(_showRecentPasswords, settings.showRecentPasswords);
+    await _prefs.setInt(
+      _recentPasswordLimit,
+      _validatedRecentPasswordLimit(settings.recentPasswordLimit),
+    );
     await _prefs.setInt(_listTextSize, settings.listTextSize);
     await _prefs.setBool(_rememberRecentFiles, settings.rememberRecentFiles);
     await _prefs.setBool(_rememberKeyFile, settings.rememberKeyFile);
@@ -312,6 +345,11 @@ class AppSettingsRepository {
 
   Future<void> markNotificationPermissionRequested() =>
       _prefs.setBool(_permissionRequested, true);
+
+  static int _validatedRecentPasswordLimit(Object? value) =>
+      value is int && AppSettings.recentPasswordLimits.contains(value)
+      ? value
+      : AppSettings.defaultRecentPasswordLimit;
 
   static Duration? _allowed(int? ms, List<Duration?> allowed) {
     for (final duration in allowed) {

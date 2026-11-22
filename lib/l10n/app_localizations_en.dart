@@ -237,6 +237,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get favoritesTitle => 'Favorites';
 
   @override
+  String get recentPasswordsTitle => 'Recent passwords';
+
+  @override
+  String get settingsRecentPasswordsHint =>
+      'Show the entries whose passwords you copy in the app on Home.';
+
+  @override
+  String get settingsRecentPasswordLimit => 'Number of recent passwords';
+
+  @override
   String get favoritesEmpty => 'No favorite entries.';
 
   @override

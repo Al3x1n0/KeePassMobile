@@ -10,8 +10,10 @@ import '../../shared/database/entry_templates.dart';
 import '../../shared/database/kdbx_items.dart';
 import '../../shared/database/field_references.dart';
 import '../../shared/storage/file_storage.dart';
+import '../../shared/storage/recent_passwords_store.dart';
 import '../entry_edit/entry_edit_view_model.dart';
 import '../favorites/favorites_view_model.dart';
+import '../recent_passwords/recent_passwords_view_model.dart';
 import '../totp/totp.dart';
 
 /// Campo di una voce da mostrare nel dettaglio.
@@ -222,14 +224,36 @@ class EntryActions extends AsyncNotifier<void> {
     final value = resolveEntryField(database, entry, key);
     if (!value.valid) throw FieldReferenceException(value.issue!);
     if (value.text.isEmpty) return null;
-    return copyText(value.text);
+    return copyText(
+      value.text,
+      recordPasswordUse:
+          key == EntryFields.password && !isInRecycleBin(database, entry),
+    );
   }
 
   /// Copia un valore calcolato (codice TOTP) con la stessa pulizia degli
   /// appunti.
-  Future<Duration> copyText(String value) async {
+  Future<Duration> copyText(
+    String value, {
+    bool recordPasswordUse = false,
+  }) async {
     final clipboard = ref.read(clipboardServiceProvider);
+    final key = recordPasswordUse && value.isNotEmpty
+        ? ref.read(recentPasswordDatabaseKeyProvider)
+        : null;
+    final generation = key == null
+        ? null
+        : ref.read(databaseSessionProvider.notifier).lockGeneration;
     await clipboard.copy(value);
+    if (key != null &&
+        ref.mounted &&
+        generation ==
+            ref.read(databaseSessionProvider.notifier).lockGeneration &&
+        ref.read(recentPasswordDatabaseKeyProvider) == key) {
+      final saved = ref.read(recentPasswordsStoreProvider).record(key, entryId);
+      ref.invalidate(recentPasswordIdsProvider(key));
+      await saved;
+    }
     return clipboard.clearAfter;
   }
 

@@ -18,6 +18,7 @@ import '../../shared/settings/app_settings.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/remote_storage.dart';
 import '../file_select/recent_files.dart';
+import '../recent_passwords/recent_passwords_view_model.dart';
 import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/cross_database_copy_dialog.dart';
 import '../../shared/ui/linked_database_edit_dialog.dart';
@@ -63,6 +64,10 @@ class _GroupViewState extends ConsumerState<GroupView> {
         content.group == session.database.root ||
         content.group == content.recycleBin;
     final busy = ref.watch(itemActionsProvider(id)).isLoading;
+    final recentEntries = widget.groupId == null && _selected.isEmpty
+        ? ref.watch(recentPasswordEntriesProvider)
+        : const <KdbxEntry>[];
+    final recentRows = recentEntries.isEmpty ? 0 : recentEntries.length + 1;
     ref.listen(itemActionsProvider(id), (_, next) {
       if (next case AsyncError(:final error)) {
         ScaffoldMessenger.of(
@@ -329,7 +334,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
             children: [
               const RemoteCacheBanner(),
               Expanded(
-                child: content.isEmpty
+                child: content.isEmpty && recentEntries.isEmpty
                     ? Center(
                         child: Padding(
                           padding: const EdgeInsets.all(AppSpacing.l),
@@ -338,10 +343,33 @@ class _GroupViewState extends ConsumerState<GroupView> {
                       )
                     : ListView.builder(
                         itemCount:
-                            content.groups.length + content.entries.length,
+                            recentRows +
+                            content.groups.length +
+                            content.entries.length,
                         itemBuilder: (context, index) {
-                          if (index < content.groups.length) {
-                            final group = content.groups[index];
+                          if (index < recentRows) {
+                            if (index == 0) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.m,
+                                  vertical: AppSpacing.s,
+                                ),
+                                child: Semantics(
+                                  header: true,
+                                  child: Text(
+                                    l10n.recentPasswordsTitle,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium,
+                                  ),
+                                ),
+                              );
+                            }
+                            return EntryTile(entry: recentEntries[index - 1]);
+                          }
+                          final groupIndex = index - recentRows;
+                          if (groupIndex < content.groups.length) {
+                            final group = content.groups[groupIndex];
                             final isBin = group == content.recycleBin;
                             return ListTile(
                               leading: DatabaseItemIcon(
@@ -374,8 +402,8 @@ class _GroupViewState extends ConsumerState<GroupView> {
                                     ),
                             );
                           }
-                          final entry =
-                              content.entries[index - content.groups.length];
+                          final entry = content
+                              .entries[groupIndex - content.groups.length];
                           final entryId = itemIdOf(entry);
                           return EntryTile(
                             entry: entry,

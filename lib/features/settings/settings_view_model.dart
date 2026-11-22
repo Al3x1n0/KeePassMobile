@@ -4,8 +4,10 @@ import '../../shared/database/database_session.dart';
 import '../../shared/security/biometric_key_store.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/storage/file_storage.dart';
+import '../../shared/storage/recent_passwords_store.dart';
 import '../../shared/storage/remote_cache.dart';
 import '../file_select/recent_files.dart';
+import '../recent_passwords/recent_passwords_view_model.dart';
 
 /// Impostazioni dell'app (AppPreferenceActivity di Keepass2Android).
 final settingsViewModelProvider =
@@ -44,7 +46,14 @@ class SettingsViewModel extends Notifier<AppSettings> {
     };
     final settings = ref.read(appSettingsProvider.notifier);
 
-    await settings.update(next);
+    final saved = settings.update(next);
+    if (previous.showRecentPasswords && !next.showRecentPasswords) {
+      final cleared = ref.read(recentPasswordsStoreProvider).clear();
+      ref.invalidate(recentPasswordIdsProvider);
+      await Future.wait([saved, cleared]);
+    } else {
+      await saved;
+    }
     if (previous.rememberRecentFiles && !next.rememberRecentFiles) {
       await recents.clear(keep: keep);
       await ref.read(biometricKeyStoreProvider).removeAll();

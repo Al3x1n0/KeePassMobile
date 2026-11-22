@@ -136,6 +136,35 @@ class SettingsView extends ConsumerWidget {
             value: settings.showGroupInEntry,
             onChanged: (v) => update(settings.copyWith(showGroupInEntry: v)),
           ),
+          SwitchListTile(
+            title: Text(l10n.recentPasswordsTitle),
+            subtitle: Text(l10n.settingsRecentPasswordsHint),
+            value: settings.showRecentPasswords,
+            onChanged: (value) =>
+                update(settings.copyWith(showRecentPasswords: value)),
+          ),
+          _SelectionTile(
+            title: l10n.settingsRecentPasswordLimit,
+            value: settings.recentPasswordLimit.toString(),
+            onTap: () async {
+              final limit = await showSelectionSheet<int>(
+                context: context,
+                title: l10n.settingsRecentPasswordLimit,
+                selected: settings.recentPasswordLimit,
+                options: {
+                  for (final limit in AppSettings.recentPasswordLimits)
+                    limit: limit.toString(),
+                },
+              );
+              if (context.mounted && limit != null) {
+                update(
+                  ref
+                      .read(settingsViewModelProvider)
+                      .copyWith(recentPasswordLimit: limit),
+                );
+              }
+            },
+          ),
           _SelectionTile(
             title: l10n.settingsListTextSize,
             value: switch (settings.listTextSize) {

@@ -28,6 +28,8 @@ void main() {
       expect(settings.showUserNameInList, isTrue);
       expect(settings.showGroupNameInSearch, isTrue);
       expect(settings.showGroupInEntry, isFalse);
+      expect(settings.showRecentPasswords, isFalse);
+      expect(settings.recentPasswordLimit, 5);
       expect(settings.listTextSize, 20);
       expect(settings.rememberRecentFiles, isTrue);
       expect(settings.rememberKeyFile, isTrue);
@@ -66,6 +68,8 @@ void main() {
         showUserNameInList: false,
         showGroupNameInSearch: false,
         showGroupInEntry: true,
+        showRecentPasswords: true,
+        recentPasswordLimit: 15,
         listTextSize: 28,
         rememberRecentFiles: false,
         rememberKeyFile: false,
@@ -109,6 +113,29 @@ void main() {
     expect(never.lockOnScreenOff, isTrue);
     expect(never.copyWith(maskTotp: false).lockTimeout, isNull);
   });
+
+  test(
+    'password recenti: salva 5, 10 e 15 e normalizza gli altri limiti',
+    () async {
+      const key = 'settings.recent_password_limit';
+      final repo = await repository({key: '10'});
+      expect(repo.load().recentPasswordLimit, 5);
+
+      for (final limit in [5, 10, 15]) {
+        final settings = repo.load().copyWith(
+          showRecentPasswords: true,
+          recentPasswordLimit: limit,
+        );
+        await repo.save(settings);
+        expect(repo.load().showRecentPasswords, isTrue);
+        expect(repo.load().recentPasswordLimit, limit);
+      }
+
+      await repo.save(repo.load().copyWith(recentPasswordLimit: 42));
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt(key), 5);
+    },
+  );
 
   test('permesso per le notifiche: chiesto una volta sola', () async {
     final repo = await repository();

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/app.dart';
 import 'package:keepass_mobile/features/entry/totp_tile.dart';
@@ -613,6 +614,100 @@ void main() {
     );
     await tester.pump();
     expect(find.text('996554'), findsOneWidget);
+  });
+
+  testWidgets('password recenti: scelta in Impostazioni e accesso dalla Home', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
+    FakeClipboard(tester.binding);
+    await openApp(tester);
+
+    Finder tab(String label) => find.descendant(
+      of: find.byType(NavigationBar),
+      matching: find.text(label),
+    );
+    Future<void> tap(Finder finder) async {
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> back() async {
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> revealSetting(Finder finder) async {
+      await tester.scrollUntilVisible(finder, 250);
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+    }
+
+    final title = find.text(l10n.recentPasswordsTitle);
+    final setting = find.widgetWithText(
+      SwitchListTile,
+      l10n.recentPasswordsTitle,
+    );
+    final limit = find.widgetWithText(
+      ListTile,
+      l10n.settingsRecentPasswordLimit,
+    );
+    expect(title, findsNothing);
+    await tap(tab(l10n.settingsTitle));
+    await revealSetting(setting);
+    expect(tester.widget<SwitchListTile>(setting).value, isFalse);
+    await tap(setting);
+    await revealSetting(limit);
+    await tap(limit);
+    Finder count(String value) => find.descendant(
+      of: find.byType(BottomSheet),
+      matching: find.widgetWithText(ListTile, value),
+    );
+    expect(tester.widget<ListTile>(count('5')).selected, isTrue);
+    expect(count('15'), findsOneWidget);
+    await tap(count('10'));
+    expect(
+      find.descendant(of: limit, matching: find.text('10')),
+      findsOneWidget,
+    );
+    await tap(tab(l10n.navigationHome));
+
+    final account = find.widgetWithText(ListTile, 'Conto');
+    await tap(find.text('Banca'));
+    await tap(account);
+    await tap(find.byTooltip(l10n.entryCopy(l10n.entryUserName)));
+    await tap(find.byTooltip(l10n.entryCopy(l10n.entryTotp)));
+    await back();
+    await back();
+    expect(account, findsNothing);
+
+    await tap(find.text('Banca'));
+    await tap(account);
+    await tap(find.byTooltip(l10n.entryCopy(l10n.entryPassword)));
+    await back();
+    await back();
+    await pumpUntilFound(tester, account);
+    expect(title, findsOneWidget);
+    expect(
+      tester.getTopLeft(account).dy,
+      lessThan(tester.getTopLeft(find.text('Banca')).dy),
+    );
+    expect(find.text('pin-123'), findsNothing);
+    await tap(account);
+    expect(find.widgetWithText(AppBar, 'Conto'), findsOneWidget);
+    await back();
+
+    await tap(tab(l10n.settingsTitle));
+    await revealSetting(setting);
+    await tap(setting);
+    await tap(tab(l10n.navigationHome));
+    expect(title, findsNothing);
+    await tap(tab(l10n.settingsTitle));
+    await revealSetting(setting);
+    await tap(setting);
+    await tap(tab(l10n.navigationHome));
+    expect(account, findsNothing);
   });
 
   testWidgets('generatore: valore usato come password e salvato', (

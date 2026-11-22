@@ -518,6 +518,24 @@ abstract class AppLocalizations {
   /// **'Favorites'**
   String get favoritesTitle;
 
+  /// No description provided for @recentPasswordsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent passwords'**
+  String get recentPasswordsTitle;
+
+  /// No description provided for @settingsRecentPasswordsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the entries whose passwords you copy in the app on Home.'**
+  String get settingsRecentPasswordsHint;
+
+  /// No description provided for @settingsRecentPasswordLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of recent passwords'**
+  String get settingsRecentPasswordLimit;
+
   /// No description provided for @favoritesEmpty.
   ///
   /// In en, this message translates to:

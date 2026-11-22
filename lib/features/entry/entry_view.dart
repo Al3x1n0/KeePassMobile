@@ -244,7 +244,15 @@ class _EntryViewState extends ConsumerState<EntryView> {
                       }
                     })
                   : null,
-              onCopy: field.issue == null ? () => _copy(field.value) : null,
+              onCopy: field.issue == null
+                  ? () => _copy(
+                      field.value,
+                      recordPasswordUse:
+                          historyIndex == null &&
+                          !inBin &&
+                          field.key == EntryFields.password,
+                    )
+                  : null,
               onOpen:
                   field.key == EntryFields.url &&
                       field.issue == null &&
@@ -372,12 +380,12 @@ class _EntryViewState extends ConsumerState<EntryView> {
     _ => key,
   };
 
-  Future<void> _copy(String value) async {
+  Future<void> _copy(String value, {required bool recordPasswordUse}) async {
     if (value.isEmpty) return;
     final l10n = AppLocalizations.of(context);
     final clearAfter = await ref
         .read(entryActionsProvider(widget.entryId).notifier)
-        .copyText(value);
+        .copyText(value, recordPasswordUse: recordPasswordUse);
     if (mounted) _showMessage(l10n.entryCopied(clearAfter.inSeconds));
   }
 
