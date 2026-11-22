@@ -527,7 +527,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsRecentPasswordsHint.
   ///
   /// In en, this message translates to:
-  /// **'Show the entries whose passwords you copy in the app on Home.'**
+  /// **'Show entries on Home when you copy a field or an OTP code from them.'**
   String get settingsRecentPasswordsHint;
 
   /// No description provided for @settingsRecentPasswordLimit.

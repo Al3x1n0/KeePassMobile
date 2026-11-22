@@ -21,7 +21,7 @@ class AppSettings {
     this.showUserNameInList = true,
     this.showGroupNameInSearch = true,
     this.showGroupInEntry = false,
-    this.showRecentPasswords = false,
+    this.showRecentPasswords = true,
     this.recentPasswordLimit = defaultRecentPasswordLimit,
     this.listTextSize = 20,
     this.rememberRecentFiles = true,
@@ -95,7 +95,7 @@ class AppSettings {
   final bool showGroupNameInSearch;
   final bool showGroupInEntry;
 
-  /// Mostra in Home le voci di cui è stata copiata la password.
+  /// Mostra in Home le voci da cui è stato copiato un valore.
   final bool showRecentPasswords;
 
   /// Numero massimo di voci nella sezione delle password recenti.

@@ -99,14 +99,22 @@ void main() {
       await tester.tap(find.text(databaseRef.name));
       await pumpUntilFound(tester, find.text('Conto'));
       await tester.pumpAndSettle();
-      final requests = secure.options.length;
+      int biometricRequests() => secure.options
+          .where(
+            (options) =>
+                options['requireBiometricsPerOperation'] == 'true' ||
+                options['accessControlFlags']?.contains('biometryCurrentSet') ==
+                    true,
+          )
+          .length;
+      final requests = biometricRequests();
 
       await tester.tap(find.byTooltip(l10n.groupLock));
       await tester.pump();
 
       // Blocco completo, poi di nuovo l'impronta per lo stesso file.
       await pumpUntilFound(tester, find.text('Conto'));
-      expect(secure.options.length, requests + 1);
+      expect(biometricRequests(), requests + 1);
     },
   );
 }

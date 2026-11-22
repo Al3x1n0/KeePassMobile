@@ -621,7 +621,7 @@ void main() {
   ) async {
     FlutterSecureStorage.setMockInitialValues({});
     addTearDown(() => FlutterSecureStorage.setMockInitialValues({}));
-    FakeClipboard(tester.binding);
+    final clipboard = FakeClipboard(tester.binding);
     await openApp(tester);
 
     Finder tab(String label) => find.descendant(
@@ -656,8 +656,7 @@ void main() {
     expect(title, findsNothing);
     await tap(tab(l10n.settingsTitle));
     await revealSetting(setting);
-    expect(tester.widget<SwitchListTile>(setting).value, isFalse);
-    await tap(setting);
+    expect(tester.widget<SwitchListTile>(setting).value, isTrue);
     await revealSetting(limit);
     await tap(limit);
     Finder count(String value) => find.descendant(
@@ -674,26 +673,23 @@ void main() {
     await tap(tab(l10n.navigationHome));
 
     final account = find.widgetWithText(ListTile, 'Conto');
-    await tap(find.text('Banca'));
-    await tap(account);
-    await tap(find.byTooltip(l10n.entryCopy(l10n.entryUserName)));
-    await tap(find.byTooltip(l10n.entryCopy(l10n.entryTotp)));
-    await back();
-    await back();
-    expect(account, findsNothing);
+    Future<void> copyFromAccount(String label) async {
+      await tap(find.text('Banca'));
+      await tap(account);
+      await tap(find.byTooltip(l10n.entryCopy(label)));
+      await back();
+      await back();
+      await pumpUntilFound(tester, account);
+    }
 
-    await tap(find.text('Banca'));
-    await tap(account);
-    await tap(find.byTooltip(l10n.entryCopy(l10n.entryPassword)));
-    await back();
-    await back();
-    await pumpUntilFound(tester, account);
+    await copyFromAccount('PIN');
+    expect(clipboard.text, '9999');
     expect(title, findsOneWidget);
     expect(
       tester.getTopLeft(account).dy,
       lessThan(tester.getTopLeft(find.text('Banca')).dy),
     );
-    expect(find.text('pin-123'), findsNothing);
+    expect(find.text('9999'), findsNothing);
     await tap(account);
     expect(find.widgetWithText(AppBar, 'Conto'), findsOneWidget);
     await back();
@@ -708,6 +704,11 @@ void main() {
     await tap(setting);
     await tap(tab(l10n.navigationHome));
     expect(account, findsNothing);
+
+    await copyFromAccount(l10n.entryTotp);
+    expect(clipboard.text, '996554');
+    expect(title, findsOneWidget);
+    expect(find.text('996554'), findsNothing);
   });
 
   testWidgets('generatore: valore usato come password e salvato', (

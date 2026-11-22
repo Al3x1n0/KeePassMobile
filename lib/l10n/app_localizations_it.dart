@@ -243,7 +243,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get settingsRecentPasswordsHint =>
-      'Mostra in Home le voci di cui copi la password nell’app.';
+      'Mostra in Home le voci da cui copi un campo o un codice OTP.';
 
   @override
   String get settingsRecentPasswordLimit => 'Numero di password recenti';

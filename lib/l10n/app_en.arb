@@ -92,7 +92,7 @@
   "searchNoResults": "No entries found.",
   "favoritesTitle": "Favorites",
   "recentPasswordsTitle": "Recent passwords",
-  "settingsRecentPasswordsHint": "Show the entries whose passwords you copy in the app on Home.",
+  "settingsRecentPasswordsHint": "Show entries on Home when you copy a field or an OTP code from them.",
   "settingsRecentPasswordLimit": "Number of recent passwords",
   "favoritesEmpty": "No favorite entries.",
   "entryFavoriteAdd": "Add to favorites",

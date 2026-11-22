@@ -226,19 +226,18 @@ class EntryActions extends AsyncNotifier<void> {
     if (value.text.isEmpty) return null;
     return copyText(
       value.text,
-      recordPasswordUse:
-          key == EntryFields.password && !isInRecycleBin(database, entry),
+      recordRecentUse: !isInRecycleBin(database, entry),
     );
   }
 
-  /// Copia un valore calcolato (codice TOTP) con la stessa pulizia degli
-  /// appunti.
+  /// Copia il valore di una voce e lo rimuove dagli appunti dopo il timeout.
+  /// Con [recordRecentUse] la copia riuscita registra la voce tra le recenti.
   Future<Duration> copyText(
     String value, {
-    bool recordPasswordUse = false,
+    bool recordRecentUse = false,
   }) async {
     final clipboard = ref.read(clipboardServiceProvider);
-    final key = recordPasswordUse && value.isNotEmpty
+    final key = recordRecentUse && value.isNotEmpty
         ? ref.read(recentPasswordDatabaseKeyProvider)
         : null;
     final generation = key == null
@@ -250,9 +249,8 @@ class EntryActions extends AsyncNotifier<void> {
         generation ==
             ref.read(databaseSessionProvider.notifier).lockGeneration &&
         ref.read(recentPasswordDatabaseKeyProvider) == key) {
-      final saved = ref.read(recentPasswordsStoreProvider).record(key, entryId);
+      unawaited(ref.read(recentPasswordsStoreProvider).record(key, entryId));
       ref.invalidate(recentPasswordIdsProvider(key));
-      await saved;
     }
     return clipboard.clearAfter;
   }

@@ -28,7 +28,7 @@ void main() {
       expect(settings.showUserNameInList, isTrue);
       expect(settings.showGroupNameInSearch, isTrue);
       expect(settings.showGroupInEntry, isFalse);
-      expect(settings.showRecentPasswords, isFalse);
+      expect(settings.showRecentPasswords, isTrue);
       expect(settings.recentPasswordLimit, 5);
       expect(settings.listTextSize, 20);
       expect(settings.rememberRecentFiles, isTrue);
@@ -68,7 +68,7 @@ void main() {
         showUserNameInList: false,
         showGroupNameInSearch: false,
         showGroupInEntry: true,
-        showRecentPasswords: true,
+        showRecentPasswords: false,
         recentPasswordLimit: 15,
         listTextSize: 28,
         rememberRecentFiles: false,

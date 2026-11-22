@@ -93,6 +93,8 @@ class _EntryViewState extends ConsumerState<EntryView> {
         ref.watch(itemActionsProvider(widget.entryId)).isLoading;
     final database = ref.watch(databaseSessionProvider)?.database;
     final inBin = database != null && isInRecycleBin(database, entry);
+    Future<void> copyValue(String value) =>
+        _copy(value, recordRecentUse: historyIndex == null && !inBin);
     final favorite = isEntryFavorite(entry);
     ref.listen(itemActionsProvider(widget.entryId), (_, next) {
       if (next case AsyncError(:final error)) {
@@ -225,7 +227,8 @@ class _EntryViewState extends ConsumerState<EntryView> {
                 subtitle: Text(groupFullPath(group)),
               ),
           for (final (index, field) in fields.indexed) ...[
-            if (index == totpAt && totp != null) _totpTile(l10n, totp),
+            if (index == totpAt && totp != null)
+              _totpTile(l10n, totp, onCopy: copyValue),
             _FieldTile(
               label: _label(l10n, field.key),
               value: field.issue == null
@@ -244,15 +247,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
                       }
                     })
                   : null,
-              onCopy: field.issue == null
-                  ? () => _copy(
-                      field.value,
-                      recordPasswordUse:
-                          historyIndex == null &&
-                          !inBin &&
-                          field.key == EntryFields.password,
-                    )
-                  : null,
+              onCopy: field.issue == null ? () => copyValue(field.value) : null,
               onOpen:
                   field.key == EntryFields.url &&
                       field.issue == null &&
@@ -261,7 +256,8 @@ class _EntryViewState extends ConsumerState<EntryView> {
                   : null,
             ),
           ],
-          if (totpAt == fields.length && totp != null) _totpTile(l10n, totp),
+          if (totpAt == fields.length && totp != null)
+            _totpTile(l10n, totp, onCopy: copyValue),
           if (entry.times.creation.time case final created?)
             ListTile(
               title: Text(l10n.entryCreated),
@@ -340,7 +336,11 @@ class _EntryViewState extends ConsumerState<EntryView> {
     }
   }
 
-  Widget _totpTile(AppLocalizations l10n, EntryTotp totp) {
+  Widget _totpTile(
+    AppLocalizations l10n,
+    EntryTotp totp, {
+    required ValueChanged<String> onCopy,
+  }) {
     final config = totp.config;
     if (config == null) {
       return ListTile(
@@ -355,16 +355,8 @@ class _EntryViewState extends ConsumerState<EntryView> {
     return TotpTile(
       config: config,
       masked: ref.watch(appSettingsProvider.select((s) => s.maskTotp)),
-      onCopy: _copyCode,
+      onCopy: onCopy,
     );
-  }
-
-  Future<void> _copyCode(String code) async {
-    final l10n = AppLocalizations.of(context);
-    final clearAfter = await ref
-        .read(entryActionsProvider(widget.entryId).notifier)
-        .copyText(code);
-    if (mounted) _showMessage(l10n.entryCopied(clearAfter.inSeconds));
   }
 
   /// Come Keepass2Android: masktotp per i campi TOTP, maskpass per la
@@ -380,12 +372,12 @@ class _EntryViewState extends ConsumerState<EntryView> {
     _ => key,
   };
 
-  Future<void> _copy(String value, {required bool recordPasswordUse}) async {
+  Future<void> _copy(String value, {required bool recordRecentUse}) async {
     if (value.isEmpty) return;
     final l10n = AppLocalizations.of(context);
     final clearAfter = await ref
         .read(entryActionsProvider(widget.entryId).notifier)
-        .copyText(value, recordPasswordUse: recordPasswordUse);
+        .copyText(value, recordRecentUse: recordRecentUse);
     if (mounted) _showMessage(l10n.entryCopied(clearAfter.inSeconds));
   }
 

@@ -241,7 +241,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsRecentPasswordsHint =>
-      'Show the entries whose passwords you copy in the app on Home.';
+      'Show entries on Home when you copy a field or an OTP code from them.';
 
   @override
   String get settingsRecentPasswordLimit => 'Number of recent passwords';
