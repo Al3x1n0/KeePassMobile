@@ -236,6 +236,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get searchNoResults => 'Nessuna voce trovata.';
 
   @override
+  String get favoritesTitle => 'Preferiti';
+
+  @override
+  String get favoritesEmpty => 'Nessuna voce preferita.';
+
+  @override
+  String get entryFavoriteAdd => 'Aggiungi ai preferiti';
+
+  @override
+  String get entryFavoriteRemove => 'Rimuovi dai preferiti';
+
+  @override
   String get groupAddEntry => 'Aggiungi voce';
 
   @override

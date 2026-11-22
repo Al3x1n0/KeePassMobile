@@ -11,6 +11,7 @@ import '../../shared/database/kdbx_items.dart';
 import '../../shared/database/field_references.dart';
 import '../../shared/storage/file_storage.dart';
 import '../entry_edit/entry_edit_view_model.dart';
+import '../favorites/favorites_view_model.dart';
 import '../totp/totp.dart';
 
 /// Campo di una voce da mostrare nel dettaglio.
@@ -273,6 +274,9 @@ class EntryActions extends AsyncNotifier<void> {
 
   /// Elimina la voce e salva. `true` se riuscito; l'errore resta nello stato.
   Future<bool> delete() => _apply((uuid) => deleteEntryEdit(uuid));
+
+  Future<bool> setFavorite(bool favorite) =>
+      _apply((uuid) => setEntryFavoriteEdit(uuid, favorite));
 
   /// Ripristina la versione [index] della cronologia e salva.
   Future<bool> restoreHistory(int index) =>

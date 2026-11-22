@@ -8,6 +8,7 @@ import '../features/database_settings/database_settings_view.dart';
 import '../features/entry/entry_view.dart';
 import '../features/entry_edit/entry_edit_view.dart';
 import '../features/entry_edit/entry_edit_view_model.dart';
+import '../features/favorites/favorites_view.dart';
 import '../features/file_select/file_select_view.dart';
 import '../features/group/group_view.dart';
 import '../features/password_generator/generator_view.dart';
@@ -133,6 +134,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(path: 'search', builder: (_, _) => const SearchView()),
+          GoRoute(path: 'favorites', builder: (_, _) => const FavoritesView()),
           GoRoute(path: 'generator', builder: (_, _) => const GeneratorView()),
           GoRoute(
             path: 'settings',

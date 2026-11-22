@@ -22,6 +22,7 @@ import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/size_format.dart';
 import '../../shared/ui/selection_sheet.dart';
 import '../../shared/ui/url_opener.dart';
+import '../favorites/favorites_view_model.dart';
 import '../totp/totp.dart';
 import 'entry_view_model.dart';
 import 'totp_tile.dart';
@@ -92,6 +93,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
         ref.watch(itemActionsProvider(widget.entryId)).isLoading;
     final database = ref.watch(databaseSessionProvider)?.database;
     final inBin = database != null && isInRecycleBin(database, entry);
+    final favorite = isEntryFavorite(entry);
     ref.listen(itemActionsProvider(widget.entryId), (_, next) {
       if (next case AsyncError(:final error)) {
         _showMessage(describeSaveError(l10n, error));
@@ -132,6 +134,25 @@ class _EntryViewState extends ConsumerState<EntryView> {
         ),
         actions: historyIndex == null
             ? [
+                if (!inBin)
+                  IconButton(
+                    tooltip: favorite
+                        ? l10n.entryFavoriteRemove
+                        : l10n.entryFavoriteAdd,
+                    isSelected: favorite,
+                    color: favorite
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                    icon: const Icon(Icons.star_border),
+                    selectedIcon: const Icon(Icons.star),
+                    onPressed: busy
+                        ? null
+                        : () => ref
+                              .read(
+                                entryActionsProvider(widget.entryId).notifier,
+                              )
+                              .setFavorite(!favorite),
+                  ),
                 IconButton(
                   tooltip: l10n.entryEdit,
                   icon: const Icon(Icons.edit_outlined),

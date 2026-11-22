@@ -535,6 +535,62 @@ void main() {
     expect(isInRecycleBin(db, entry), isTrue);
   });
 
+  testWidgets('i preferiti aprono il dettaglio e si salvano nel database', (
+    tester,
+  ) async {
+    final db = (await tester.runAsync(() => reopenFile(file)))!;
+    db.root.allEntries.single.tags = ['banca'];
+    addTestEntry(db, db.recycleBin!, {
+      EntryFields.title: 'Voce nel cestino',
+    }).tags = [
+      'Favorite',
+    ];
+    await tester.runAsync(() async => file.writeAsBytes(await db.save()));
+    await openApp(tester);
+
+    final favorites = find.byTooltip(l10n.favoritesTitle);
+    final empty = find.text(l10n.favoritesEmpty);
+    final add = find.byTooltip(l10n.entryFavoriteAdd);
+    final remove = find.byTooltip(l10n.entryFavoriteRemove);
+    final detail = find.widgetWithText(AppBar, 'Conto');
+
+    await tester.tap(favorites);
+    await tester.pumpAndSettle();
+    expect(empty, findsOneWidget);
+    expect(find.text('Voce nel cestino'), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Banca'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Conto'));
+    await tester.pumpAndSettle();
+    await tester.tap(add);
+    await pumpUntilFound(tester, remove);
+    expect(
+      (await entryOnDisk(tester, 'Conto'))?.tags,
+      unorderedEquals(['banca', 'Favorite']),
+    );
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(favorites);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'Conto'));
+    await tester.pumpAndSettle();
+    expect(detail, findsOneWidget);
+
+    await tester.tap(remove);
+    await pumpUntilFound(tester, add);
+    expect((await entryOnDisk(tester, 'Conto'))?.tags, ['banca']);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, l10n.favoritesTitle), findsOneWidget);
+    expect(empty, findsOneWidget);
+  });
+
   testWidgets('TOTP: codice nascosto, rivelato e copiato', (tester) async {
     final clipboard = FakeClipboard(tester.binding);
     await openApp(tester);

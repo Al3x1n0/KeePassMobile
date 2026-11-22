@@ -195,7 +195,12 @@ class _GroupViewState extends ConsumerState<GroupView> {
                       icon: const Icon(Icons.sort),
                       onPressed: () => _chooseSortOrder(context, ref),
                     ),
-                    if (widget.groupId == null)
+                    if (widget.groupId == null) ...[
+                      IconButton(
+                        tooltip: l10n.favoritesTitle,
+                        icon: const Icon(Icons.star_border),
+                        onPressed: () => context.push(AppRoutes.favorites),
+                      ),
                       IconButton(
                         tooltip: l10n.databasesTitle,
                         icon: const Icon(Icons.folder_copy_outlined),
@@ -203,6 +208,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
                             ? null
                             : () => _chooseDatabase(context, ref),
                       ),
+                    ],
                     IconButton(
                       tooltip: l10n.groupLock,
                       icon: const Icon(Icons.lock_outline),

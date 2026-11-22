@@ -512,6 +512,30 @@ abstract class AppLocalizations {
   /// **'No entries found.'**
   String get searchNoResults;
 
+  /// No description provided for @favoritesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favoritesTitle;
+
+  /// No description provided for @favoritesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorite entries.'**
+  String get favoritesEmpty;
+
+  /// No description provided for @entryFavoriteAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get entryFavoriteAdd;
+
+  /// No description provided for @entryFavoriteRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get entryFavoriteRemove;
+
   /// No description provided for @groupAddEntry.
   ///
   /// In en, this message translates to:

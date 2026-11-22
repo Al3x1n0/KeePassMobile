@@ -8,6 +8,7 @@ abstract final class AppRoutes {
   static const remoteOpen = '/remote';
   static const database = '/db';
   static const search = '$database/search';
+  static const favorites = '$database/favorites';
   static const additionalDatabase = '$database/open';
   static const additionalUnlock = '$additionalDatabase/unlock';
   static const additionalRemote = '$additionalDatabase/remote';
