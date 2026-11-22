@@ -1,7 +1,7 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kpasslib/kpasslib.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../app/database_navigation_bar.dart';
 import '../../app/routes.dart';
@@ -17,20 +17,20 @@ import '../../shared/security/biometric_key_store.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/remote_storage.dart';
-import '../file_select/recent_files.dart';
-import '../recent_passwords/recent_passwords_view_model.dart';
-import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/cross_database_copy_dialog.dart';
-import '../../shared/ui/linked_database_edit_dialog.dart';
+import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/entry_tile.dart';
 import '../../shared/ui/group_destination_dialog.dart';
+import '../../shared/ui/linked_database_edit_dialog.dart';
 import '../../shared/ui/remote_cache_banner.dart';
 import '../../shared/ui/selection_sheet.dart';
 import '../database_settings/biometric_unlock_view_model.dart';
 import '../export/export_view_model.dart';
+import '../file_select/recent_files.dart';
+import '../recent_passwords/recent_passwords_view_model.dart';
 import '../unlock/relock.dart';
-import 'group_view_model.dart';
 import 'group_edit_dialog.dart';
+import 'group_view_model.dart';
 
 /// Elenco di sottogruppi e voci di un gruppo (GroupActivity di
 /// Keepass2Android).
@@ -309,9 +309,9 @@ class _GroupViewState extends ConsumerState<GroupView> {
                     onPressed: busy ? null : () => setState(_selected.clear),
                   ),
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(56),
+              preferredSize: const Size.fromHeight(48),
               child: SizedBox(
-                height: 56,
+                height: 48,
                 child: LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
