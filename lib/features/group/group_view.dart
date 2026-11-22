@@ -293,11 +293,13 @@ class _GroupViewState extends ConsumerState<GroupView> {
         child: Scaffold(
           appBar: AppBar(
             centerTitle: false,
-            toolbarHeight: 56,
+            toolbarHeight: 48,
             title: Text(
               _selected.isEmpty
                   ? content.group.name
                   : l10n.itemsSelected(_selected.length),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             leading: _selected.isEmpty
                 ? null
