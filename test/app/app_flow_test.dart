@@ -151,6 +151,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Conto'), findsOneWidget);
 
+    // Il blocco è disponibile tornando alla Home.
+    expect(find.byTooltip(l10n.groupLock), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
     // when: blocca il database
     await tester.tap(find.byTooltip(l10n.groupLock));
     await tester.pumpAndSettle();

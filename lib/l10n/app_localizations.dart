@@ -2432,18 +2432,6 @@ abstract class AppLocalizations {
   /// **'Permanently delete this group and all its contents? This cannot be undone.'**
   String get groupDeletePermanent;
 
-  /// No description provided for @recycleBinEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'Empty recycle bin'**
-  String get recycleBinEmpty;
-
-  /// No description provided for @recycleBinEmptyConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Permanently delete everything in the recycle bin? This cannot be undone.'**
-  String get recycleBinEmptyConfirm;
-
   /// No description provided for @itemMoveTitle.
   ///
   /// In en, this message translates to:

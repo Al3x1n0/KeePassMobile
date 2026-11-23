@@ -309,6 +309,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Carta di credito'), findsOneWidget);
 
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(l10n.searchTitle));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'titolare');
@@ -574,12 +576,8 @@ void main() {
     final remove = find.byTooltip(l10n.entryFavoriteRemove);
     final detail = find.widgetWithText(AppBar, 'Conto');
 
-    await tester.tap(favorites);
-    await tester.pumpAndSettle();
-    expect(empty, findsOneWidget);
+    expect(favorites, findsNothing);
     expect(find.text('Voce nel cestino'), findsNothing);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Banca'));
     await tester.pumpAndSettle();
@@ -609,6 +607,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, l10n.favoritesTitle), findsOneWidget);
     expect(empty, findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(favorites, findsNothing);
   });
 
   testWidgets('TOTP: codice nascosto, rivelato e copiato', (tester) async {

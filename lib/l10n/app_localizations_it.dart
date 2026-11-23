@@ -1346,13 +1346,6 @@ class AppLocalizationsIt extends AppLocalizations {
       'Eliminare definitivamente il gruppo e tutto il suo contenuto? L’operazione non è reversibile.';
 
   @override
-  String get recycleBinEmpty => 'Svuota cestino';
-
-  @override
-  String get recycleBinEmptyConfirm =>
-      'Eliminare definitivamente tutto il contenuto del cestino? L’operazione non è reversibile.';
-
-  @override
   String get itemMoveTitle => 'Sposta';
 
   @override

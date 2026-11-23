@@ -25,6 +25,7 @@ import '../../shared/ui/remote_cache_banner.dart';
 import '../../shared/ui/selection_sheet.dart';
 import '../database_settings/biometric_unlock_view_model.dart';
 import '../file_select/recent_files.dart';
+import '../favorites/favorites_view_model.dart';
 import '../recent_passwords/recent_passwords_view_model.dart';
 import '../unlock/relock.dart';
 import 'group_edit_dialog.dart';
@@ -190,56 +191,50 @@ class _GroupViewState extends ConsumerState<GroupView> {
                     ),
             ),
           ]
-        : [
-            IconButton(
-              tooltip: l10n.searchTitle,
-              icon: const Icon(Icons.search),
-              onPressed: () => context.push(AppRoutes.search),
-            ),
+        : widget.groupId == null
+        ? [
+            if (recycleBin != null &&
+                (recycleBin.groups.isNotEmpty || recycleBin.entries.isNotEmpty))
+              IconButton(
+                tooltip: l10n.dbSettingsRecycleBin,
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () =>
+                    context.push(AppRoutes.group(itemIdOf(recycleBin))),
+              ),
             IconButton(
               tooltip: l10n.groupSort,
               icon: const Icon(Icons.sort),
               onPressed: () => _chooseSortOrder(context, ref),
             ),
-            if (widget.groupId == null) ...[
-              IconButton(
-                tooltip: l10n.favoritesTitle,
-                icon: const Icon(Icons.star_border),
-                onPressed: () => context.push(AppRoutes.favorites),
-              ),
-              IconButton(
-                tooltip: l10n.databasesTitle,
-                icon: const Icon(Icons.folder_copy_outlined),
-                onPressed: busy ? null : () => _chooseDatabase(context, ref),
-              ),
-              if (recycleBin != null)
-                IconButton(
-                  tooltip: l10n.dbSettingsRecycleBin,
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () =>
-                      context.push(AppRoutes.group(itemIdOf(recycleBin))),
-                ),
-            ],
-            if (content.group == recycleBin)
-              IconButton(
-                tooltip: l10n.recycleBinEmpty,
-                icon: const Icon(Icons.delete_forever_outlined),
-                onPressed: busy || content.isEmpty
-                    ? null
-                    : () => _emptyRecycleBin(context, ref, id),
-              ),
             IconButton(
-              tooltip: l10n.groupLock,
-              icon: const Icon(Icons.lock_outline),
-              onPressed: () =>
-                  ref.read(relockProvider.notifier).lockAndReturn(),
+              tooltip: l10n.databasesTitle,
+              icon: const Icon(Icons.folder_copy_outlined),
+              onPressed: busy ? null : () => _chooseDatabase(context, ref),
             ),
             IconButton(
               tooltip: l10n.syncNow,
               icon: const Icon(Icons.sync),
               onPressed: busy ? null : () => _synchronize(context, ref),
             ),
-          ];
+            if (ref.watch(favoriteEntriesProvider)?.isNotEmpty ?? false)
+              IconButton(
+                tooltip: l10n.favoritesTitle,
+                icon: const Icon(Icons.star_border),
+                onPressed: () => context.push(AppRoutes.favorites),
+              ),
+            IconButton(
+              tooltip: l10n.searchTitle,
+              icon: const Icon(Icons.search),
+              onPressed: () => context.push(AppRoutes.search),
+            ),
+            IconButton(
+              tooltip: l10n.groupLock,
+              icon: const Icon(Icons.lock_outline),
+              onPressed: () =>
+                  ref.read(relockProvider.notifier).lockAndReturn(),
+            ),
+          ]
+        : <Widget>[];
 
     return _BiometricOfferHost(
       enabled: widget.groupId == null,
@@ -268,33 +263,36 @@ class _GroupViewState extends ConsumerState<GroupView> {
                     icon: const Icon(Icons.close),
                     onPressed: busy ? null : () => setState(_selected.clear),
                   ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
-              child: SizedBox(
-                height: 48,
-                child: LayoutBuilder(
-                  builder: (context, constraints) => SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: constraints.maxWidth,
-                      ),
-                      child: IntrinsicWidth(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.s,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: appBarActions,
-                          ),
-                        ),
+            bottom: appBarActions.isEmpty
+                ? null
+                : PreferredSize(
+                    preferredSize: const Size.fromHeight(48),
+                    child: SizedBox(
+                      height: 48,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) =>
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minWidth: constraints.maxWidth,
+                                ),
+                                child: IntrinsicWidth(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.s,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: appBarActions,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            ),
           ),
           bottomNavigationBar: _selected.isEmpty
               ? const DatabaseNavigationBar()
@@ -573,34 +571,6 @@ class _GroupViewState extends ConsumerState<GroupView> {
     }
   }
 
-  Future<void> _emptyRecycleBin(
-    BuildContext context,
-    WidgetRef ref,
-    String id,
-  ) async {
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.recycleBinEmpty),
-        content: Text(l10n.recycleBinEmptyConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.entryDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && context.mounted) {
-      await ref.read(itemActionsProvider(id).notifier).emptyBin();
-    }
-  }
-
   /// "Sincronizza ora": unisce le modifiche fatte altrove, se ci sono.
   Future<void> _synchronize(BuildContext context, WidgetRef ref) async {
     if (_synchronizing) return;
@@ -631,10 +601,18 @@ class _GroupViewState extends ConsumerState<GroupView> {
   }
 }
 
-class _RecentPasswordsSection extends StatelessWidget {
+class _RecentPasswordsSection extends StatefulWidget {
   const _RecentPasswordsSection({required this.entries});
 
   final List<KdbxEntry> entries;
+
+  @override
+  State<_RecentPasswordsSection> createState() =>
+      _RecentPasswordsSectionState();
+}
+
+class _RecentPasswordsSectionState extends State<_RecentPasswordsSection> {
+  bool _expanded = true;
 
   @override
   Widget build(BuildContext context) {
@@ -654,20 +632,35 @@ class _RecentPasswordsSection extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.m,
-                vertical: AppSpacing.s,
-              ),
-              child: Semantics(
-                header: true,
-                child: Text(
-                  AppLocalizations.of(context).recentPasswordsTitle,
-                  style: theme.textTheme.titleMedium,
+            Semantics(
+              header: true,
+              expanded: _expanded,
+              child: InkWell(
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.m,
+                    vertical: AppSpacing.s,
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            AppLocalizations.of(context).recentPasswordsTitle,
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        Icon(_expanded ? Icons.expand_less : Icons.expand_more),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-            for (final entry in entries) EntryTile(entry: entry),
+            if (_expanded)
+              for (final entry in widget.entries) EntryTile(entry: entry),
           ],
         ),
       ),

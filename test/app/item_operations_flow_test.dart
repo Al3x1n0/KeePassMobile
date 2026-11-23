@@ -320,46 +320,88 @@ void main() {
     },
   );
 
-  testWidgets('mostra sincronizzazione e cestino nella barra della Home', (
+  testWidgets('mostra le azioni della Home nell’ordine richiesto', (
     tester,
   ) async {
     // given
+    final db = (await tester.runAsync(() => reopenFile(file)))!;
+    addTestEntry(db, db.recycleBin!, {EntryFields.title: 'Voce eliminata'});
+    db.root.allEntries
+        .singleWhere((e) => entryTitle(e) == 'Voce sintetica')
+        .tags = [
+      'Favorite',
+    ];
+    await tester.runAsync(() async => file.writeAsBytes(await db.save()));
+    await open(tester);
+
+    // then: da sinistra a destra, con tutte le azioni visibili.
+    final labels = [
+      l10n.dbSettingsRecycleBin,
+      l10n.groupSort,
+      l10n.databasesTitle,
+      l10n.syncNow,
+      l10n.favoritesTitle,
+      l10n.searchTitle,
+      l10n.groupLock,
+    ];
+    final appBar = find.byType(AppBar);
+    final actions = [
+      for (final label in labels)
+        find.descendant(of: appBar, matching: find.byTooltip(label)),
+    ];
+    for (final action in actions) {
+      expect(action, findsOneWidget);
+    }
+    final positions = [
+      for (final action in actions) tester.getTopLeft(action).dx,
+    ];
+    expect(positions, orderedEquals([...positions]..sort()));
+    expect(find.widgetWithText(ListTile, db.recycleBin!.name), findsNothing);
+  });
+
+  testWidgets('nasconde cestino vuoto e preferiti assenti nella Home', (
+    tester,
+  ) async {
+    // given: il gruppo Cestino esiste, ma non contiene elementi.
     final db = newTestDatabase();
-    final bin = db.recycleBin!;
+    expect(db.recycleBin, isNotNull);
     await tester.runAsync(() async => file.writeAsBytes(await db.save()));
     final before = file.readAsBytesSync();
 
-    // when
+    // when / then
     await open(tester, waitFor: find.text(l10n.groupEmpty));
-
-    // then
-    final appBar = find.byType(AppBar);
-    expect(find.byTooltip(l10n.groupMore), findsNothing);
-    expect(find.byIcon(Icons.more_vert), findsNothing);
-    final sync = find.descendant(
-      of: appBar,
-      matching: find.byTooltip(l10n.syncNow),
-    );
-    final recycleBin = find.descendant(
-      of: appBar,
-      matching: find.byTooltip(l10n.dbSettingsRecycleBin),
-    );
-    expect(
-      find.descendant(of: sync, matching: find.byIcon(Icons.sync)),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: recycleBin,
-        matching: find.byIcon(Icons.delete_outline),
-      ),
-      findsOneWidget,
-    );
-    expect(find.widgetWithText(ListTile, bin.name), findsNothing);
+    expect(find.byTooltip(l10n.dbSettingsRecycleBin), findsNothing);
+    expect(find.byTooltip(l10n.favoritesTitle), findsNothing);
+    expect(find.byTooltip(l10n.syncNow), findsOneWidget);
     expect(file.readAsBytesSync(), before);
   });
 
-  testWidgets('svuota il cestino con conferma e salva il database', (
+  for (final groupOnly in [true, false]) {
+    testWidgets(
+      'mostra il cestino con ${groupOnly ? 'un solo gruppo' : 'una sola voce'}',
+      (tester) async {
+        final db = (await tester.runAsync(() => reopenFile(file)))!;
+        final bin = db.recycleBin!;
+        if (groupOnly) {
+          db.createGroup(parent: bin, name: 'Gruppo eliminato');
+        } else {
+          addTestEntry(db, bin, {EntryFields.title: 'Voce eliminata'});
+        }
+        await tester.runAsync(() async => file.writeAsBytes(await db.save()));
+        await open(tester);
+        final action = find.byTooltip(l10n.dbSettingsRecycleBin);
+        expect(action, findsOneWidget);
+        await tester.tap(action);
+        await tester.pumpAndSettle();
+        expect(
+          find.text(groupOnly ? 'Gruppo eliminato' : 'Voce eliminata'),
+          findsOneWidget,
+        );
+      },
+    );
+  }
+
+  testWidgets('elimina tutto dal cestino tramite selezione e conferma', (
     tester,
   ) async {
     // given
@@ -373,36 +415,38 @@ void main() {
     await tester.tap(find.byTooltip(l10n.dbSettingsRecycleBin));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, bin.name), findsOneWidget);
-    expect(find.byTooltip(l10n.dbSettingsRecycleBin), findsNothing);
+    expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
+    expect(find.byIcon(Icons.delete_forever_outlined), findsNothing);
     expect(find.byTooltip(l10n.groupAddEntry), findsNothing);
-    expect(find.text('Gruppo eliminato'), findsOneWidget);
-    expect(find.text('Voce eliminata'), findsOneWidget);
 
     // when
-    final emptyBin = find.byTooltip(l10n.recycleBinEmpty);
-    await tester.tap(emptyBin);
+    await tester.longPress(find.text('Gruppo eliminato'));
     await tester.pumpAndSettle();
-    expect(find.text(l10n.recycleBinEmptyConfirm), findsOneWidget);
+    expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNotNull);
+    await tester.tap(find.byTooltip(l10n.itemsSelectAll));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
+    await tester.tap(find.byTooltip(l10n.entryDelete));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.itemsDeletePermanent), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, l10n.cancel));
     await tester.pumpAndSettle();
-    expect(find.text('Voce eliminata'), findsOneWidget);
     expect(file.readAsBytesSync(), before);
-    await tester.tap(emptyBin);
+    await tester.tap(find.byTooltip(l10n.entryDelete));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, l10n.entryDelete));
     await pumpUntilFound(tester, find.text(l10n.groupEmpty));
     await tester.pumpAndSettle();
 
     // then
-    final emptyAction = find.ancestor(
-      of: emptyBin,
-      matching: find.byType(IconButton),
-    );
-    expect(tester.widget<IconButton>(emptyAction).onPressed, isNull);
+    expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
     final reopened = (await tester.runAsync(() => reopenFile(file)))!;
     final savedBin = existingRecycleBin(reopened)!;
     expect(savedBin.groups, isEmpty);
     expect(savedBin.entries, isEmpty);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byTooltip(l10n.dbSettingsRecycleBin), findsNothing);
   });
 
   testWidgets('mostra Modifica gruppo solo per un gruppo fuori dal cestino', (
@@ -432,6 +476,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Origine'));
     await tester.pumpAndSettle();
+    expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
+    for (final label in [
+      l10n.groupLock,
+      l10n.syncNow,
+      l10n.searchTitle,
+      l10n.groupSort,
+    ]) {
+      expect(find.byTooltip(label), findsNothing);
+    }
     await tester.longPress(find.text('Voce sintetica'));
     await tester.pumpAndSettle();
     expect(find.text(l10n.itemsSelected(1)), findsOneWidget);
@@ -448,7 +501,7 @@ void main() {
     expect(find.text(l10n.itemsSelected(1)), findsOneWidget);
     expect(edit, findsNothing);
     expect(find.byTooltip(l10n.itemRestore), findsOneWidget);
-    expect(find.byTooltip(l10n.recycleBinEmpty), findsNothing);
+    expect(find.byIcon(Icons.delete_forever_outlined), findsNothing);
     await tester.tap(find.byTooltip(l10n.entryDelete));
     await tester.pumpAndSettle();
     expect(find.text(l10n.itemsDeletePermanent), findsOneWidget);

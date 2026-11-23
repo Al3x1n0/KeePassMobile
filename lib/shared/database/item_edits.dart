@@ -252,16 +252,6 @@ DatabaseEdit restoreItemsEdit(List<String> ids, String parentId) => (database) {
   }
 };
 
-DatabaseEdit emptyRecycleBinEdit() => (database) {
-  final bin = existingRecycleBin(database);
-  if (bin == null) return;
-  for (final item in [...bin.groups, ...bin.entries]) {
-    database.move(item: item, target: null);
-  }
-  bin.times.touch();
-  database.cleanup(binaries: true);
-};
-
 KdbxEntry _cloneEntry(KdbxEntry source, KdbxUuid uuid) {
   final copy = KdbxEntry.copyFrom(source, uuid)
     ..qualityCheck = source.qualityCheck
@@ -378,7 +368,6 @@ class ItemActions extends AsyncNotifier<void> {
   Future<bool> restore() => _apply(restoreItemEdit(id));
   Future<bool> restoreItems(List<String> ids) =>
       _apply(restoreItemsEdit(ids, id));
-  Future<bool> emptyBin() => _apply(emptyRecycleBinEdit());
   Future<String?> duplicate(String suffix) async {
     final uuid = _newUuid();
     if (uuid == null) return null;

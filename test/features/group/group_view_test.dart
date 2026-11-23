@@ -104,6 +104,31 @@ void main() {
         orderedEquals(recent.take(limit)),
       );
 
+      expect(
+        find.descendant(of: panel, matching: find.byIcon(Icons.expand_less)),
+        findsOneWidget,
+      );
+      await tester.tap(heading);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: panel, matching: find.byType(EntryTile)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: panel, matching: find.byIcon(Icons.expand_more)),
+        findsOneWidget,
+      );
+      await tester.tap(heading);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widgetList<EntryTile>(tiles).map((tile) => tile.entry),
+        orderedEquals(recent.take(limit)),
+      );
+      expect(
+        find.descendant(of: panel, matching: find.byIcon(Icons.expand_less)),
+        findsOneWidget,
+      );
+
       final scrollable = find.descendant(
         of: find.byType(ListView),
         matching: find.byType(Scrollable),

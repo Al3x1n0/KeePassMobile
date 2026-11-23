@@ -93,6 +93,23 @@ void main() {
   });
 
   test(
+    'eliminazione di un gruppo dal cestino registra i discendenti',
+    () async {
+      await apply(deleteItemsEdit([groupId], rootId));
+      var reopened = await reopenFile(file);
+      final bin = existingRecycleBin(reopened)!;
+      final binId = itemIdOf(bin);
+      final binUuid = bin.uuid;
+      await apply(deleteItemsEdit([groupId], binId));
+      reopened = await reopenFile(file);
+      expect(reopened.meta.recycleBinUuid, binUuid);
+      expect(existingRecycleBin(reopened)!.children, isEmpty);
+      expect(reopened.deletedObjects.keys, containsAll([groupUuid, entryUuid]));
+      expect(reopened.getGroup(uuid: groupUuid), isNull);
+    },
+  );
+
+  test(
     'spostamento risultati rifiuta interamente una selezione non valida',
     () async {
       final before = file.readAsBytesSync();
@@ -253,20 +270,6 @@ void main() {
       await apply(restoreItemEdit(entryId));
       final reopened = await reopenFile(file);
       expect(findEntryByUuid(reopened, entryUuid)!.parent, reopened.root);
-    },
-  );
-
-  test(
-    'svuota cestino conserva il gruppo e registra tombstone ricorsive',
-    () async {
-      await apply(deleteGroupEdit(groupId));
-      final binUuid = (await reopenFile(file)).meta.recycleBinUuid;
-      await apply(emptyRecycleBinEdit());
-      final reopened = await reopenFile(file);
-      expect(reopened.meta.recycleBinUuid, binUuid);
-      expect(existingRecycleBin(reopened)!.children, isEmpty);
-      expect(reopened.deletedObjects.keys, containsAll([groupUuid, entryUuid]));
-      expect(reopened.getGroup(uuid: groupUuid), isNull);
     },
   );
 

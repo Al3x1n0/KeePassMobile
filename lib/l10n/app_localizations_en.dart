@@ -1339,13 +1339,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Permanently delete this group and all its contents? This cannot be undone.';
 
   @override
-  String get recycleBinEmpty => 'Empty recycle bin';
-
-  @override
-  String get recycleBinEmptyConfirm =>
-      'Permanently delete everything in the recycle bin? This cannot be undone.';
-
-  @override
   String get itemMoveTitle => 'Move';
 
   @override

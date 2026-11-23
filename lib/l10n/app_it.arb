@@ -420,8 +420,6 @@
   "groupDelete": "Elimina gruppo",
   "groupDeleteToBin": "Spostare il gruppo e tutto il suo contenuto nel cestino?",
   "groupDeletePermanent": "Eliminare definitivamente il gruppo e tutto il suo contenuto? L’operazione non è reversibile.",
-  "recycleBinEmpty": "Svuota cestino",
-  "recycleBinEmptyConfirm": "Eliminare definitivamente tutto il contenuto del cestino? L’operazione non è reversibile.",
   "itemMoveTitle": "Sposta",
   "itemNoDestination": "Nessun gruppo di destinazione disponibile.",
   "itemRestore": "Ripristina dal cestino",
