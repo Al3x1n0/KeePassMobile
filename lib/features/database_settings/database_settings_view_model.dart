@@ -7,6 +7,7 @@ import 'package:kpasslib/kpasslib.dart';
 
 import '../../shared/crypto/app_crypto_engine.dart';
 import '../../shared/database/database_session.dart';
+import '../../shared/database/item_edits.dart';
 import '../../shared/database/kdbx_items.dart';
 
 /// Impostazioni del database aperto (`pref_database.xml` e
@@ -15,6 +16,7 @@ import '../../shared/database/kdbx_items.dart';
 class DatabaseSettings {
   const DatabaseSettings({
     required this.name,
+    required this.rootGroupName,
     required this.defaultUserName,
     required this.recycleBinEnabled,
     required this.templatesGroupId,
@@ -27,6 +29,7 @@ class DatabaseSettings {
 
   factory DatabaseSettings.of(KdbxDatabase database) => DatabaseSettings(
     name: database.meta.name,
+    rootGroupName: database.root.name,
     defaultUserName: database.meta.defaultUser ?? '',
     recycleBinEnabled: database.meta.recycleBinEnabled,
     templatesGroupId:
@@ -45,6 +48,7 @@ class DatabaseSettings {
   static const unlimited = -1;
 
   final String name;
+  final String rootGroupName;
   final String defaultUserName;
   final bool recycleBinEnabled;
   final String templatesGroupId;
@@ -85,6 +89,7 @@ class DatabaseSettings {
     KdfSettings? kdf,
   }) => DatabaseSettings(
     name: name ?? this.name,
+    rootGroupName: rootGroupName,
     defaultUserName: defaultUserName ?? this.defaultUserName,
     recycleBinEnabled: recycleBinEnabled ?? this.recycleBinEnabled,
     templatesGroupId: templatesGroupId ?? this.templatesGroupId,
@@ -98,7 +103,10 @@ class DatabaseSettings {
 
 /// Applica [settings] al database. La KDF si sostituisce solo se cambia,
 /// perché ogni cambio la rende più lenta da verificare.
-DatabaseEdit databaseSettingsEdit(DatabaseSettings settings) => (database) {
+DatabaseEdit databaseSettingsEdit(
+  DatabaseSettings settings, {
+  String? newRootGroupName,
+}) => (database) {
   if (!settings.allowedCiphers.contains(settings.cipher) ||
       !settings.allowedKdfs.contains(settings.kdf.kdfId)) {
     throw UnsupportedValueError('cifrario o KDF non ammessi');
@@ -116,6 +124,13 @@ DatabaseEdit databaseSettingsEdit(DatabaseSettings settings) => (database) {
       throw StateError('gruppo dei modelli non disponibile');
     }
     database.meta.entryTemplatesGroup = group?.uuid ?? KdbxUuid.zero;
+  }
+  if (newRootGroupName != null) {
+    final root = database.root;
+    updateGroupEdit(
+      itemIdOf(root),
+      GroupDraft(name: newRootGroupName, icon: root.icon),
+    )(database);
   }
   database.meta
     ..name = settings.name
@@ -171,14 +186,19 @@ class DatabaseSettingsViewModel extends AsyncNotifier<Duration?> {
   FutureOr<Duration?> build() => null;
 
   /// Salva [settings]. `true` se riuscito; l'errore resta nello stato.
-  Future<bool> save(DatabaseSettings settings) async {
+  Future<bool> save(
+    DatabaseSettings settings, {
+    String? newRootGroupName,
+  }) async {
     if (state.isLoading) return false;
     final previous = state.value;
     state = const AsyncLoading();
     final result = await AsyncValue.guard(
       () => ref
           .read(databaseSessionProvider.notifier)
-          .apply(databaseSettingsEdit(settings)),
+          .apply(
+            databaseSettingsEdit(settings, newRootGroupName: newRootGroupName),
+          ),
     );
     if (!ref.mounted) return !result.hasError;
     state = result.hasError

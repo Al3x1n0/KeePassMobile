@@ -258,7 +258,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get entryFavoriteRemove => 'Rimuovi dai preferiti';
 
   @override
-  String get groupAddEntry => 'Aggiungi voce';
+  String get groupAddEntry => 'Aggiungi voce o gruppo';
 
   @override
   String get entryTitle => 'Titolo';
@@ -782,6 +782,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get dbSettingsName => 'Nome del database';
 
   @override
+  String get dbSettingsRootGroupName => 'Nome del gruppo radice';
+
+  @override
   String get dbSettingsDefaultUserName => 'Nome utente predefinito';
 
   @override
@@ -1294,6 +1297,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get linkedDatabaseAdd => 'Aggiungi database collegato';
 
   @override
+  String get linkedDatabaseAddHint =>
+      'Collega un altro database aperto per aprirlo automaticamente con questo.';
+
+  @override
   String get linkedDatabasePassword =>
       'Password del database collegato (salvata in questo database)';
 
@@ -1438,10 +1445,14 @@ class AppLocalizationsIt extends AppLocalizations {
       'Chiudi questa schermata e invia di nuovo l\'accesso per riprovare.';
 
   @override
-  String get entryTemplateChoose => 'Scegli un modello';
+  String get groupAddTitle => 'Aggiungi';
 
   @override
   String get templatesInstall => 'Aggiungi modelli predefiniti';
+
+  @override
+  String get templatesInstallHint =>
+      'Crea un gruppo Modelli con esempi pronti per carte di credito, Wi-Fi e documenti.';
 
   @override
   String get templateShowAllFields => 'Mostra tutti i campi';
@@ -1449,6 +1460,10 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get templatesInstallConfirm =>
       'Aggiungere al database i modelli predefiniti mancanti?';
+
+  @override
+  String get templatesInstallSuccess =>
+      'I modelli predefiniti sono pronti all’uso.';
 
   @override
   String get templateGroup => 'Modelli';
@@ -1484,7 +1499,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get templateHolder => 'Titolare carta';
 
   @override
-  String get entryTemplateEmpty => 'Voce vuota';
+  String get entryTemplateEmpty => 'Nuova voce';
 
   @override
   String get settingsExpireTan => 'Segna i TAN come scaduti';

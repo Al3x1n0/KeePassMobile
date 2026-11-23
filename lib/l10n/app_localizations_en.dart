@@ -256,7 +256,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get entryFavoriteRemove => 'Remove from favorites';
 
   @override
-  String get groupAddEntry => 'Add entry';
+  String get groupAddEntry => 'Add entry or group';
 
   @override
   String get entryTitle => 'Title';
@@ -778,6 +778,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dbSettingsName => 'Database name';
 
   @override
+  String get dbSettingsRootGroupName => 'Root group name';
+
+  @override
   String get dbSettingsDefaultUserName => 'Default user name';
 
   @override
@@ -1287,6 +1290,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get linkedDatabaseAdd => 'Add linked database';
 
   @override
+  String get linkedDatabaseAddHint =>
+      'Links another open database so it unlocks automatically with this one.';
+
+  @override
   String get linkedDatabasePassword =>
       'Linked database password (stored in this database)';
 
@@ -1429,10 +1436,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Close this screen and submit the login again to retry.';
 
   @override
-  String get entryTemplateChoose => 'Choose a template';
+  String get groupAddTitle => 'Add';
 
   @override
   String get templatesInstall => 'Add default templates';
+
+  @override
+  String get templatesInstallHint =>
+      'Creates a Templates group with ready-made examples for cards, Wi-Fi, and IDs.';
 
   @override
   String get templateShowAllFields => 'Show all fields';
@@ -1440,6 +1451,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get templatesInstallConfirm =>
       'Add missing default templates to the database?';
+
+  @override
+  String get templatesInstallSuccess => 'Default templates are ready to use.';
 
   @override
   String get templateGroup => 'Templates';
@@ -1475,7 +1489,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get templateHolder => 'Card holder';
 
   @override
-  String get entryTemplateEmpty => 'Empty entry';
+  String get entryTemplateEmpty => 'New entry';
 
   @override
   String get settingsExpireTan => 'Expire TAN entries when opened';

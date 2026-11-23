@@ -61,7 +61,7 @@ void main() {
     matching: find.text(label),
   );
 
-  testWidgets('impostazioni del database dalla barra: nome salvato nel file', (
+  testWidgets('salva separatamente i nomi del database e del gruppo radice', (
     tester,
   ) async {
     // given
@@ -83,6 +83,16 @@ void main() {
       find.widgetWithText(TextFormField, l10n.dbSettingsName),
       'Personale',
     );
+    final rootName = find.widgetWithText(
+      TextFormField,
+      l10n.dbSettingsRootGroupName,
+    );
+    expect(tester.widget<TextFormField>(rootName).controller?.text, 'Prova');
+    await tester.enterText(rootName, ' ');
+    await tester.tap(find.byTooltip(l10n.entryEditSave));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.groupNameRequired), findsOneWidget);
+    await tester.enterText(rootName, '  Archivio  ');
     await tester.tap(find.byTooltip(l10n.entryEditSave));
     await pumpUntilFound(tester, find.text(l10n.dbSettingsSaved));
     await tester.pumpAndSettle();
@@ -91,10 +101,42 @@ void main() {
     expect(find.widgetWithText(AppBar, l10n.settingsTitle), findsOneWidget);
     await tester.tap(tab(l10n.navigationHome));
     await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'Archivio'), findsOneWidget);
     expect(find.text('Banca'), findsOneWidget);
     final db = (await tester.runAsync(() => reopenFile(file)))!;
     expect(db.meta.name, 'Personale');
+    expect(db.root.name, 'Archivio');
     expect(db.getGroup(uuid: db.meta.entryTemplatesGroup)?.name, 'Banca');
+  });
+
+  testWidgets('salva le impostazioni quando il gruppo radice è senza nome', (
+    tester,
+  ) async {
+    // given
+    await tester.runAsync(() async {
+      final db = await reopenFile(file);
+      db.root.name = '';
+      file.writeAsBytesSync(await db.save());
+    });
+    await pumpApp(tester);
+    await unlock(tester);
+
+    // when
+    await tester.tap(tab(l10n.settingsTitle));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.dbSettingsTitle));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, l10n.dbSettingsName),
+      'Personale',
+    );
+    await tester.tap(find.byTooltip(l10n.entryEditSave));
+    await pumpUntilFound(tester, find.text(l10n.dbSettingsSaved));
+
+    // then
+    final db = (await tester.runAsync(() => reopenFile(file)))!;
+    expect(db.meta.name, 'Personale');
+    expect(db.root.name, isEmpty);
   });
 
   testWidgets(
@@ -108,6 +150,7 @@ void main() {
         l10n.dbSettingsTitle,
         l10n.changeKeyTitle,
         l10n.exportTitle,
+        l10n.templatesInstall,
       ];
 
       // Impostazioni aperte dalla scelta del file, senza un database attivo.
@@ -118,14 +161,15 @@ void main() {
       for (final action in actions) {
         expect(find.text(action), findsNothing);
       }
+      expect(find.text(l10n.linkedDatabaseAdd), findsNothing);
       await tester.pageBack();
       await tester.pumpAndSettle();
       await unlock(tester);
 
-      // Il menu del gruppo mantiene le proprie azioni.
-      await tester.tap(find.byTooltip(l10n.groupMore));
+      // Il pulsante di aggiunta mostra le azioni del gruppo.
+      await tester.tap(find.byTooltip(l10n.groupAddEntry));
       await tester.pumpAndSettle();
-      expect(find.text(l10n.groupCreate), findsOneWidget);
+      expect(find.widgetWithText(ListTile, l10n.groupCreate), findsOneWidget);
       for (final action in actions) {
         expect(find.text(action), findsNothing);
       }

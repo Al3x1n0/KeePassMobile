@@ -8,9 +8,13 @@ import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/database/database_errors.dart';
 import '../../shared/database/database_session.dart';
+import '../../shared/database/entry_templates.dart';
+import '../../shared/database/item_edits.dart';
+import '../../shared/database/kdbx_items.dart';
 import '../../shared/licenses/bundled_licenses.dart';
 import '../../shared/security/device_security.dart';
 import '../../shared/settings/app_settings.dart';
+import '../../shared/ui/linked_database_edit_dialog.dart';
 import '../../shared/ui/selection_sheet.dart';
 import '../autofill/autofill_channel.dart';
 import '../export/export_view_model.dart';
@@ -29,12 +33,22 @@ class SettingsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final settings = ref.watch(settingsViewModelProvider);
-    final showDatabaseActions =
-        showDatabaseNavigation &&
-        ref.watch(databaseSessionProvider.select((session) => session != null));
+    final session = showDatabaseNavigation
+        ? ref.watch(databaseSessionProvider)
+        : null;
+    final rootId = session == null
+        ? null
+        : idOfUuid(session.database.root.uuid);
     final exporting =
-        showDatabaseActions &&
+        rootId != null &&
         ref.watch(exportDatabaseViewModelProvider.select((s) => s.isLoading));
+    final installingTemplates =
+        rootId != null &&
+        ref.watch(itemActionsProvider(rootId).select((s) => s.isLoading));
+    final canInstallTemplates = !installingTemplates && !exporting;
+    final canLinkDatabase =
+        session != null &&
+        ref.watch(databaseSessionProvider.notifier).openSessions.length > 1;
     void update(AppSettings next) =>
         ref.read(settingsViewModelProvider.notifier).update(next);
 
@@ -45,7 +59,7 @@ class SettingsView extends ConsumerWidget {
           : null,
       body: ListView(
         children: [
-          if (showDatabaseActions) ...[
+          if (rootId != null) ...[
             _Header(l10n.settingsDatabase),
             ListTile(
               title: Text(l10n.dbSettingsTitle),
@@ -62,6 +76,20 @@ class SettingsView extends ConsumerWidget {
               enabled: !exporting,
               onTap: exporting ? null : () => _exportDatabase(context, ref),
             ),
+            ListTile(
+              title: Text(l10n.templatesInstall),
+              subtitle: Text(l10n.templatesInstallHint),
+              enabled: canInstallTemplates,
+              onTap: canInstallTemplates
+                  ? () => _addBuiltInTemplates(context, ref, rootId)
+                  : null,
+            ),
+            if (canLinkDatabase)
+              ListTile(
+                title: Text(l10n.linkedDatabaseAdd),
+                subtitle: Text(l10n.linkedDatabaseAddHint),
+                onTap: () => addLinkedDatabase(context, ref),
+              ),
           ],
           _Header(l10n.settingsSecurity),
           _SelectionTile(
@@ -293,6 +321,70 @@ class SettingsView extends ConsumerWidget {
     final state = ref.read(exportDatabaseViewModelProvider);
     final message = switch ((name, state)) {
       (final n?, _) => l10n.exportDone(n),
+      (_, AsyncError(:final error)) => describeSaveError(l10n, error),
+      _ => null,
+    };
+    if (message != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  Future<void> _addBuiltInTemplates(
+    BuildContext context,
+    WidgetRef ref,
+    String rootId,
+  ) async {
+    final file = ref.read(databaseSessionProvider)?.file;
+    if (file == null) return;
+    final sessions = ref.read(databaseSessionProvider.notifier);
+    final generation = sessions.lockGeneration;
+    bool isCurrentSession() =>
+        sessions.lockGeneration == generation &&
+        ref.read(databaseSessionProvider)?.file == file;
+
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.templatesInstall),
+        content: Text(l10n.templatesInstallConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.templatesInstall),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted || !isCurrentSession()) return;
+
+    final actions = itemActionsProvider(rootId);
+    final installed = await ref
+        .read(actions.notifier)
+        .addBuiltInTemplates(
+          BuiltInTemplateLabels(
+            group: l10n.templateGroup,
+            idCard: l10n.templateIdCard,
+            wlan: l10n.templateWlan,
+            note: l10n.templateNote,
+            creditCard: l10n.templateCreditCard,
+            membership: l10n.templateMembership,
+            number: l10n.templateNumber,
+            name: l10n.templateName,
+            place: l10n.templatePlace,
+            issueDate: l10n.templateIssueDate,
+            holder: l10n.templateHolder,
+          ),
+        );
+    if (!context.mounted || !isCurrentSession()) return;
+
+    final message = switch ((installed, ref.read(actions))) {
+      (true, _) => l10n.templatesInstallSuccess,
       (_, AsyncError(:final error)) => describeSaveError(l10n, error),
       _ => null,
     };

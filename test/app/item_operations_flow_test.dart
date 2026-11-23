@@ -25,7 +25,7 @@ void main() {
     file = saved.$1;
     addTearDown(() => file.parent.deleteSync(recursive: true));
   });
-  Future<void> open(WidgetTester tester) async {
+  Future<void> open(WidgetTester tester, {Finder? waitFor}) async {
     SharedPreferences.setMockInitialValues({
       RecentFilesRepository.storageKey: [
         jsonEncode(RecentFile(database: fileRefOf(file)).toJson()),
@@ -43,17 +43,31 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), testMasterKey);
     await tester.tap(find.text(l10n.unlockButton));
-    await pumpUntilFound(tester, find.text('Origine'));
+    await pumpUntilFound(tester, waitFor ?? find.text('Origine'));
     await tester.pumpAndSettle();
   }
 
-  Future<void> menu(WidgetTester tester, String action) async {
+  Future<void> entryMenu(WidgetTester tester, String action) async {
     await tester.tap(find.byTooltip(l10n.groupMore));
     await tester.pumpAndSettle();
     await tester.tap(find.text(action));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
   }
+
+  Future<void> addGroup(WidgetTester tester) async {
+    await tester.tap(find.byTooltip(l10n.groupAddEntry));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.groupAddTitle), findsOneWidget);
+    expect(find.text(l10n.entryTemplateEmpty), findsOneWidget);
+    await tester.tap(find.text(l10n.groupCreate));
+    await tester.pumpAndSettle();
+  }
+
+  Finder tab(String label) => find.descendant(
+    of: find.byType(NavigationBar),
+    matching: find.text(label),
+  );
 
   testWidgets('apre il gruppo della voce trovata dalla ricerca', (
     tester,
@@ -94,14 +108,30 @@ void main() {
   });
 
   testWidgets('aggiunge i modelli predefiniti al database', (tester) async {
+    // given
     await open(tester);
-    await menu(tester, l10n.templatesInstall);
+    await tester.tap(tab(l10n.settingsTitle));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.settingsDatabase), findsOneWidget);
+    final install = find.widgetWithText(ListTile, l10n.templatesInstall);
+    await tester.ensureVisible(install);
+    expect(
+      find.descendant(
+        of: install,
+        matching: find.text(l10n.templatesInstallHint),
+      ),
+      findsOneWidget,
+    );
+
+    // when
+    await tester.tap(install);
+    await tester.pumpAndSettle();
     expect(find.text(l10n.templatesInstallConfirm), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, l10n.templatesInstall));
-    await pumpUntilFound(
-      tester,
-      find.widgetWithText(ListTile, l10n.templateGroup),
-    );
+    await pumpUntilFound(tester, find.text(l10n.templatesInstallSuccess));
+    await tester.tap(tab(l10n.navigationHome));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ListTile, l10n.templateGroup), findsOneWidget);
     await tester.tap(find.byTooltip(l10n.groupAddEntry));
     await tester.pumpAndSettle();
     expect(find.text(l10n.templateCreditCard), findsOneWidget);
@@ -113,6 +143,8 @@ void main() {
     );
     await tester.tap(find.byTooltip(l10n.entryEditSave));
     await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Card sample'));
+
+    // then
     final reopened = (await tester.runAsync(() => reopenFile(file)))!;
     final entry = reopened.root.entries.singleWhere(
       (e) => entryTitle(e) == 'Card sample',
@@ -142,7 +174,7 @@ void main() {
     await open(tester);
     await tester.tap(find.text('Origine'));
     await tester.pumpAndSettle();
-    await menu(tester, l10n.groupCreate);
+    await addGroup(tester);
     await tester.enterText(find.byType(TextFormField), 'Sottogruppo');
     await tester.tap(find.text(l10n.entryEditSave));
     await pumpUntilFound(tester, find.widgetWithText(ListTile, 'Sottogruppo'));
@@ -208,7 +240,8 @@ void main() {
             .map(entryTitle),
         contains('Voce sintetica'),
       );
-      await tester.tap(find.text(bin.name));
+      expect(find.widgetWithText(ListTile, bin.name), findsNothing);
+      await tester.tap(find.byTooltip(l10n.dbSettingsRecycleBin));
       await tester.pumpAndSettle();
       await tester.longPress(find.text('Origine'));
       await tester.pumpAndSettle();
@@ -225,25 +258,47 @@ void main() {
   testWidgets(
     'crea, rinomina ed elimina un gruppo, poi ripristina dal cestino',
     (tester) async {
+      // given
+      final withoutBin = (await tester.runAsync(() => reopenFile(file)))!;
+      withoutBin.root.groups.remove(existingRecycleBin(withoutBin)!);
+      withoutBin.meta.recycleBinUuid = null;
+      await tester.runAsync(
+        () async => file.writeAsBytes(await withoutBin.save()),
+      );
+      final initial = (await tester.runAsync(() => reopenFile(file)))!;
+      expect(initial.meta.recycleBinEnabled, isTrue);
+      expect(existingRecycleBin(initial), isNull);
+      final before = file.readAsBytesSync();
       await open(tester);
-      await menu(tester, l10n.groupCreate);
+      expect(find.byTooltip(l10n.dbSettingsRecycleBin), findsNothing);
+      expect(file.readAsBytesSync(), before);
+
+      // when
+      await addGroup(tester);
       await tester.enterText(find.byType(TextFormField), 'Creato');
       await tester.tap(find.text(l10n.entryEditSave));
       await pumpUntilFound(tester, find.widgetWithText(ListTile, 'Creato'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Creato'));
+      await tester.longPress(find.text('Creato'));
       await tester.pumpAndSettle();
-      await menu(tester, l10n.groupEdit);
+      await tester.tap(find.byTooltip(l10n.groupEdit));
+      await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField), 'Rinominato');
       await tester.tap(find.text(l10n.entryEditSave));
-      await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Rinominato'));
+      await pumpUntilFound(tester, find.widgetWithText(ListTile, 'Rinominato'));
       await tester.pumpAndSettle();
-      await menu(tester, l10n.groupDelete);
+      expect(find.widgetWithText(AppBar, 'Prova'), findsOneWidget);
+      await tester.longPress(find.text('Rinominato'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip(l10n.entryDelete));
+      await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, l10n.entryDelete));
-      await pumpUntilFound(tester, find.text('Origine'));
+      final recycleBin = find.byTooltip(l10n.dbSettingsRecycleBin);
+      await pumpUntilFound(tester, recycleBin);
       await tester.pumpAndSettle();
       final db = (await tester.runAsync(() => reopenFile(file)))!;
       final binName = existingRecycleBin(db)!.name;
+      expect(find.widgetWithText(ListTile, binName), findsNothing);
       expect(
         isInRecycleBin(
           db,
@@ -251,23 +306,160 @@ void main() {
         ),
         isTrue,
       );
-      await tester.tap(find.text(binName));
+      await tester.tap(recycleBin);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Rinominato'));
+      await tester.longPress(find.text('Rinominato'));
       await tester.pumpAndSettle();
-      await menu(tester, l10n.itemRestore);
-      await pumpUntilFound(tester, find.text('Origine'));
+      await tester.tap(find.byTooltip(l10n.itemRestore));
+      await pumpUntilFound(tester, find.widgetWithText(AppBar, binName));
+
+      // then
+      expect(find.text('Rinominato'), findsNothing);
       final restored = (await tester.runAsync(() => reopenFile(file)))!;
       expect(restored.root.groups.map((g) => g.name), contains('Rinominato'));
     },
   );
+
+  testWidgets('mostra sincronizzazione e cestino nella barra della Home', (
+    tester,
+  ) async {
+    // given
+    final db = newTestDatabase();
+    final bin = db.recycleBin!;
+    await tester.runAsync(() async => file.writeAsBytes(await db.save()));
+    final before = file.readAsBytesSync();
+
+    // when
+    await open(tester, waitFor: find.text(l10n.groupEmpty));
+
+    // then
+    final appBar = find.byType(AppBar);
+    expect(find.byTooltip(l10n.groupMore), findsNothing);
+    expect(find.byIcon(Icons.more_vert), findsNothing);
+    final sync = find.descendant(
+      of: appBar,
+      matching: find.byTooltip(l10n.syncNow),
+    );
+    final recycleBin = find.descendant(
+      of: appBar,
+      matching: find.byTooltip(l10n.dbSettingsRecycleBin),
+    );
+    expect(
+      find.descendant(of: sync, matching: find.byIcon(Icons.sync)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: recycleBin,
+        matching: find.byIcon(Icons.delete_outline),
+      ),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(ListTile, bin.name), findsNothing);
+    expect(file.readAsBytesSync(), before);
+  });
+
+  testWidgets('svuota il cestino con conferma e salva il database', (
+    tester,
+  ) async {
+    // given
+    final db = (await tester.runAsync(() => reopenFile(file)))!;
+    final bin = db.recycleBin!;
+    db.createGroup(parent: bin, name: 'Gruppo eliminato');
+    addTestEntry(db, bin, {EntryFields.title: 'Voce eliminata'});
+    await tester.runAsync(() async => file.writeAsBytes(await db.save()));
+    final before = file.readAsBytesSync();
+    await open(tester);
+    await tester.tap(find.byTooltip(l10n.dbSettingsRecycleBin));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, bin.name), findsOneWidget);
+    expect(find.byTooltip(l10n.dbSettingsRecycleBin), findsNothing);
+    expect(find.byTooltip(l10n.groupAddEntry), findsNothing);
+    expect(find.text('Gruppo eliminato'), findsOneWidget);
+    expect(find.text('Voce eliminata'), findsOneWidget);
+
+    // when
+    final emptyBin = find.byTooltip(l10n.recycleBinEmpty);
+    await tester.tap(emptyBin);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.recycleBinEmptyConfirm), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, l10n.cancel));
+    await tester.pumpAndSettle();
+    expect(find.text('Voce eliminata'), findsOneWidget);
+    expect(file.readAsBytesSync(), before);
+    await tester.tap(emptyBin);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, l10n.entryDelete));
+    await pumpUntilFound(tester, find.text(l10n.groupEmpty));
+    await tester.pumpAndSettle();
+
+    // then
+    final emptyAction = find.ancestor(
+      of: emptyBin,
+      matching: find.byType(IconButton),
+    );
+    expect(tester.widget<IconButton>(emptyAction).onPressed, isNull);
+    final reopened = (await tester.runAsync(() => reopenFile(file)))!;
+    final savedBin = existingRecycleBin(reopened)!;
+    expect(savedBin.groups, isEmpty);
+    expect(savedBin.entries, isEmpty);
+  });
+
+  testWidgets('mostra Modifica gruppo solo per un gruppo fuori dal cestino', (
+    tester,
+  ) async {
+    // given
+    final db = (await tester.runAsync(() => reopenFile(file)))!;
+    db.createGroup(parent: db.recycleBin!, name: 'Gruppo eliminato');
+    await tester.runAsync(() async => file.writeAsBytes(await db.save()));
+    await open(tester);
+    final edit = find.byTooltip(l10n.groupEdit);
+
+    // when / then
+    await tester.longPress(find.text('Origine'));
+    await tester.pumpAndSettle();
+    expect(edit, findsOneWidget);
+    expect(
+      find.descendant(of: edit, matching: find.byIcon(Icons.edit_outlined)),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Destinazione'));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
+    expect(edit, findsNothing);
+
+    await tester.tap(find.byTooltip(l10n.cancel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Origine'));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text('Voce sintetica'));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.itemsSelected(1)), findsOneWidget);
+    expect(edit, findsNothing);
+
+    await tester.tap(find.byTooltip(l10n.cancel));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(l10n.dbSettingsRecycleBin));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text('Gruppo eliminato'));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.itemsSelected(1)), findsOneWidget);
+    expect(edit, findsNothing);
+    expect(find.byTooltip(l10n.itemRestore), findsOneWidget);
+    expect(find.byTooltip(l10n.recycleBinEmpty), findsNothing);
+    await tester.tap(find.byTooltip(l10n.entryDelete));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.itemsDeletePermanent), findsOneWidget);
+  });
 
   testWidgets('annullare una bozza di gruppo non modifica il file', (
     tester,
   ) async {
     await open(tester);
     final before = file.readAsBytesSync();
-    await menu(tester, l10n.groupCreate);
+    await addGroup(tester);
     await tester.enterText(find.byType(TextFormField), 'Non salvato');
     await tester.tap(find.text(l10n.cancel));
     await tester.pumpAndSettle();
@@ -275,11 +467,14 @@ void main() {
     expect(file.readAsBytesSync(), before);
   });
 
-  testWidgets('sposta il gruppo aperto dalla bottom sheet', (tester) async {
+  testWidgets('sposta il gruppo selezionato dalla bottom sheet', (
+    tester,
+  ) async {
     await open(tester);
-    await tester.tap(find.text('Origine'));
+    await tester.longPress(find.text('Origine'));
     await tester.pumpAndSettle();
-    await menu(tester, l10n.itemMoveTitle);
+    await tester.tap(find.byTooltip(l10n.itemMoveTitle));
+    await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
         of: find.byType(BottomSheet),
@@ -302,11 +497,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Voce sintetica'));
     await tester.pumpAndSettle();
-    await menu(tester, l10n.itemDuplicate);
+    await entryMenu(tester, l10n.itemDuplicate);
     final copyTitle = 'Voce sintetica - ${l10n.itemDuplicateSuffix}';
     await pumpUntilFound(tester, find.widgetWithText(AppBar, copyTitle));
     await tester.pumpAndSettle();
-    await menu(tester, l10n.itemMoveTitle);
+    await entryMenu(tester, l10n.itemMoveTitle);
     await tester.tap(
       find.descendant(
         of: find.byType(BottomSheet),

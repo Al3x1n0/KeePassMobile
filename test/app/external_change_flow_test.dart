@@ -142,18 +142,15 @@ void main() {
     expect(bytesOf(databaseFile), bytes);
   });
 
-  testWidgets('"Sincronizza ora" dal menu', (tester) async {
+  testWidgets('"Sincronizza ora" dalla barra superiore', (tester) async {
     await unlock(tester);
+    final sync = find.byTooltip(l10n.syncNow);
 
-    await tester.tap(find.byTooltip(l10n.groupMore));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.syncNow));
+    await tester.tap(sync);
     await pumpUntilFound(tester, find.text(l10n.syncUnchanged));
 
     await changeElsewhere(tester);
-    await tester.tap(find.byTooltip(l10n.groupMore));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.syncNow));
+    await tester.tap(sync);
     // Anche tempo simulato: il messaggio precedente deve uscire.
     final done = find.text(l10n.syncDone);
     for (var i = 0; i < 100 && done.evaluate().isEmpty; i++) {

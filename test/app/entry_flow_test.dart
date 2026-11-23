@@ -97,12 +97,13 @@ void main() {
       final sheet = find.byType(BottomSheet);
       expect(tester.widget<BottomSheet>(sheet).showDragHandle, isTrue);
       expect(
-        find.widgetWithText(BottomSheet, l10n.entryTemplateChoose),
+        find.widgetWithText(BottomSheet, l10n.groupAddTitle),
         findsOneWidget,
       );
       final empty = find.widgetWithText(ListTile, l10n.entryTemplateEmpty);
       final template = find.widgetWithText(ListTile, 'Sample template');
       expect(empty, findsOneWidget);
+      expect(find.widgetWithText(ListTile, l10n.groupCreate), findsOneWidget);
       expect(template, findsOneWidget);
 
       await tester.binding.handlePopRoute();
@@ -279,6 +280,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip(l10n.groupAddEntry));
+    await tester.pumpAndSettle();
+    expect(
+      find.widgetWithText(BottomSheet, l10n.groupAddTitle),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(ListTile, l10n.groupCreate), findsOneWidget);
+    await tester.tap(find.widgetWithText(ListTile, l10n.entryTemplateEmpty));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextFormField, l10n.entryTitle),
@@ -503,6 +511,8 @@ void main() {
     await tester.tap(find.text('Banca'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(l10n.groupAddEntry));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, l10n.entryTemplateEmpty));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextFormField, l10n.entryTitle),

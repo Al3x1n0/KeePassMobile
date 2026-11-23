@@ -557,7 +557,7 @@ abstract class AppLocalizations {
   /// No description provided for @groupAddEntry.
   ///
   /// In en, this message translates to:
-  /// **'Add entry'**
+  /// **'Add entry or group'**
   String get groupAddEntry;
 
   /// No description provided for @entryTitle.
@@ -1466,6 +1466,12 @@ abstract class AppLocalizations {
   /// **'Database name'**
   String get dbSettingsName;
 
+  /// No description provided for @dbSettingsRootGroupName.
+  ///
+  /// In en, this message translates to:
+  /// **'Root group name'**
+  String get dbSettingsRootGroupName;
+
   /// No description provided for @dbSettingsDefaultUserName.
   ///
   /// In en, this message translates to:
@@ -2342,6 +2348,12 @@ abstract class AppLocalizations {
   /// **'Add linked database'**
   String get linkedDatabaseAdd;
 
+  /// No description provided for @linkedDatabaseAddHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Links another open database so it unlocks automatically with this one.'**
+  String get linkedDatabaseAddHint;
+
   /// No description provided for @linkedDatabasePassword.
   ///
   /// In en, this message translates to:
@@ -2606,17 +2618,23 @@ abstract class AppLocalizations {
   /// **'Close this screen and submit the login again to retry.'**
   String get autofillSaveRetry;
 
-  /// No description provided for @entryTemplateChoose.
+  /// No description provided for @groupAddTitle.
   ///
   /// In en, this message translates to:
-  /// **'Choose a template'**
-  String get entryTemplateChoose;
+  /// **'Add'**
+  String get groupAddTitle;
 
   /// No description provided for @templatesInstall.
   ///
   /// In en, this message translates to:
   /// **'Add default templates'**
   String get templatesInstall;
+
+  /// No description provided for @templatesInstallHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Creates a Templates group with ready-made examples for cards, Wi-Fi, and IDs.'**
+  String get templatesInstallHint;
 
   /// No description provided for @templateShowAllFields.
   ///
@@ -2629,6 +2647,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add missing default templates to the database?'**
   String get templatesInstallConfirm;
+
+  /// No description provided for @templatesInstallSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Default templates are ready to use.'**
+  String get templatesInstallSuccess;
 
   /// No description provided for @templateGroup.
   ///
@@ -2699,7 +2723,7 @@ abstract class AppLocalizations {
   /// No description provided for @entryTemplateEmpty.
   ///
   /// In en, this message translates to:
-  /// **'Empty entry'**
+  /// **'New entry'**
   String get entryTemplateEmpty;
 
   /// No description provided for @settingsExpireTan.

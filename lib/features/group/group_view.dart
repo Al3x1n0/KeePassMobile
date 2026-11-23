@@ -21,7 +21,6 @@ import '../../shared/ui/cross_database_copy_sheet.dart';
 import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/entry_tile.dart';
 import '../../shared/ui/group_destination_sheet.dart';
-import '../../shared/ui/linked_database_edit_dialog.dart';
 import '../../shared/ui/remote_cache_banner.dart';
 import '../../shared/ui/selection_sheet.dart';
 import '../database_settings/biometric_unlock_view_model.dart';
@@ -45,10 +44,7 @@ class GroupView extends ConsumerStatefulWidget {
 
 class _GroupViewState extends ConsumerState<GroupView> {
   final _selected = <String>{};
-
-  void _toggle(String id) => setState(() {
-    if (!_selected.remove(id)) _selected.add(id);
-  });
+  bool _synchronizing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -58,22 +54,46 @@ class _GroupViewState extends ConsumerState<GroupView> {
     if (content == null) return const Scaffold();
     final id = itemIdOf(content.group);
     final session = ref.watch(databaseSessionProvider)!;
+    final recycleBin = content.recycleBin;
     final inBin = isInRecycleBin(session.database, content.group);
-    final protected =
-        content.group == session.database.root ||
-        content.group == content.recycleBin;
-    final busy = ref.watch(itemActionsProvider(id)).isLoading;
+    final visibleGroups = content.groups.where((g) => g != recycleBin).toList();
+    final selectedGroup = !inBin && _selected.length == 1
+        ? visibleGroups
+              .where((g) => itemIdOf(g) == _selected.single)
+              .firstOrNull
+        : null;
+    final selectedGroupId = selectedGroup == null
+        ? null
+        : itemIdOf(selectedGroup);
+    var busy = _synchronizing;
+    for (final actionId in [id, ?selectedGroupId]) {
+      final actions = itemActionsProvider(actionId);
+      final actionBusy = ref.watch(actions).isLoading;
+      busy = busy || actionBusy;
+      ref.listen(actions, (_, next) {
+        if (next case AsyncError(:final error)
+            when ModalRoute.isCurrentOf(context) != false) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(describeSaveError(l10n, error))),
+          );
+        }
+      });
+    }
     final recentEntries = widget.groupId == null && _selected.isEmpty
         ? ref.watch(recentPasswordEntriesProvider)
         : const <KdbxEntry>[];
     final recentSectionCount = recentEntries.isEmpty ? 0 : 1;
-    ref.listen(itemActionsProvider(id), (_, next) {
-      if (next case AsyncError(:final error)) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(describeSaveError(l10n, error))));
-      }
-    });
+    final listIsEmpty =
+        visibleGroups.isEmpty &&
+        content.entries.isEmpty &&
+        recentEntries.isEmpty;
+
+    void toggleSelection(String itemId) {
+      if (busy) return;
+      setState(() {
+        if (!_selected.remove(itemId)) _selected.add(itemId);
+      });
+    }
 
     final appBarActions = _selected.isNotEmpty
         ? [
@@ -122,14 +142,29 @@ class _GroupViewState extends ConsumerState<GroupView> {
               onPressed: busy
                   ? null
                   : () => setState(() {
-                      _selected.addAll(
-                        content.groups
-                            .where((g) => g != content.recycleBin)
-                            .map(itemIdOf),
-                      );
+                      _selected.addAll(visibleGroups.map(itemIdOf));
                       _selected.addAll(content.entries.map(itemIdOf));
                     }),
             ),
+            if (selectedGroup != null && selectedGroupId != null)
+              IconButton(
+                tooltip: l10n.groupEdit,
+                icon: const Icon(Icons.edit_outlined),
+                onPressed: busy
+                    ? null
+                    : () async {
+                        await _editGroup(
+                          context,
+                          ref,
+                          selectedGroupId,
+                          initial: GroupDraft(
+                            name: selectedGroup.name,
+                            icon: selectedGroup.icon,
+                          ),
+                        );
+                        if (mounted) setState(_selected.clear);
+                      },
+              ),
             if (inBin)
               IconButton(
                 tooltip: l10n.itemRestore,
@@ -177,7 +212,22 @@ class _GroupViewState extends ConsumerState<GroupView> {
                 icon: const Icon(Icons.folder_copy_outlined),
                 onPressed: busy ? null : () => _chooseDatabase(context, ref),
               ),
+              if (recycleBin != null)
+                IconButton(
+                  tooltip: l10n.dbSettingsRecycleBin,
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () =>
+                      context.push(AppRoutes.group(itemIdOf(recycleBin))),
+                ),
             ],
+            if (content.group == recycleBin)
+              IconButton(
+                tooltip: l10n.recycleBinEmpty,
+                icon: const Icon(Icons.delete_forever_outlined),
+                onPressed: busy || content.isEmpty
+                    ? null
+                    : () => _emptyRecycleBin(context, ref, id),
+              ),
             IconButton(
               tooltip: l10n.groupLock,
               icon: const Icon(Icons.lock_outline),
@@ -185,91 +235,9 @@ class _GroupViewState extends ConsumerState<GroupView> {
                   ref.read(relockProvider.notifier).lockAndReturn(),
             ),
             IconButton(
-              tooltip: l10n.groupMore,
-              icon: const Icon(Icons.more_vert),
-              onPressed: () async {
-                final action = await showSelectionSheet<String>(
-                  context: context,
-                  title: l10n.groupMore,
-                  options: {
-                    if (!inBin) ...{
-                      _createGroup: l10n.groupCreate,
-                      _editCurrent: l10n.groupEdit,
-                      _installTemplates: l10n.templatesInstall,
-                    },
-                    if (!protected) ...{
-                      if (!inBin) _moveCurrent: l10n.itemMoveTitle,
-                      if (inBin) _restoreCurrent: l10n.itemRestore,
-                      _deleteCurrent: l10n.groupDelete,
-                    },
-                    if (content.group == content.recycleBin)
-                      _emptyBin: l10n.recycleBinEmpty,
-                    if (widget.groupId == null &&
-                        ref
-                                .read(databaseSessionProvider.notifier)
-                                .openSessions
-                                .length >
-                            1)
-                      _linkedAdd: l10n.linkedDatabaseAdd,
-                    _sync: l10n.syncNow,
-                  },
-                  disabled: busy
-                      ? {
-                          _createGroup,
-                          _installTemplates,
-                          _editCurrent,
-                          _moveCurrent,
-                          _deleteCurrent,
-                          _restoreCurrent,
-                          _emptyBin,
-                        }
-                      : const {},
-                );
-                if (!context.mounted || action == null) return;
-                switch (action) {
-                  case _linkedAdd:
-                    await addLinkedDatabase(context, ref);
-                  case _sync:
-                    _synchronize(context, ref);
-                  case _createGroup:
-                    _editGroup(context, ref, id);
-                  case _installTemplates:
-                    _addBuiltInTemplates(context, ref, id);
-                  case _editCurrent:
-                    _editGroup(
-                      context,
-                      ref,
-                      id,
-                      initial: GroupDraft(
-                        name: content.group.name,
-                        icon: content.group.icon,
-                      ),
-                    );
-                  case _moveCurrent:
-                    _moveGroup(
-                      context,
-                      ref,
-                      id,
-                      content.group.parent == null
-                          ? null
-                          : itemIdOf(content.group.parent!),
-                    );
-                  case _deleteCurrent:
-                    _deleteGroup(
-                      context,
-                      ref,
-                      id,
-                      content.group.parent == null
-                          ? null
-                          : itemIdOf(content.group.parent!),
-                      deletesPermanently(session.database, content.group),
-                    );
-                  case _restoreCurrent:
-                    _restoreGroup(context, ref, id);
-                  case _emptyBin:
-                    _emptyRecycleBin(context, ref, id);
-                }
-              },
+              tooltip: l10n.syncNow,
+              icon: const Icon(Icons.sync),
+              onPressed: busy ? null : () => _synchronize(context, ref),
             ),
           ];
 
@@ -335,15 +303,16 @@ class _GroupViewState extends ConsumerState<GroupView> {
               ? null
               : FloatingActionButton(
                   tooltip: l10n.groupAddEntry,
-                  onPressed: () =>
-                      _newEntry(context, session.database, content.group),
+                  onPressed: busy
+                      ? null
+                      : () => _addItem(context, session.database, id),
                   child: const Icon(Icons.add),
                 ),
           body: Column(
             children: [
               const RemoteCacheBanner(),
               Expanded(
-                child: content.isEmpty && recentEntries.isEmpty
+                child: listIsEmpty
                     ? Center(
                         child: Padding(
                           padding: const EdgeInsets.all(AppSpacing.l),
@@ -353,7 +322,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
                     : ListView.builder(
                         itemCount:
                             recentSectionCount +
-                            content.groups.length +
+                            visibleGroups.length +
                             content.entries.length,
                         itemBuilder: (context, index) {
                           if (index < recentSectionCount) {
@@ -362,14 +331,13 @@ class _GroupViewState extends ConsumerState<GroupView> {
                             );
                           }
                           final groupIndex = index - recentSectionCount;
-                          if (groupIndex < content.groups.length) {
-                            final group = content.groups[groupIndex];
-                            final isBin = group == content.recycleBin;
+                          if (groupIndex < visibleGroups.length) {
+                            final group = visibleGroups[groupIndex];
+                            final groupId = itemIdOf(group);
                             return ListTile(
                               leading: DatabaseItemIcon(
                                 item: group,
                                 database: session.database,
-                                recycleBin: isBin,
                               ),
                               title: Text(
                                 group.name,
@@ -383,30 +351,25 @@ class _GroupViewState extends ConsumerState<GroupView> {
                                       .toDouble(),
                                 ),
                               ),
-                              selected: _selected.contains(itemIdOf(group)),
-                              onLongPress: isBin
-                                  ? null
-                                  : () => _toggle(itemIdOf(group)),
+                              selected: _selected.contains(groupId),
+                              onLongPress: () => toggleSelection(groupId),
                               onTap: _selected.isNotEmpty
-                                  ? (isBin
-                                        ? null
-                                        : () => _toggle(itemIdOf(group)))
-                                  : () => context.push(
-                                      AppRoutes.group(itemIdOf(group)),
-                                    ),
+                                  ? () => toggleSelection(groupId)
+                                  : () =>
+                                        context.push(AppRoutes.group(groupId)),
                             );
                           }
                           final entry = content
-                              .entries[groupIndex - content.groups.length];
+                              .entries[groupIndex - visibleGroups.length];
                           final entryId = itemIdOf(entry);
                           return EntryTile(
                             entry: entry,
                             selected: _selected.contains(entryId),
                             showChevron: _selected.isEmpty,
-                            onLongPress: () => _toggle(entryId),
+                            onLongPress: () => toggleSelection(entryId),
                             onTap: _selected.isEmpty
                                 ? null
-                                : () => _toggle(entryId),
+                                : () => toggleSelection(entryId),
                           );
                         },
                       ),
@@ -550,75 +513,21 @@ class _GroupViewState extends ConsumerState<GroupView> {
     }
   }
 
-  static const _linkedAdd = 'linked-add';
-  static const _createGroup = 'create-group';
-  static const _installTemplates = 'install-templates';
-  static const _editCurrent = 'edit-group';
-  static const _moveCurrent = 'move-group';
-  static const _deleteCurrent = 'delete-group';
-  static const _restoreCurrent = 'restore-group';
-  static const _emptyBin = 'empty-bin';
-  static const _sync = 'sync';
+  static const _newGroup = 'group';
 
-  Future<void> _addBuiltInTemplates(
-    BuildContext context,
-    WidgetRef ref,
-    String id,
-  ) async {
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.templatesInstall),
-        content: Text(l10n.templatesInstallConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.templatesInstall),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    await ref
-        .read(itemActionsProvider(id).notifier)
-        .addBuiltInTemplates(
-          BuiltInTemplateLabels(
-            group: l10n.templateGroup,
-            idCard: l10n.templateIdCard,
-            wlan: l10n.templateWlan,
-            note: l10n.templateNote,
-            creditCard: l10n.templateCreditCard,
-            membership: l10n.templateMembership,
-            number: l10n.templateNumber,
-            name: l10n.templateName,
-            place: l10n.templatePlace,
-            issueDate: l10n.templateIssueDate,
-            holder: l10n.templateHolder,
-          ),
-        );
-  }
-
-  Future<void> _newEntry(
+  Future<void> _addItem(
     BuildContext context,
     KdbxDatabase database,
-    KdbxGroup group,
+    String groupId,
   ) async {
     final templates = entryTemplates(database);
-    if (templates.isEmpty) {
-      await context.push(AppRoutes.newEntry(itemIdOf(group)));
-      return;
-    }
     final l10n = AppLocalizations.of(context);
     final selected = await showSelectionSheet<String>(
       context: context,
-      title: l10n.entryTemplateChoose,
+      title: l10n.groupAddTitle,
       options: {
         '': l10n.entryTemplateEmpty,
+        _newGroup: l10n.groupCreate,
         for (final template in templates)
           itemIdOf(template): entryTitle(template).isEmpty
               ? l10n.entryUntitled
@@ -626,8 +535,12 @@ class _GroupViewState extends ConsumerState<GroupView> {
       },
     );
     if (selected == null || !context.mounted) return;
+    if (selected == _newGroup) {
+      await _editGroup(context, ref, groupId);
+      return;
+    }
     await context.push(
-      AppRoutes.newEntry(itemIdOf(group)),
+      AppRoutes.newEntry(groupId),
       extra: selected.isEmpty ? null : selected,
     );
   }
@@ -660,97 +573,38 @@ class _GroupViewState extends ConsumerState<GroupView> {
     }
   }
 
-  Future<void> _moveGroup(
-    BuildContext context,
-    WidgetRef ref,
-    String id,
-    String? parent,
-  ) async {
-    final target = await showGroupDestinationSheet(context, [id]);
-    if (target == null || !context.mounted) return;
-    if (await ref.read(itemActionsProvider(id).notifier).move(target) &&
-        context.mounted) {
-      context.go(parent == null ? AppRoutes.database : AppRoutes.group(parent));
-    }
-  }
-
-  Future<bool> _confirm(
-    BuildContext context,
-    String title,
-    String message,
-  ) async {
-    final l10n = AppLocalizations.of(context);
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(title),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text(l10n.entryDelete),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
-
-  Future<void> _deleteGroup(
-    BuildContext context,
-    WidgetRef ref,
-    String id,
-    String? parent,
-    bool permanent,
-  ) async {
-    final l10n = AppLocalizations.of(context);
-    if (!await _confirm(
-          context,
-          l10n.groupDelete,
-          permanent ? l10n.groupDeletePermanent : l10n.groupDeleteToBin,
-        ) ||
-        !context.mounted) {
-      return;
-    }
-    if (await ref.read(itemActionsProvider(id).notifier).deleteGroup() &&
-        context.mounted) {
-      context.go(parent == null ? AppRoutes.database : AppRoutes.group(parent));
-    }
-  }
-
-  Future<void> _restoreGroup(
-    BuildContext context,
-    WidgetRef ref,
-    String id,
-  ) async {
-    if (await ref.read(itemActionsProvider(id).notifier).restore() &&
-        context.mounted) {
-      context.go(AppRoutes.database);
-    }
-  }
-
   Future<void> _emptyRecycleBin(
     BuildContext context,
     WidgetRef ref,
     String id,
   ) async {
     final l10n = AppLocalizations.of(context);
-    if (await _confirm(
-          context,
-          l10n.recycleBinEmpty,
-          l10n.recycleBinEmptyConfirm,
-        ) &&
-        context.mounted) {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.recycleBinEmpty),
+        content: Text(l10n.recycleBinEmptyConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.entryDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
       await ref.read(itemActionsProvider(id).notifier).emptyBin();
     }
   }
 
   /// "Sincronizza ora": unisce le modifiche fatte altrove, se ci sono.
   Future<void> _synchronize(BuildContext context, WidgetRef ref) async {
+    if (_synchronizing) return;
+    setState(() => _synchronizing = true);
     final l10n = AppLocalizations.of(context);
     // Messaggi precedenti tolti: l'esito si vede subito.
     final messenger = ScaffoldMessenger.of(context)
@@ -769,6 +623,8 @@ class _GroupViewState extends ConsumerState<GroupView> {
     } on Object catch (e) {
       message = describeSaveError(l10n, e);
     }
+    if (!mounted) return;
+    setState(() => _synchronizing = false);
     messenger
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(message)));

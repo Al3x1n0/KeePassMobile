@@ -17,7 +17,8 @@ import 'biometric_unlock_view_model.dart';
 import 'database_settings_view_model.dart';
 
 /// Impostazioni del database aperto (DatabaseSettingsActivity di
-/// Keepass2Android): nome, nome utente predefinito, cestino, cronologia,
+/// Keepass2Android): nomi di database e gruppo radice, nome utente predefinito,
+/// cestino, cronologia,
 /// cifrario e derivazione della chiave con la stima del tempo di apertura,
 /// sblocco biometrico.
 class DatabaseSettingsView extends ConsumerStatefulWidget {
@@ -45,6 +46,7 @@ class _DatabaseSettingsViewState extends ConsumerState<DatabaseSettingsView> {
   final _form = GlobalKey<FormState>();
   late final DatabaseSettings _initial;
   late final _name = TextEditingController(text: _initial.name);
+  late final _rootName = TextEditingController(text: _initial.rootGroupName);
   late final _defaultUser = TextEditingController(
     text: _initial.defaultUserName,
   );
@@ -96,6 +98,7 @@ class _DatabaseSettingsViewState extends ConsumerState<DatabaseSettingsView> {
   void dispose() {
     for (final c in [
       _name,
+      _rootName,
       _defaultUser,
       _historyItems,
       _historySize,
@@ -136,13 +139,16 @@ class _DatabaseSettingsViewState extends ConsumerState<DatabaseSettingsView> {
 
   bool get _hasRawKey => ref.read(databaseSessionProvider)?.hasRawKey ?? true;
 
+  String? get _newRootGroupName =>
+      _rootName.text == _initial.rootGroupName ? null : _rootName.text.trim();
+
   Future<void> _save() async {
     if (!(_form.currentState?.validate() ?? false)) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final saved = await ref
         .read(databaseSettingsViewModelProvider.notifier)
-        .save(_settings());
+        .save(_settings(), newRootGroupName: _newRootGroupName);
     if (!saved || !mounted) return;
     messenger.showSnackBar(SnackBar(content: Text(l10n.dbSettingsSaved)));
     context.pop();
@@ -182,6 +188,13 @@ class _DatabaseSettingsViewState extends ConsumerState<DatabaseSettingsView> {
           padding: const EdgeInsets.all(AppSpacing.m),
           children: [
             _text(_name, l10n.dbSettingsName, enabled: !busy),
+            _text(
+              _rootName,
+              l10n.dbSettingsRootGroupName,
+              enabled: !busy,
+              validator: (_) =>
+                  _newRootGroupName == '' ? l10n.groupNameRequired : null,
+            ),
             _text(_defaultUser, l10n.dbSettingsDefaultUserName, enabled: !busy),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -325,6 +338,7 @@ class _DatabaseSettingsViewState extends ConsumerState<DatabaseSettingsView> {
     TextEditingController controller,
     String label, {
     required bool enabled,
+    FormFieldValidator<String>? validator,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: AppSpacing.m),
     child: TextFormField(
@@ -333,6 +347,7 @@ class _DatabaseSettingsViewState extends ConsumerState<DatabaseSettingsView> {
       enableIMEPersonalizedLearning: false,
       inputFormatters: [LengthLimitingTextInputFormatter(AppLimits.fieldName)],
       decoration: InputDecoration(labelText: label),
+      validator: validator,
     ),
   );
 
