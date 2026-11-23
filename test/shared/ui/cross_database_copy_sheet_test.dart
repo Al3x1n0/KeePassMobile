@@ -8,7 +8,7 @@ import 'package:keepass_mobile/shared/database/database_session.dart';
 import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
 import 'package:keepass_mobile/shared/storage/remote_cache.dart';
-import 'package:keepass_mobile/shared/ui/cross_database_copy_dialog.dart';
+import 'package:keepass_mobile/shared/ui/cross_database_copy_sheet.dart';
 
 import '../../helpers/test_database.dart';
 

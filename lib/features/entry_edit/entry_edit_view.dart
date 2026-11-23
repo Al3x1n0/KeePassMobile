@@ -20,7 +20,7 @@ import '../../shared/storage/file_storage.dart';
 import '../../shared/ui/date_format.dart';
 import '../../shared/ui/entry_icon.dart';
 import '../../shared/ui/database_item_icon.dart';
-import '../../shared/ui/icon_picker_dialog.dart';
+import '../../shared/ui/icon_picker_sheet.dart';
 import '../../shared/ui/sensitive_text_editing.dart';
 import '../../shared/ui/size_format.dart';
 import '../totp/totp.dart';
@@ -245,12 +245,10 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
   }
 
   Future<void> _chooseIcon() async {
-    final icon = await showDialog<IconChoice>(
+    final icon = await showIconPickerSheet(
       context: context,
-      builder: (_) => IconPickerDialog(
-        selected: _icon,
-        database: ref.read(databaseSessionProvider)?.database,
-      ),
+      selected: _icon,
+      database: ref.read(databaseSessionProvider)?.database,
     );
     if (icon != null && mounted) {
       setState(() {

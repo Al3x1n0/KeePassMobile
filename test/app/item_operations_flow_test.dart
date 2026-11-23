@@ -151,9 +151,25 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Sottogruppo'));
     await tester.pumpAndSettle();
+    final before = file.readAsBytesSync();
+    final sheet = find.byType(BottomSheet);
+    final destination = find.descendant(
+      of: sheet,
+      matching: find.text('Prova / Destinazione'),
+    );
     await tester.tap(find.byTooltip(l10n.itemMoveTitle));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Prova / Destinazione'));
+    expect(tester.widget<BottomSheet>(sheet).showDragHandle, isTrue);
+    expect(destination, findsOneWidget);
+    expect(find.text('Prova / Origine / Sottogruppo'), findsNothing);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(sheet, findsNothing);
+    expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
+    expect(file.readAsBytesSync(), before);
+    await tester.tap(find.byTooltip(l10n.itemMoveTitle));
+    await tester.pumpAndSettle();
+    await tester.tap(destination);
     await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Origine'));
     final reopened = (await tester.runAsync(() => reopenFile(file)))!;
     final target = reopened.root.groups.singleWhere(
@@ -259,6 +275,25 @@ void main() {
     expect(file.readAsBytesSync(), before);
   });
 
+  testWidgets('sposta il gruppo aperto dalla bottom sheet', (tester) async {
+    await open(tester);
+    await tester.tap(find.text('Origine'));
+    await tester.pumpAndSettle();
+    await menu(tester, l10n.itemMoveTitle);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('Prova / Destinazione'),
+      ),
+    );
+    await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Prova'));
+    final reopened = (await tester.runAsync(() => reopenFile(file)))!;
+    final target = reopened.root.groups.singleWhere(
+      (group) => group.name == 'Destinazione',
+    );
+    expect(target.groups.map((group) => group.name), ['Origine']);
+  });
+
   testWidgets('duplica e sposta la copia con selettore di destinazione', (
     tester,
   ) async {
@@ -272,7 +307,12 @@ void main() {
     await pumpUntilFound(tester, find.widgetWithText(AppBar, copyTitle));
     await tester.pumpAndSettle();
     await menu(tester, l10n.itemMoveTitle);
-    await tester.tap(find.text('Prova / Destinazione'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('Prova / Destinazione'),
+      ),
+    );
     await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Destinazione'));
     final db = (await tester.runAsync(() => reopenFile(file)))!;
     final copy = db.root.allEntries.singleWhere(

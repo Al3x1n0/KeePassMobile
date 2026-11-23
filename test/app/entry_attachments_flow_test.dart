@@ -134,7 +134,11 @@ void main() {
       await tester.scrollUntilVisible(find.text('nota.txt'), 200);
       await tester.tap(find.text('nota.txt'));
       await tester.pumpAndSettle();
-      expect(find.text('testo di prova'), findsOneWidget);
+      final sheet = find.byType(BottomSheet);
+      expect(
+        find.descendant(of: sheet, matching: find.text('testo di prova')),
+        findsOneWidget,
+      );
       expect(find.byType(SelectableText), findsNothing);
       await tester.tap(find.text(l10n.close));
       await tester.pumpAndSettle();
@@ -148,10 +152,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final preview = find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.byType(Image),
-      );
+      final preview = find.descendant(of: sheet, matching: find.byType(Image));
       final element = tester.element(preview);
       final image = tester.widget<Image>(preview).image;
       final config = createLocalImageConfiguration(element);

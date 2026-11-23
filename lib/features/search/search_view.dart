@@ -11,8 +11,9 @@ import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/ui/entry_tile.dart';
-import '../../shared/ui/cross_database_copy_dialog.dart';
-import '../../shared/ui/group_destination_dialog.dart';
+import '../../shared/ui/cross_database_copy_sheet.dart';
+import '../../shared/ui/group_destination_sheet.dart';
+import '../../shared/ui/selection_sheet.dart';
 import '../../shared/database/database_session.dart';
 import '../../shared/database/database_errors.dart';
 import '../../shared/database/item_edits.dart';
@@ -76,15 +77,8 @@ class _SearchViewState extends ConsumerState<SearchView> {
   }
 
   Future<void> _moveSelection(String rootId) async {
-    final database = ref.read(databaseSessionProvider)?.database;
-    if (database == null) return;
     final selected = _selected.toList();
-    final destination = await showDialog<String>(
-      context: context,
-      builder: (_) => GroupDestinationsDialog(
-        destinations: moveDestinations(database, selected),
-      ),
-    );
+    final destination = await showGroupDestinationSheet(context, selected);
     if (destination == null || !mounted) return;
     final success = await ref
         .read(itemActionsProvider(rootId).notifier)
@@ -189,34 +183,24 @@ class _SearchViewState extends ConsumerState<SearchView> {
       'caseSensitive': l10n.searchCaseSensitive,
       'excludeExpired': l10n.searchExcludeExpired,
     };
-    await showModalBottomSheet<void>(
+    await showListSheet<void>(
       context: context,
-      isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, update) => SafeArea(
-          child: SizedBox(
-            height: MediaQuery.sizeOf(context).height * .75,
-            child: Column(
-              children: [
-                ListTile(title: Text(l10n.searchOptions)),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      for (final item in labels.entries)
-                        CheckboxListTile(
-                          title: Text(item.value),
-                          value: _fields[item.key],
-                          onChanged: (value) =>
-                              update(() => _fields[item.key] = value ?? false),
-                        ),
-                    ],
-                  ),
+      title: l10n.searchOptions,
+      buildItems: (_) => [
+        StatefulBuilder(
+          builder: (context, update) => Column(
+            children: [
+              for (final item in labels.entries)
+                CheckboxListTile(
+                  title: Text(item.value),
+                  value: _fields[item.key],
+                  onChanged: (value) =>
+                      update(() => _fields[item.key] = value ?? false),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
-      ),
+      ],
     );
     if (mounted) setState(_invalidateRegex);
   }

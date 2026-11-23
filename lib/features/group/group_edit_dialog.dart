@@ -7,7 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../shared/database/item_edits.dart';
 import '../../shared/ui/entry_icon.dart';
 import '../../shared/ui/database_item_icon.dart';
-import '../../shared/ui/icon_picker_dialog.dart';
+import '../../shared/ui/icon_picker_sheet.dart';
 
 /// Bozza locale; nessun salvataggio se la finestra viene annullata.
 class GroupEditDialog extends StatefulWidget {
@@ -92,12 +92,10 @@ class _GroupEditDialogState extends State<GroupEditDialog> {
                 trailing: TextButton(
                   child: Text(l10n.entryEditChooseIcon),
                   onPressed: () async {
-                    final icon = await showDialog<IconChoice>(
+                    final icon = await showIconPickerSheet(
                       context: context,
-                      builder: (_) => IconPickerDialog(
-                        selected: _icon,
-                        database: widget.database,
-                      ),
+                      selected: _icon,
+                      database: widget.database,
                     );
                     if (mounted && icon != null) {
                       setState(() {

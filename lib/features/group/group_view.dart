@@ -17,10 +17,10 @@ import '../../shared/security/biometric_key_store.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/remote_storage.dart';
-import '../../shared/ui/cross_database_copy_dialog.dart';
+import '../../shared/ui/cross_database_copy_sheet.dart';
 import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/entry_tile.dart';
-import '../../shared/ui/group_destination_dialog.dart';
+import '../../shared/ui/group_destination_sheet.dart';
 import '../../shared/ui/linked_database_edit_dialog.dart';
 import '../../shared/ui/remote_cache_banner.dart';
 import '../../shared/ui/selection_sheet.dart';
@@ -471,15 +471,8 @@ class _GroupViewState extends ConsumerState<GroupView> {
     WidgetRef ref,
     String id,
   ) async {
-    final database = ref.read(databaseSessionProvider)?.database;
-    if (database == null) return;
     final selected = _selected.toList();
-    final target = await showDialog<String>(
-      context: context,
-      builder: (_) => GroupDestinationsDialog(
-        destinations: moveDestinations(database, selected),
-      ),
-    );
+    final target = await showGroupDestinationSheet(context, selected);
     if (target == null || !mounted) return;
     final success = await ref
         .read(itemActionsProvider(id).notifier)
@@ -688,10 +681,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
     String id,
     String? parent,
   ) async {
-    final target = await showDialog<String>(
-      context: context,
-      builder: (_) => GroupDestinationDialog(itemId: id),
-    );
+    final target = await showGroupDestinationSheet(context, [id]);
     if (target == null || !context.mounted) return;
     if (await ref.read(itemActionsProvider(id).notifier).move(target) &&
         context.mounted) {

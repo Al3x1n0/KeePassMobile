@@ -11,18 +11,32 @@ import '../../l10n/app_localizations.dart';
 import '../database/item_edits.dart';
 import '../storage/file_storage.dart';
 import 'entry_icon.dart';
+import 'selection_sheet.dart';
 
-class IconPickerDialog extends ConsumerWidget {
-  const IconPickerDialog({super.key, required this.selected, this.database});
+/// Apre la scelta di un'icona standard, personalizzata o importata.
+Future<IconChoice?> showIconPickerSheet({
+  required BuildContext context,
+  required KdbxIcon selected,
+  KdbxDatabase? database,
+}) => showListSheet<IconChoice>(
+  context: context,
+  title: AppLocalizations.of(context).entryEditChooseIcon,
+  buildItems: (_) => [_IconPicker(selected: selected, database: database)],
+);
+
+class _IconPicker extends ConsumerWidget {
+  const _IconPicker({required this.selected, required this.database});
+
   final KdbxIcon selected;
   final KdbxDatabase? database;
 
   Future<void> _import(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     try {
+      final storage = ref.read(fileStorageProvider);
       final file = await ref.read(filePickerServiceProvider).pick();
       if (file == null) return;
-      unawaited(ref.read(fileStorageProvider).release(file.ref));
+      unawaited(storage.release(file.ref));
       final bytes = file.bytes;
       if (bytes == null || bytes.isEmpty || bytes.length > 1024 * 1024) {
         throw const FormatException();
@@ -39,7 +53,7 @@ class IconPickerDialog extends ConsumerWidget {
       frame.image.dispose();
       codec.dispose();
       if (encoded == null) throw const FormatException();
-      if (!context.mounted) return;
+      if (!context.mounted || ModalRoute.isCurrentOf(context) != true) return;
       Navigator.pop(
         context,
         IconChoice(
@@ -54,7 +68,7 @@ class IconPickerDialog extends ConsumerWidget {
         ),
       );
     } catch (_) {
-      if (context.mounted) {
+      if (context.mounted && ModalRoute.isCurrentOf(context) == true) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(l10n.iconImportError)));
       }
@@ -65,12 +79,18 @@ class IconPickerDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    return AlertDialog(
-      title: Text(l10n.entryEditChooseIcon),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: GridView.extent(
+    return Column(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.image_outlined),
+          title: Text(l10n.iconImport),
+          onTap: () => _import(context, ref),
+        ),
+        GridView.extent(
           shrinkWrap: true,
+          primary: false,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
           maxCrossAxisExtent: AppSpacing.l * 2,
           children: [
             for (final entry
@@ -94,21 +114,12 @@ class IconPickerDialog extends ConsumerWidget {
               ),
           ],
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => _import(context, ref),
-          child: Text(l10n.iconImport),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
-        ),
       ],
     );
   }
 }
 
+/// Anteprima di un'icona personalizzata decodificata in memoria.
 class CustomIconPreview extends StatefulWidget {
   const CustomIconPreview({super.key, required this.bytes});
   final List<int> bytes;

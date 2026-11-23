@@ -354,7 +354,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(l10n.itemMoveTitle));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Prova / Destinazione'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('Prova / Destinazione'),
+      ),
+    );
     await pumpUntilFound(tester, find.byType(TextField));
     final reopened = (await tester.runAsync(() => reopenFile(file)))!;
     final target = reopened.root.groups.singleWhere(
@@ -480,6 +485,10 @@ void main() {
     expect(find.text(l10n.searchNoResults), findsOneWidget);
     await tester.tap(find.byTooltip(l10n.searchOptions));
     await tester.pumpAndSettle();
+    expect(
+      tester.widget<BottomSheet>(find.byType(BottomSheet)).showDragHandle,
+      isTrue,
+    );
     await tester.tap(find.text(l10n.searchFieldPassword));
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();

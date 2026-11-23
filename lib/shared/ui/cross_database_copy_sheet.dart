@@ -7,14 +7,15 @@ import '../database/cross_database_transfer.dart';
 import '../database/database_session.dart';
 import '../database/kdbx_items.dart';
 import '../storage/file_storage.dart';
+import 'selection_sheet.dart';
 
 class _Target {
-  const _Target(this.file, this.group, this.label);
+  const _Target(this.file, this.group);
   final FileRef file;
   final String group;
-  final String label;
 }
 
+/// Seleziona un gruppo di un altro database e trasferisce gli elementi.
 Future<bool> copyToAnotherDatabase(
   BuildContext context,
   WidgetRef ref,
@@ -24,14 +25,13 @@ Future<bool> copyToAnotherDatabase(
   final notifier = ref.read(databaseSessionProvider.notifier);
   final source = ref.read(databaseSessionProvider);
   if (source == null || notifier.isSaving) return false;
-  final targets = <_Target>[];
+  final targets = <_Target, String>{};
   for (final session in notifier.openSessions) {
     if (session.file == source.file) continue;
     void visit(KdbxGroup group, String prefix) {
       final path = prefix.isEmpty ? group.name : '$prefix / ${group.name}';
-      targets.add(
-        _Target(session.file, itemIdOf(group), '${session.file.name} / $path'),
-      );
+      targets[_Target(session.file, itemIdOf(group))] =
+          '${session.file.name} / $path';
       for (final child in group.groups) {
         if (!isInRecycleBin(session.database, child)) visit(child, path);
       }
@@ -40,30 +40,10 @@ Future<bool> copyToAnotherDatabase(
     visit(session.database.root, '');
   }
   final l10n = AppLocalizations.of(context);
-  final target = await showDialog<_Target>(
+  final target = await showSelectionSheet<_Target>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text(move ? l10n.databasesMove : l10n.databasesCopy),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            for (final target in targets)
-              ListTile(
-                title: Text(target.label),
-                onTap: () => Navigator.pop(context, target),
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.cancel),
-        ),
-      ],
-    ),
+    title: move ? l10n.databasesMove : l10n.databasesCopy,
+    options: targets,
   );
   if (target == null || !context.mounted) return false;
   final generation = notifier.lockGeneration;

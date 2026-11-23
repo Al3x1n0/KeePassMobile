@@ -334,13 +334,6 @@ List<GroupDestination> moveDestinations(
   return List.unmodifiable(result);
 }
 
-final moveDestinationsProvider = Provider.autoDispose
-    .family<List<GroupDestination>, String>((ref, id) {
-      final database = ref.watch(databaseSessionProvider)?.database;
-      if (database == null) return const [];
-      return moveDestinations(database, [id]);
-    });
-
 /// Azioni strutturali salvate con la stessa transazione delle modifiche voci.
 final itemActionsProvider = AsyncNotifierProvider.autoDispose
     .family<ItemActions, void, String>(ItemActions.new);

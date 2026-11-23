@@ -9,9 +9,11 @@ Future<T?> showSelectionSheet<T>({
   T? selected,
   Set<T> disabled = const {},
   required Map<T, String> options,
+  ValueChanged<Route<T>>? onRoute,
 }) => showListSheet<T>(
   context: context,
   title: title,
+  onRoute: onRoute,
   buildItems: (context) => [
     for (final option in options.entries)
       ListTile(
@@ -30,44 +32,60 @@ Future<T?> showSelectionSheet<T>({
 );
 
 /// Mostra un elenco scorrevole in un pannello con titolo e maniglia.
+/// [onRoute] riceve la route prima dell'apertura per consentirne la rimozione.
 Future<T?> showListSheet<T>({
   required BuildContext context,
   required String title,
   required List<Widget> Function(BuildContext) buildItems,
-}) => showModalBottomSheet<T>(
-  context: context,
-  showDragHandle: true,
-  isScrollControlled: true,
-  builder: (context) => SafeArea(
-    child: ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.8,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.l,
-                AppSpacing.s,
-                AppSpacing.l,
-                AppSpacing.m,
-              ),
-              child: Semantics(
-                header: true,
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleLarge,
+  ValueChanged<Route<T>>? onRoute,
+}) {
+  final navigator = Navigator.of(context);
+  final localizations = MaterialLocalizations.of(context);
+  final route = ModalBottomSheetRoute<T>(
+    capturedThemes: InheritedTheme.capture(
+      from: context,
+      to: navigator.context,
+    ),
+    barrierLabel: localizations.scrimLabel,
+    barrierOnTapHint: localizations.scrimOnTapHint(
+      localizations.bottomSheetLabel,
+    ),
+    modalBarrierColor: Theme.of(context).bottomSheetTheme.modalBarrierColor,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (context) => SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.l,
+                  AppSpacing.s,
+                  AppSpacing.l,
+                  AppSpacing.m,
+                ),
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                 ),
               ),
-            ),
-            ...buildItems(context),
-            const SizedBox(height: AppSpacing.m),
-          ],
+              ...buildItems(context),
+              const SizedBox(height: AppSpacing.m),
+            ],
+          ),
         ),
       ),
     ),
-  ),
-);
+  );
+  onRoute?.call(route);
+  return navigator.push(route);
+}

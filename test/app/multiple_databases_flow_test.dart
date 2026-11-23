@@ -85,14 +85,18 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(l10n.databasesCopy));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Primo.kdbx / Primo'));
+    final destination = find.descendant(
+      of: find.byType(BottomSheet),
+      matching: find.text('Primo.kdbx / Primo'),
+    );
+    await tester.tap(destination);
     await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Secondo'));
     await tester.pumpAndSettle();
     await tester.longPress(find.text('Da spostare'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(l10n.databasesMove));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Primo.kdbx / Primo'));
+    await tester.tap(destination);
     await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Secondo'));
     await tester.pumpAndSettle();
     expect(find.text('Da spostare'), findsNothing);

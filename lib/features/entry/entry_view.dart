@@ -17,7 +17,7 @@ import '../../shared/database/kdbx_items.dart';
 import '../../shared/database/item_edits.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/ui/date_format.dart';
-import '../../shared/ui/group_destination_dialog.dart';
+import '../../shared/ui/group_destination_sheet.dart';
 import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/size_format.dart';
 import '../../shared/ui/selection_sheet.dart';
@@ -303,10 +303,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
   }
 
   Future<void> _move() async {
-    final target = await showDialog<String>(
-      context: context,
-      builder: (_) => GroupDestinationDialog(itemId: widget.entryId),
-    );
+    final target = await showGroupDestinationSheet(context, [widget.entryId]);
     if (target == null || !mounted) return;
     if (await ref
             .read(itemActionsProvider(widget.entryId).notifier)
@@ -516,18 +513,25 @@ class _EntryViewState extends ConsumerState<EntryView> {
     } else {
       content = Text(l10n.entryAttachmentNoPreview);
     }
-    await showDialog<void>(
+    await showListSheet<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(name),
-        content: SingleChildScrollView(child: content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.close),
+      title: name,
+      buildItems: (context) => [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+          child: content,
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.close),
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -640,7 +644,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
   }
 }
 
-/// Le anteprime decifrate appartengono solo al flusso immagine del dialogo.
+/// Le anteprime decifrate appartengono solo al flusso immagine del pannello.
 class _AttachmentPreviewImage extends MemoryImage {
   const _AttachmentPreviewImage(super.bytes);
 
