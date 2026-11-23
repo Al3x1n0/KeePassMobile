@@ -129,49 +129,120 @@ void main() {
     );
   }
 
-  testWidgets('fuori dal Cestino conserva titolo e icona seleziona tutto', (
-    tester,
-  ) async {
-    // given
-    final db = newTestDatabase();
-    final group = db.createGroup(parent: db.root, name: 'Gruppo ordinario');
-    addTestEntry(db, group, {EntryFields.title: 'Voce ordinaria'});
-    final container = await newTestContainer();
-    container
-        .read(databaseSessionProvider.notifier)
-        .open(
-          DatabaseSession(
-            file: const FileRef(uri: 'file:///prova.kdbx', name: 'prova.kdbx'),
-            database: db,
-          ),
-        );
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          locale: locale,
-          localizationsDelegates: [
-            ...GlobalMaterialLocalizations.delegates,
-            ...AppLocalizations.localizationsDelegates,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          theme: buildLightTheme(),
-          home: GroupView(groupId: itemIdOf(group)),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+  for (final currentLocale in [const Locale('it'), const Locale('en')]) {
+    for (final home in [true, false]) {
+      testWidgets(
+        '${home ? "Home" : "Sottogruppo"} ${currentLocale.languageCode}: seleziona tutti con testo dinamico nella seconda riga',
+        (tester) async {
+          // given
+          tester.view.physicalSize = const Size(360, 640);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          final strings = lookupAppLocalizations(currentLocale);
+          final db = newTestDatabase();
+          final group = home
+              ? db.root
+              : db.createGroup(parent: db.root, name: 'Gruppo ordinario');
+          final child = db.createGroup(
+            parent: group,
+            name: 'Sottogruppo visibile',
+          );
+          addTestEntry(db, group, {EntryFields.title: 'Prima voce ordinaria'});
+          addTestEntry(db, group, {
+            EntryFields.title: 'Seconda voce ordinaria',
+          });
+          addTestEntry(db, db.recycleBin!, {
+            EntryFields.title: 'Voce nel Cestino',
+          });
+          final container = await newTestContainer();
+          container
+              .read(databaseSessionProvider.notifier)
+              .open(
+                DatabaseSession(
+                  file: const FileRef(
+                    uri: 'file:///prova.kdbx',
+                    name: 'prova.kdbx',
+                  ),
+                  database: db,
+                ),
+              );
+          await tester.pumpWidget(
+            UncontrolledProviderScope(
+              container: container,
+              child: MaterialApp(
+                locale: currentLocale,
+                localizationsDelegates: [
+                  ...GlobalMaterialLocalizations.delegates,
+                  ...AppLocalizations.localizationsDelegates,
+                ],
+                supportedLocales: AppLocalizations.supportedLocales,
+                theme: buildLightTheme(),
+                home: GroupView(groupId: home ? null : itemIdOf(group)),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(find.widgetWithText(AppBar, group.name), findsOneWidget);
+          expect(find.text(strings.itemsSelectAllShort), findsNothing);
 
-    // when
-    expect(find.widgetWithText(AppBar, group.name), findsOneWidget);
-    await tester.longPress(find.text('Voce ordinaria'));
-    await tester.pumpAndSettle();
+          // when
+          await tester.longPress(find.text('Prima voce ordinaria'));
+          await tester.pumpAndSettle();
 
-    // then
-    expect(find.byIcon(Icons.select_all), findsOneWidget);
-    expect(find.byTooltip(l10n.itemsSelectAll), findsOneWidget);
-    expect(find.text(l10n.itemsSelectAllShort), findsNothing);
-  });
+          // then
+          final selectAll = find.widgetWithText(
+            TextButton,
+            strings.itemsSelectAllShort,
+          );
+          final delete = find.byTooltip(strings.entryDelete);
+          final move = find.byTooltip(strings.itemMoveTitle);
+          expect(selectAll, findsOneWidget);
+          expect(find.byIcon(Icons.select_all), findsNothing);
+          expect(find.byType(Checkbox), findsNothing);
+          expect(tester.getRect(selectAll).left, lessThan(24));
+          expect(tester.getRect(selectAll).top, greaterThanOrEqualTo(48));
+          expect(tester.getRect(delete).top, greaterThanOrEqualTo(48));
+          expect(tester.getRect(delete).right, greaterThan(336));
+          expect(
+            tester.getRect(selectAll).right,
+            lessThan(tester.getRect(move).left),
+          );
+          await tester.tap(selectAll);
+          await tester.pumpAndSettle();
+          expect(selectAll, findsNothing);
+          expect(find.text(strings.itemsSelected(3)), findsOneWidget);
+          expect(
+            tester
+                .widgetList<EntryTile>(find.byType(EntryTile))
+                .every((tile) => tile.selected),
+            isTrue,
+          );
+          expect(
+            tester
+                .widget<ListTile>(find.widgetWithText(ListTile, child.name))
+                .selected,
+            isTrue,
+          );
+
+          await tester.tap(find.text('Seconda voce ordinaria'));
+          await tester.pumpAndSettle();
+          expect(selectAll, findsOneWidget);
+          expect(find.text(strings.itemsSelected(2)), findsOneWidget);
+          await tester.tap(find.byTooltip(strings.cancel));
+          await tester.pumpAndSettle();
+          expect(selectAll, findsNothing);
+          expect(find.widgetWithText(AppBar, group.name), findsOneWidget);
+          expect(
+            tester
+                .widgetList<EntryTile>(find.byType(EntryTile))
+                .every((tile) => !tile.selected),
+            isTrue,
+          );
+        },
+      );
+    }
+  }
 
   for (final (limit, themeMode) in [
     (5, ThemeMode.light),

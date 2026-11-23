@@ -17,6 +17,7 @@ import '../../shared/security/biometric_key_store.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/remote_storage.dart';
+import '../../shared/ui/app_bar_action_row.dart';
 import '../../shared/ui/cross_database_copy_sheet.dart';
 import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/entry_tile.dart';
@@ -101,7 +102,6 @@ class _GroupViewState extends ConsumerState<GroupView> {
       _selected.addAll(content.entries.map(itemIdOf));
     });
 
-    final binSelection = inBin && _selected.isNotEmpty;
     final hasUnselectedItems =
         visibleGroups.any((group) => !_selected.contains(itemIdOf(group))) ||
         content.entries.any((entry) => !_selected.contains(itemIdOf(entry)));
@@ -146,12 +146,6 @@ class _GroupViewState extends ConsumerState<GroupView> {
                           setState(_selected.clear);
                         }
                       },
-              ),
-            if (!inBin)
-              IconButton(
-                tooltip: l10n.itemsSelectAll,
-                icon: const Icon(Icons.select_all),
-                onPressed: busy ? null : selectAll,
               ),
             if (selectedGroup != null && selectedGroupId != null)
               IconButton(
@@ -273,47 +267,14 @@ class _GroupViewState extends ConsumerState<GroupView> {
                   ),
             bottom: appBarActions.isEmpty
                 ? null
-                : PreferredSize(
-                    preferredSize: const Size.fromHeight(48),
-                    child: SizedBox(
-                      height: 48,
-                      child: LayoutBuilder(
-                        builder: (context, constraints) =>
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minWidth: constraints.maxWidth,
-                                ),
-                                child: IntrinsicWidth(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.s,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        if (binSelection) ...[
-                                          if (hasUnselectedItems)
-                                            TextButton(
-                                              onPressed: busy
-                                                  ? null
-                                                  : selectAll,
-                                              child: Text(
-                                                l10n.itemsSelectAllShort,
-                                              ),
-                                            ),
-                                          const Spacer(),
-                                        ],
-                                        ...appBarActions,
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                      ),
-                    ),
+                : AppBarActionRow(
+                    leading: _selected.isNotEmpty && hasUnselectedItems
+                        ? TextButton(
+                            onPressed: busy ? null : selectAll,
+                            child: Text(l10n.itemsSelectAllShort),
+                          )
+                        : null,
+                    actions: appBarActions,
                   ),
           ),
           bottomNavigationBar: _selected.isEmpty

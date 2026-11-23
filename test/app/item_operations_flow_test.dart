@@ -158,7 +158,7 @@ void main() {
     await open(tester);
     await tester.longPress(find.text('Origine'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.itemsSelectAll));
+    await tester.tap(find.text(l10n.itemsSelectAllShort));
     await tester.pumpAndSettle();
     expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
     await tester.binding.handlePopRoute();

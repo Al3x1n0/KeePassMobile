@@ -10,6 +10,7 @@ import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/settings/app_settings.dart';
+import '../../shared/ui/app_bar_action_row.dart';
 import '../../shared/ui/entry_tile.dart';
 import '../../shared/ui/cross_database_copy_sheet.dart';
 import '../../shared/ui/group_destination_sheet.dart';
@@ -43,7 +44,13 @@ class _SearchViewState extends ConsumerState<SearchView> {
     if (!_selected.remove(id)) _selected.add(id);
   });
 
+  (String, String)? _sessionKey(DatabaseSession? session) => session == null
+      ? null
+      : (session.file.uri, itemIdOf(session.database.root));
+
   Future<void> _deleteSelection(String rootId, bool permanent) async {
+    final sessionKey = _sessionKey(ref.read(databaseSessionProvider));
+    final selected = _selected.toList();
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -64,10 +71,14 @@ class _SearchViewState extends ConsumerState<SearchView> {
         ],
       ),
     );
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true ||
+        !mounted ||
+        _sessionKey(ref.read(databaseSessionProvider)) != sessionKey) {
+      return;
+    }
     final success = await ref
         .read(itemActionsProvider(rootId).notifier)
-        .deleteSearchEntries(_selected.toList());
+        .deleteSearchEntries(selected);
     if (success && mounted) {
       setState(() {
         _selected.clear();
@@ -77,9 +88,14 @@ class _SearchViewState extends ConsumerState<SearchView> {
   }
 
   Future<void> _moveSelection(String rootId) async {
+    final sessionKey = _sessionKey(ref.read(databaseSessionProvider));
     final selected = _selected.toList();
     final destination = await showGroupDestinationSheet(context, selected);
-    if (destination == null || !mounted) return;
+    if (destination == null ||
+        !mounted ||
+        _sessionKey(ref.read(databaseSessionProvider)) != sessionKey) {
+      return;
+    }
     final success = await ref
         .read(itemActionsProvider(rootId).notifier)
         .moveSearchEntries(selected, destination);
@@ -217,7 +233,18 @@ class _SearchViewState extends ConsumerState<SearchView> {
     final l10n = AppLocalizations.of(context);
     final query = _query.text.trim();
     final session = ref.watch(databaseSessionProvider);
+    ref.listen(databaseSessionProvider, (previous, next) {
+      if (_sessionKey(previous) != _sessionKey(next)) {
+        setState(_selected.clear);
+      }
+      if (next == null ||
+          (previous?.file == next.file &&
+              previous?.database != next.database)) {
+        setState(_invalidateRegex);
+      }
+    });
     if (session == null) {
+      _selected.clear();
       _invalidateRegex();
       return const Scaffold();
     }
@@ -235,6 +262,14 @@ class _SearchViewState extends ConsumerState<SearchView> {
                 _SearchHit(result, current),
           ];
     final rootId = itemIdOf(session.database.root);
+    final selectableIds = {
+      for (final result in results ?? <_SearchHit>[])
+        if (result.session.file == session.file) itemIdOf(result.entry),
+    };
+    _selected.retainAll(selectableIds);
+    final hasUnselectedResults = selectableIds.any(
+      (id) => !_selected.contains(id),
+    );
     final busy = ref.watch(itemActionsProvider(rootId)).isLoading;
     ref.listen(itemActionsProvider(rootId), (_, next) {
       if (next case AsyncError(:final error)) {
@@ -251,6 +286,8 @@ class _SearchViewState extends ConsumerState<SearchView> {
       },
       child: Scaffold(
         appBar: AppBar(
+          centerTitle: false,
+          toolbarHeight: 48,
           leading: _selected.isEmpty
               ? null
               : IconButton(
@@ -259,7 +296,11 @@ class _SearchViewState extends ConsumerState<SearchView> {
                   onPressed: busy ? null : () => setState(_selected.clear),
                 ),
           title: _selected.isNotEmpty
-              ? Text(l10n.itemsSelected(_selected.length))
+              ? Text(
+                  l10n.itemsSelected(_selected.length),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
               : TextField(
                   controller: _query,
                   autofocus: true,
@@ -275,104 +316,106 @@ class _SearchViewState extends ConsumerState<SearchView> {
                   },
                   decoration: InputDecoration(hintText: l10n.searchHint),
                 ),
-          actions: _selected.isNotEmpty
-              ? [
-                  if (_selected.length == 1)
+          bottom: _selected.isNotEmpty
+              ? AppBarActionRow(
+                  leading: hasUnselectedResults
+                      ? TextButton(
+                          onPressed: busy
+                              ? null
+                              : () => setState(
+                                  () => _selected.addAll(selectableIds),
+                                ),
+                          child: Text(l10n.itemsSelectAllShort),
+                        )
+                      : null,
+                  actions: [
+                    if (_selected.length == 1)
+                      IconButton(
+                        tooltip: l10n.searchGoToGroup,
+                        icon: const Icon(Icons.folder_open),
+                        onPressed: busy
+                            ? null
+                            : () {
+                                final matches = (results ?? []).where(
+                                  (r) =>
+                                      r.session.file == session.file &&
+                                      itemIdOf(r.entry) == _selected.single,
+                                );
+                                final group = matches.firstOrNull?.entry.parent;
+                                if (group != null) {
+                                  context.go(AppRoutes.group(itemIdOf(group)));
+                                }
+                              },
+                      ),
+                    if (ref
+                            .read(databaseSessionProvider.notifier)
+                            .openSessions
+                            .length >
+                        1)
+                      IconButton(
+                        tooltip: l10n.databasesCopy,
+                        icon: const Icon(Icons.file_copy_outlined),
+                        onPressed: busy
+                            ? null
+                            : () async {
+                                if (await copyToAnotherDatabase(
+                                      context,
+                                      ref,
+                                      _selected.toList(),
+                                    ) &&
+                                    mounted) {
+                                  setState(() {
+                                    _selected.clear();
+                                    _invalidateRegex();
+                                  });
+                                }
+                              },
+                      ),
+                    if (ref
+                            .read(databaseSessionProvider.notifier)
+                            .openSessions
+                            .length >
+                        1)
+                      IconButton(
+                        tooltip: l10n.databasesMove,
+                        icon: const Icon(Icons.drive_file_move_outline),
+                        onPressed: busy
+                            ? null
+                            : () async {
+                                if (await copyToAnotherDatabase(
+                                      context,
+                                      ref,
+                                      _selected.toList(),
+                                      move: true,
+                                    ) &&
+                                    mounted) {
+                                  setState(() {
+                                    _selected.clear();
+                                    _invalidateRegex();
+                                  });
+                                }
+                              },
+                      ),
                     IconButton(
-                      tooltip: l10n.searchGoToGroup,
-                      icon: const Icon(Icons.folder_open),
-                      onPressed: busy
-                          ? null
-                          : () {
-                              final matches = (results ?? []).where(
-                                (r) =>
-                                    r.session.file == session.file &&
-                                    itemIdOf(r.entry) == _selected.single,
-                              );
-                              final group = matches.firstOrNull?.entry.parent;
-                              if (group != null) {
-                                context.go(AppRoutes.group(itemIdOf(group)));
-                              }
-                            },
-                    ),
-                  if (ref
-                          .read(databaseSessionProvider.notifier)
-                          .openSessions
-                          .length >
-                      1)
-                    IconButton(
-                      tooltip: l10n.databasesCopy,
-                      icon: const Icon(Icons.file_copy_outlined),
-                      onPressed: busy
-                          ? null
-                          : () async {
-                              if (await copyToAnotherDatabase(
-                                    context,
-                                    ref,
-                                    _selected.toList(),
-                                  ) &&
-                                  mounted) {
-                                setState(() {
-                                  _selected.clear();
-                                  _invalidateRegex();
-                                });
-                              }
-                            },
-                    ),
-                  if (ref
-                          .read(databaseSessionProvider.notifier)
-                          .openSessions
-                          .length >
-                      1)
-                    IconButton(
-                      tooltip: l10n.databasesMove,
+                      tooltip: l10n.itemMoveTitle,
                       icon: const Icon(Icons.drive_file_move_outline),
+                      onPressed: busy ? null : () => _moveSelection(rootId),
+                    ),
+                    IconButton(
+                      tooltip: l10n.entryDelete,
+                      icon: const Icon(Icons.delete_outline),
                       onPressed: busy
                           ? null
-                          : () async {
-                              if (await copyToAnotherDatabase(
-                                    context,
-                                    ref,
-                                    _selected.toList(),
-                                    move: true,
-                                  ) &&
-                                  mounted) {
-                                setState(() {
-                                  _selected.clear();
-                                  _invalidateRegex();
-                                });
-                              }
-                            },
-                    ),
-                  IconButton(
-                    tooltip: l10n.itemMoveTitle,
-                    icon: const Icon(Icons.drive_file_move_outline),
-                    onPressed: busy ? null : () => _moveSelection(rootId),
-                  ),
-                  IconButton(
-                    tooltip: l10n.itemsSelectAll,
-                    icon: const Icon(Icons.select_all),
-                    onPressed: busy
-                        ? null
-                        : () => setState(
-                            () => _selected.addAll(
-                              (results ?? [])
-                                  .where((r) => r.session.file == session.file)
-                                  .map((r) => itemIdOf(r.entry)),
+                          : () => _deleteSelection(
+                              rootId,
+                              !session.database.meta.recycleBinEnabled,
                             ),
-                          ),
-                  ),
-                  IconButton(
-                    tooltip: l10n.entryDelete,
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: busy
-                        ? null
-                        : () => _deleteSelection(
-                            rootId,
-                            !session.database.meta.recycleBinEnabled,
-                          ),
-                  ),
-                ]
+                    ),
+                  ],
+                )
+              : null,
+          actions: _selected.isNotEmpty
+              ? null
               : [
                   if (regex)
                     IconButton(
