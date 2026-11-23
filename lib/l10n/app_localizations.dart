@@ -968,6 +968,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
+  /// No description provided for @settingsDatabase.
+  ///
+  /// In en, this message translates to:
+  /// **'Database'**
+  String get settingsDatabase;
+
   /// No description provided for @settingsSecurity.
   ///
   /// In en, this message translates to:
@@ -2021,7 +2027,7 @@ abstract class AppLocalizations {
   /// No description provided for @biometricOfferBody.
   ///
   /// In en, this message translates to:
-  /// **'Do you want to open this database with your fingerprint or face? Only the derived key is kept on the device, protected by biometrics. You can change this from ⋮ → Database settings.'**
+  /// **'Do you want to open this database with your fingerprint or face? Only the derived key is kept on the device, protected by biometrics. You can change this from Settings → Database settings.'**
   String get biometricOfferBody;
 
   /// No description provided for @biometricOfferEnable.

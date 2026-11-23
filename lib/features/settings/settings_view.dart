@@ -1,14 +1,19 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../app/database_navigation_bar.dart';
+import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
-import '../autofill/autofill_channel.dart';
+import '../../shared/database/database_errors.dart';
+import '../../shared/database/database_session.dart';
 import '../../shared/licenses/bundled_licenses.dart';
 import '../../shared/security/device_security.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/ui/selection_sheet.dart';
+import '../autofill/autofill_channel.dart';
+import '../export/export_view_model.dart';
 import 'settings_view_model.dart';
 
 /// Impostazioni dell'app, raggiungibili con il database aperto o chiuso.
@@ -24,6 +29,12 @@ class SettingsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final settings = ref.watch(settingsViewModelProvider);
+    final showDatabaseActions =
+        showDatabaseNavigation &&
+        ref.watch(databaseSessionProvider.select((session) => session != null));
+    final exporting =
+        showDatabaseActions &&
+        ref.watch(exportDatabaseViewModelProvider.select((s) => s.isLoading));
     void update(AppSettings next) =>
         ref.read(settingsViewModelProvider.notifier).update(next);
 
@@ -34,6 +45,24 @@ class SettingsView extends ConsumerWidget {
           : null,
       body: ListView(
         children: [
+          if (showDatabaseActions) ...[
+            _Header(l10n.settingsDatabase),
+            ListTile(
+              title: Text(l10n.dbSettingsTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(AppRoutes.databaseSettings),
+            ),
+            ListTile(
+              title: Text(l10n.changeKeyTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(AppRoutes.changeMasterKey),
+            ),
+            ListTile(
+              title: Text(l10n.exportTitle),
+              enabled: !exporting,
+              onTap: exporting ? null : () => _exportDatabase(context, ref),
+            ),
+          ],
           _Header(l10n.settingsSecurity),
           _SelectionTile(
             title: l10n.settingsClipboardTimeout,
@@ -252,6 +281,25 @@ class SettingsView extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _exportDatabase(BuildContext context, WidgetRef ref) async {
+    final name = await ref
+        .read(exportDatabaseViewModelProvider.notifier)
+        .export();
+    if (!context.mounted || ref.read(databaseSessionProvider) == null) return;
+
+    final l10n = AppLocalizations.of(context);
+    final state = ref.read(exportDatabaseViewModelProvider);
+    final message = switch ((name, state)) {
+      (final n?, _) => l10n.exportDone(n),
+      (_, AsyncError(:final error)) => describeSaveError(l10n, error),
+      _ => null,
+    };
+    if (message != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   static String _lockLabel(AppLocalizations l10n, Duration? d) => switch (d) {

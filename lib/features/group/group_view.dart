@@ -25,7 +25,6 @@ import '../../shared/ui/linked_database_edit_dialog.dart';
 import '../../shared/ui/remote_cache_banner.dart';
 import '../../shared/ui/selection_sheet.dart';
 import '../database_settings/biometric_unlock_view_model.dart';
-import '../export/export_view_model.dart';
 import '../file_select/recent_files.dart';
 import '../recent_passwords/recent_passwords_view_model.dart';
 import '../unlock/relock.dart';
@@ -189,7 +188,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
               tooltip: l10n.groupMore,
               icon: const Icon(Icons.more_vert),
               onPressed: () async {
-                final route = await showSelectionSheet<String>(
+                final action = await showSelectionSheet<String>(
                   context: context,
                   title: l10n.groupMore,
                   options: {
@@ -212,9 +211,6 @@ class _GroupViewState extends ConsumerState<GroupView> {
                                 .length >
                             1)
                       _linkedAdd: l10n.linkedDatabaseAdd,
-                    AppRoutes.databaseSettings: l10n.dbSettingsTitle,
-                    AppRoutes.changeMasterKey: l10n.changeKeyTitle,
-                    _export: l10n.exportTitle,
                     _sync: l10n.syncNow,
                   },
                   disabled: busy
@@ -229,12 +225,10 @@ class _GroupViewState extends ConsumerState<GroupView> {
                         }
                       : const {},
                 );
-                if (!context.mounted || route == null) return;
-                switch (route) {
+                if (!context.mounted || action == null) return;
+                switch (action) {
                   case _linkedAdd:
                     await addLinkedDatabase(context, ref);
-                  case _export:
-                    _exportDatabase(context, ref);
                   case _sync:
                     _synchronize(context, ref);
                   case _createGroup:
@@ -274,8 +268,6 @@ class _GroupViewState extends ConsumerState<GroupView> {
                     _restoreGroup(context, ref, id);
                   case _emptyBin:
                     _emptyRecycleBin(context, ref, id);
-                  default:
-                    context.push(route);
                 }
               },
             ),
@@ -588,6 +580,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
   static const _deleteCurrent = 'delete-group';
   static const _restoreCurrent = 'restore-group';
   static const _emptyBin = 'empty-bin';
+  static const _sync = 'sync';
 
   Future<void> _addBuiltInTemplates(
     BuildContext context,
@@ -781,10 +774,6 @@ class _GroupViewState extends ConsumerState<GroupView> {
     }
   }
 
-  /// Voci del menu che non sono route.
-  static const _export = 'export';
-  static const _sync = 'sync';
-
   /// "Sincronizza ora": unisce le modifiche fatte altrove, se ci sono.
   Future<void> _synchronize(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
@@ -808,31 +797,6 @@ class _GroupViewState extends ConsumerState<GroupView> {
     messenger
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  Future<void> _exportDatabase(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final viewModel = ref.read(exportDatabaseViewModelProvider.notifier);
-    // Mantiene vivo il ViewModel autoDispose durante il selettore.
-    final keepAlive = ref.listenManual(
-      exportDatabaseViewModelProvider,
-      (_, _) {},
-    );
-    try {
-      final name = await viewModel.export();
-      final state = ref.read(exportDatabaseViewModelProvider);
-      final message = switch ((name, state)) {
-        (final n?, _) => l10n.exportDone(n),
-        (_, AsyncError(:final error)) => describeSaveError(l10n, error),
-        _ => null,
-      };
-      if (message != null) {
-        messenger.showSnackBar(SnackBar(content: Text(message)));
-      }
-    } finally {
-      keepAlive.close();
-    }
   }
 }
 

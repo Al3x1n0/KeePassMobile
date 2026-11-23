@@ -215,6 +215,7 @@
     }
   },
   "settingsTitle": "Settings",
+  "settingsDatabase": "Database",
   "settingsSecurity": "Security",
   "settingsDisplay": "Display",
   "settingsFiles": "Files",
@@ -553,7 +554,7 @@
   "errorSaveKdfLocked": "The key derivation cannot be changed in this session: open the database with the password.",
   "changeKeyDoneBiometricOff": "Master key changed. Biometric unlock was turned off: turn it on again in the database settings.",
   "biometricOfferTitle": "Biometric unlock",
-  "biometricOfferBody": "Do you want to open this database with your fingerprint or face? Only the derived key is kept on the device, protected by biometrics. You can change this from ⋮ → Database settings.",
+  "biometricOfferBody": "Do you want to open this database with your fingerprint or face? Only the derived key is kept on the device, protected by biometrics. You can change this from Settings → Database settings.",
   "biometricOfferEnable": "Turn on",
   "biometricOfferNever": "Don't ask again",
   "biometricOfferEnabled": "Biometric unlock turned on.",

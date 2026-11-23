@@ -491,6 +491,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsTitle => 'Impostazioni';
 
   @override
+  String get settingsDatabase => 'Database';
+
+  @override
   String get settingsSecurity => 'Sicurezza';
 
   @override
@@ -1107,7 +1110,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get biometricOfferBody =>
-      'Vuoi aprire questo database con l\'impronta o il volto? Sul dispositivo resta solo la chiave derivata, protetta dalla biometria. Puoi cambiare idea da ⋮ → Impostazioni del database.';
+      'Vuoi aprire questo database con l\'impronta o il volto? Sul dispositivo resta solo la chiave derivata, protetta dalla biometria. Puoi cambiare idea da Impostazioni → Impostazioni del database.';
 
   @override
   String get biometricOfferEnable => 'Attiva';

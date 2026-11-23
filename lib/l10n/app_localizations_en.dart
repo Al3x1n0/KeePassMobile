@@ -489,6 +489,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
+  String get settingsDatabase => 'Database';
+
+  @override
   String get settingsSecurity => 'Security';
 
   @override
@@ -1102,7 +1105,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get biometricOfferBody =>
-      'Do you want to open this database with your fingerprint or face? Only the derived key is kept on the device, protected by biometrics. You can change this from ⋮ → Database settings.';
+      'Do you want to open this database with your fingerprint or face? Only the derived key is kept on the device, protected by biometrics. You can change this from Settings → Database settings.';
 
   @override
   String get biometricOfferEnable => 'Turn on';
