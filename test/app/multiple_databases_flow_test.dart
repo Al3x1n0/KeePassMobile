@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/app.dart';
+import 'package:keepass_mobile/app/database_navigation_bar.dart';
 import 'package:keepass_mobile/features/file_select/recent_files.dart';
 import 'package:keepass_mobile/features/settings/settings_view.dart';
 import 'package:keepass_mobile/l10n/app_localizations.dart';
@@ -186,7 +187,10 @@ void main() {
     expect(find.text('Da copiare'), findsOneWidget);
     expect(find.text('Da spostare'), findsOneWidget);
     await tester.tap(
-      find.widgetWithText(NavigationDestination, l10n.settingsTitle),
+      find.descendant(
+        of: find.byType(DatabaseNavigationBar),
+        matching: find.text(l10n.settingsTitle),
+      ),
     );
     await tester.pumpAndSettle();
     expect(find.text(l10n.settingsDatabase), findsOneWidget);
@@ -200,7 +204,10 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, l10n.entryEditSave));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.widgetWithText(NavigationDestination, l10n.navigationHome),
+      find.descendant(
+        of: find.byType(DatabaseNavigationBar),
+        matching: find.text(l10n.navigationHome),
+      ),
     );
     await pumpUntilFound(tester, find.widgetWithText(ListTile, 'AutoOpen'));
     final reopened = (await tester.runAsync(() => reopenFile(firstFile)))!;

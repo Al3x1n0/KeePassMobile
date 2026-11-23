@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/app.dart';
+import 'package:keepass_mobile/app/database_navigation_bar.dart';
 import 'package:keepass_mobile/features/entry/totp_tile.dart';
 import 'package:keepass_mobile/features/password_generator/generator_view.dart';
 import 'package:keepass_mobile/features/file_select/recent_files.dart';
@@ -655,7 +656,7 @@ void main() {
     await openApp(tester);
 
     Finder tab(String label) => find.descendant(
-      of: find.byType(NavigationBar),
+      of: find.byType(DatabaseNavigationBar),
       matching: find.text(label),
     );
     Future<void> tap(Finder finder) async {

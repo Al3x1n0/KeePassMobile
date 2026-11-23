@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/app.dart';
+import 'package:keepass_mobile/app/database_navigation_bar.dart';
 import 'package:keepass_mobile/features/file_select/recent_files.dart';
 import 'package:keepass_mobile/l10n/app_localizations.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
@@ -57,7 +58,7 @@ void main() {
   }
 
   Finder tab(String label) => find.descendant(
-    of: find.byType(NavigationBar),
+    of: find.byType(DatabaseNavigationBar),
     matching: find.text(label),
   );
 

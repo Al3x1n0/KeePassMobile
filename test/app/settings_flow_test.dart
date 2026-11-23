@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/app.dart';
+import 'package:keepass_mobile/app/database_navigation_bar.dart';
 import 'package:keepass_mobile/app/theme.dart';
 import 'package:keepass_mobile/features/entry/totp_tile.dart';
 import 'package:keepass_mobile/features/file_select/recent_files.dart';
@@ -323,6 +324,62 @@ void main() {
     },
   );
 
+  for (final databaseOpen in [false, true]) {
+    testWidgets(
+      'impostazioni con database ${databaseOpen ? "aperto" : "chiuso"}: ultima voce accessibile oltre la barra',
+      (tester) async {
+        // given
+        tester.view.physicalSize = const Size(360, 640);
+        tester.view.devicePixelRatio = 1;
+        tester.view.padding = const FakeViewPadding(bottom: 24);
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPadding);
+        await pumpApp(tester);
+        if (databaseOpen) await unlock(tester);
+        await tester.tap(
+          databaseOpen
+              ? find.text(l10n.settingsTitle)
+              : find.byTooltip(l10n.settingsTitle),
+        );
+        await tester.pumpAndSettle();
+        final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).last);
+        expect(scaffold.extendBody, databaseOpen);
+        expect(scaffold.bottomNavigationBar != null, databaseOpen);
+        final list = find.byType(ListView);
+        expect(tester.getRect(list).bottom, 640);
+        if (!databaseOpen) {
+          expect(tester.widget<ListView>(list).padding, isNull);
+        }
+
+        // when
+        final scrollable = tester.state<ScrollableState>(
+          find.descendant(of: list, matching: find.byType(Scrollable)),
+        );
+        scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
+        await tester.pumpAndSettle();
+
+        // then: l'ultima riga e il suo comando restano sopra la capsula.
+        final context = tester.element(list);
+        final licensesTitle = MaterialLocalizations.of(context)
+            .licensesPageTitle;
+        final lastTile = find.widgetWithText(ListTile, licensesTitle);
+        final contentBottom = databaseOpen
+            ? tester.getRect(find.byType(BackdropFilter)).top
+            : 640 - 24;
+        expect(
+          tester.getRect(lastTile).bottom,
+          lessThanOrEqualTo(contentBottom),
+        );
+        await tester.tap(lastTile);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.byType(LicensePage), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets(
     'barra di navigazione: Home, impostazioni e blocco del database',
     (tester) async {
@@ -335,8 +392,9 @@ void main() {
       await tester.pumpAndSettle();
       final localizations = lookupAppLocalizations(const Locale('it'));
 
-      final bar = find.byType(NavigationBar);
-      NavigationBar navigation() => tester.widget<NavigationBar>(bar);
+      final bar = find.byType(DatabaseNavigationBar);
+      DatabaseNavigationBar navigation() =>
+          tester.widget<DatabaseNavigationBar>(bar);
       Finder tab(String label) =>
           find.descendant(of: bar, matching: find.text(label));
       const selected = {WidgetState.selected};
@@ -352,15 +410,24 @@ void main() {
           blue,
         );
       }
-      final destinations = navigation().destinations
-          .cast<NavigationDestination>();
-      expect(destinations.map((item) => (item.label, item.enabled)), [
+      for (final (label, enabled) in [
         ('Home', true),
         ('Genera', false),
         ('Controllo', false),
         (localizations.settingsTitle, true),
-      ]);
-      expect(navigation().selectedIndex, 0);
+      ]) {
+        final target = find.ancestor(
+          of: tab(label),
+          matching: find.byType(InkWell),
+        );
+        expect(tester.widget<InkWell>(target).onTap != null, enabled);
+      }
+      expect(navigation().settingsSelected, isFalse);
+      await tester.tap(tab('Genera'));
+      await tester.tap(tab('Controllo'));
+      await tester.pumpAndSettle();
+      expect(navigation().settingsSelected, isFalse);
+      expect(find.text('Banca'), findsOneWidget);
       expect(
         find.descendant(
           of: find.byType(AppBar),
@@ -377,13 +444,13 @@ void main() {
 
       // then: impostazioni esistenti, con la destinazione selezionata
       expect(find.text(localizations.settingsSecurity), findsOneWidget);
-      expect(navigation().selectedIndex, 3);
+      expect(navigation().settingsSelected, isTrue);
 
       // when: torna alla consultazione con Home o con Indietro di sistema
       await tester.tap(tab('Home'));
       await tester.pumpAndSettle();
       expect(find.text('Conto'), findsOneWidget);
-      expect(navigation().selectedIndex, 0);
+      expect(navigation().settingsSelected, isFalse);
       await tester.tap(tab(localizations.settingsTitle));
       await tester.pumpAndSettle();
       await tester.binding.handlePopRoute();

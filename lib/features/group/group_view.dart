@@ -209,6 +209,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
           }
         },
         child: Scaffold(
+          extendBody: _selected.isEmpty,
           appBar: AppBar(
             centerTitle: false,
             titleSpacing: AppSpacing.m,
@@ -324,73 +325,85 @@ class _GroupViewState extends ConsumerState<GroupView> {
                       : () => _addItem(context, session.database, id),
                   child: const Icon(Icons.add),
                 ),
-          body: Column(
-            children: [
-              const RemoteCacheBanner(),
-              Expanded(
-                child: listIsEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.l),
-                          child: Text(l10n.groupEmpty),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount:
-                            recentSectionCount +
-                            visibleGroups.length +
-                            content.entries.length,
-                        itemBuilder: (context, index) {
-                          if (index < recentSectionCount) {
-                            return _RecentPasswordsSection(
-                              entries: recentEntries,
-                            );
-                          }
-                          final groupIndex = index - recentSectionCount;
-                          if (groupIndex < visibleGroups.length) {
-                            final group = visibleGroups[groupIndex];
-                            final groupId = itemIdOf(group);
-                            return ListTile(
-                              leading: DatabaseItemIcon(
-                                item: group,
-                                database: session.database,
-                              ),
-                              title: Text(
-                                group.name,
-                                style: TextStyle(
-                                  fontSize: ref
-                                      .watch(
-                                        appSettingsProvider.select(
-                                          (s) => s.listTextSize,
-                                        ),
-                                      )
-                                      .toDouble(),
+          body: Builder(
+            builder: (context) => Column(
+              children: [
+                const RemoteCacheBanner(),
+                Expanded(
+                  child: listIsEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.l),
+                            child: Text(l10n.groupEmpty),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: _selected.isEmpty
+                              ? EdgeInsets.only(
+                                  bottom:
+                                      MediaQuery.paddingOf(context).bottom +
+                                      (inBin
+                                          ? AppSpacing.m
+                                          : AppNavigationLayout.fabClearance),
+                                )
+                              : null,
+                          itemCount:
+                              recentSectionCount +
+                              visibleGroups.length +
+                              content.entries.length,
+                          itemBuilder: (context, index) {
+                            if (index < recentSectionCount) {
+                              return _RecentPasswordsSection(
+                                entries: recentEntries,
+                              );
+                            }
+                            final groupIndex = index - recentSectionCount;
+                            if (groupIndex < visibleGroups.length) {
+                              final group = visibleGroups[groupIndex];
+                              final groupId = itemIdOf(group);
+                              return ListTile(
+                                leading: DatabaseItemIcon(
+                                  item: group,
+                                  database: session.database,
                                 ),
-                              ),
-                              selected: _selected.contains(groupId),
-                              onLongPress: () => toggleSelection(groupId),
-                              onTap: _selected.isNotEmpty
-                                  ? () => toggleSelection(groupId)
-                                  : () =>
-                                        context.push(AppRoutes.group(groupId)),
+                                title: Text(
+                                  group.name,
+                                  style: TextStyle(
+                                    fontSize: ref
+                                        .watch(
+                                          appSettingsProvider.select(
+                                            (s) => s.listTextSize,
+                                          ),
+                                        )
+                                        .toDouble(),
+                                  ),
+                                ),
+                                selected: _selected.contains(groupId),
+                                onLongPress: () => toggleSelection(groupId),
+                                onTap: _selected.isNotEmpty
+                                    ? () => toggleSelection(groupId)
+                                    : () => context.push(
+                                        AppRoutes.group(groupId),
+                                      ),
+                              );
+                            }
+                            final entry = content
+                                .entries[groupIndex - visibleGroups.length];
+                            final entryId = itemIdOf(entry);
+                            return EntryTile(
+                              entry: entry,
+                              selected: _selected.contains(entryId),
+                              showChevron: _selected.isEmpty,
+                              onLongPress: () => toggleSelection(entryId),
+                              onTap: _selected.isEmpty
+                                  ? null
+                                  : () => toggleSelection(entryId),
                             );
-                          }
-                          final entry = content
-                              .entries[groupIndex - visibleGroups.length];
-                          final entryId = itemIdOf(entry);
-                          return EntryTile(
-                            entry: entry,
-                            selected: _selected.contains(entryId),
-                            showChevron: _selected.isEmpty,
-                            onLongPress: () => toggleSelection(entryId),
-                            onTap: _selected.isEmpty
-                                ? null
-                                : () => toggleSelection(entryId),
-                          );
-                        },
-                      ),
-              ),
-            ],
+                          },
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

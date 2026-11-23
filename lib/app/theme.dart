@@ -8,6 +8,26 @@ abstract final class AppSpacing {
   static const double l = 24;
 }
 
+/// Dimensioni della navigazione flottante e dello spazio per il pulsante aggiungi.
+abstract final class AppNavigationLayout {
+  static const double destinationMinHeight = 64;
+  static const double iconSize = 24;
+  static const double blurSigma = 12;
+  static const double shadowBlurRadius = 20;
+  static const double fabClearance = 56 + AppSpacing.m * 2;
+
+  static const margin = EdgeInsets.fromLTRB(
+    AppSpacing.m,
+    0,
+    AppSpacing.m,
+    AppSpacing.s + AppSpacing.xs,
+  );
+  static const surfacePadding = EdgeInsets.all(AppSpacing.xs);
+  static const destinationPadding = EdgeInsets.symmetric(
+    vertical: AppSpacing.s,
+  );
+}
+
 /// Lunghezze massime dei campi di testo libero.
 abstract final class AppLimits {
   static const int masterPassword = 1024;
@@ -87,17 +107,26 @@ ThemeData _buildTheme(Brightness brightness) {
       menuPadding: const EdgeInsets.symmetric(vertical: AppSpacing.s),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: barColor,
+      backgroundColor: barColor.withValues(alpha: 0.84),
       elevation: 0,
-      indicatorColor: Colors.transparent,
+      shadowColor: scheme.shadow.withValues(alpha: dark ? 0.24 : 0.10),
+      indicatorColor: AppColors.blue.withValues(alpha: dark ? 0.20 : 0.12),
+      indicatorShape: const StadiumBorder(),
       iconTheme: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.selected)
-            ? IconThemeData(color: scheme.primary)
-            : null,
+        (states) => IconThemeData(
+          color: states.contains(WidgetState.disabled)
+              ? scheme.onSurface.withValues(alpha: 0.38)
+              : states.contains(WidgetState.selected)
+              ? scheme.primary
+              : scheme.onSurfaceVariant,
+        ),
       ),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => navigationLabel?.copyWith(
-          color: states.contains(WidgetState.selected)
+          letterSpacing: 0,
+          color: states.contains(WidgetState.disabled)
+              ? scheme.onSurface.withValues(alpha: 0.38)
+              : states.contains(WidgetState.selected)
               ? scheme.primary
               : scheme.onSurfaceVariant,
         ),
