@@ -32,6 +32,8 @@ import '../unlock/relock.dart';
 import 'group_edit_dialog.dart';
 import 'group_view_model.dart';
 
+enum _HomeAction { favorites, sort, databases, synchronize, recycleBin, lock }
+
 /// Elenco di sottogruppi e voci di un gruppo (GroupActivity di
 /// Keepass2Android).
 class GroupView extends ConsumerStatefulWidget {
@@ -84,6 +86,10 @@ class _GroupViewState extends ConsumerState<GroupView> {
     final recentEntries = widget.groupId == null && _selected.isEmpty
         ? ref.watch(recentPasswordEntriesProvider)
         : const <KdbxEntry>[];
+    final hasFavorites =
+        widget.groupId == null &&
+        _selected.isEmpty &&
+        (ref.watch(favoriteEntriesProvider)?.isNotEmpty ?? false);
     final recentSectionCount = recentEntries.isEmpty ? 0 : 1;
     final listIsEmpty =
         visibleGroups.isEmpty &&
@@ -191,49 +197,6 @@ class _GroupViewState extends ConsumerState<GroupView> {
                     ),
             ),
           ]
-        : widget.groupId == null
-        ? [
-            if (recycleBin != null &&
-                (recycleBin.groups.isNotEmpty || recycleBin.entries.isNotEmpty))
-              IconButton(
-                tooltip: l10n.dbSettingsRecycleBin,
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () =>
-                    context.push(AppRoutes.group(itemIdOf(recycleBin))),
-              ),
-            IconButton(
-              tooltip: l10n.groupSort,
-              icon: const Icon(Icons.sort),
-              onPressed: () => _chooseSortOrder(context, ref),
-            ),
-            IconButton(
-              tooltip: l10n.databasesTitle,
-              icon: const Icon(Icons.folder_copy_outlined),
-              onPressed: busy ? null : () => _chooseDatabase(context, ref),
-            ),
-            IconButton(
-              tooltip: l10n.syncNow,
-              icon: const Icon(Icons.sync),
-              onPressed: busy ? null : () => _synchronize(context, ref),
-            ),
-            if (ref.watch(favoriteEntriesProvider)?.isNotEmpty ?? false)
-              IconButton(
-                tooltip: l10n.favoritesTitle,
-                icon: const Icon(Icons.star_border),
-                onPressed: () => context.push(AppRoutes.favorites),
-              ),
-            IconButton(
-              tooltip: l10n.searchTitle,
-              icon: const Icon(Icons.search),
-              onPressed: () => context.push(AppRoutes.search),
-            ),
-            IconButton(
-              tooltip: l10n.groupLock,
-              icon: const Icon(Icons.lock_outline),
-              onPressed: () =>
-                  ref.read(relockProvider.notifier).lockAndReturn(),
-            ),
-          ]
         : <Widget>[];
 
     return _BiometricOfferHost(
@@ -248,7 +211,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
         child: Scaffold(
           appBar: AppBar(
             centerTitle: false,
-            toolbarHeight: 48,
+            titleSpacing: AppSpacing.m,
             title: Text(
               _selected.isEmpty
                   ? content.group == recycleBin
@@ -265,7 +228,79 @@ class _GroupViewState extends ConsumerState<GroupView> {
                     icon: const Icon(Icons.close),
                     onPressed: busy ? null : () => setState(_selected.clear),
                   ),
-            bottom: appBarActions.isEmpty
+            actions: widget.groupId == null && _selected.isEmpty
+                ? [
+                    IconButton(
+                      tooltip: l10n.searchTitle,
+                      icon: const Icon(Icons.search),
+                      onPressed: () => context.push(AppRoutes.search),
+                    ),
+                    PopupMenuButton<_HomeAction>(
+                      tooltip: l10n.groupMore,
+                      icon: const Icon(Icons.more_vert),
+                      position: PopupMenuPosition.under,
+                      itemBuilder: (context) => [
+                        if (hasFavorites)
+                          _homeMenuItem(
+                            _HomeAction.favorites,
+                            Icons.star_border,
+                            l10n.favoritesTitle,
+                          ),
+                        _homeMenuItem(
+                          _HomeAction.sort,
+                          Icons.sort,
+                          l10n.groupSort,
+                        ),
+                        _homeMenuItem(
+                          _HomeAction.databases,
+                          Icons.folder_copy_outlined,
+                          l10n.databasesTitle,
+                          enabled: !busy,
+                        ),
+                        _homeMenuItem(
+                          _HomeAction.synchronize,
+                          Icons.sync,
+                          l10n.syncNow,
+                          enabled: !busy,
+                        ),
+                        if (recycleBin != null &&
+                            (recycleBin.groups.isNotEmpty ||
+                                recycleBin.entries.isNotEmpty))
+                          _homeMenuItem(
+                            _HomeAction.recycleBin,
+                            Icons.delete_outline,
+                            l10n.dbSettingsRecycleBin,
+                          ),
+                        _homeMenuItem(
+                          _HomeAction.lock,
+                          Icons.lock_outline,
+                          l10n.groupLock,
+                        ),
+                      ],
+                      onSelected: (action) {
+                        switch (action) {
+                          case _HomeAction.favorites:
+                            context.push(AppRoutes.favorites);
+                          case _HomeAction.sort:
+                            _chooseSortOrder(context, ref);
+                          case _HomeAction.databases:
+                            _chooseDatabase(context, ref);
+                          case _HomeAction.synchronize:
+                            _synchronize(context, ref);
+                          case _HomeAction.recycleBin:
+                            if (recycleBin != null) {
+                              context.push(
+                                AppRoutes.group(itemIdOf(recycleBin)),
+                              );
+                            }
+                          case _HomeAction.lock:
+                            ref.read(relockProvider.notifier).lockAndReturn();
+                        }
+                      },
+                    ),
+                  ]
+                : null,
+            bottom: _selected.isEmpty
                 ? null
                 : AppBarActionRow(
                     leading: _selected.isNotEmpty && hasUnselectedItems
@@ -361,6 +396,23 @@ class _GroupViewState extends ConsumerState<GroupView> {
       ),
     );
   }
+
+  PopupMenuItem<_HomeAction> _homeMenuItem(
+    _HomeAction action,
+    IconData icon,
+    String label, {
+    bool enabled = true,
+  }) => PopupMenuItem(
+    value: action,
+    enabled: enabled,
+    child: Row(
+      children: [
+        Icon(icon),
+        const SizedBox(width: AppSpacing.m),
+        Flexible(child: Text(label)),
+      ],
+    ),
+  );
 
   Future<void> _deleteSelection(
     BuildContext context,

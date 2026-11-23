@@ -15,6 +15,7 @@ import 'package:keepass_mobile/shared/storage/preferences.dart';
 import 'package:kpasslib/kpasslib.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/home_menu.dart';
 import '../helpers/test_database.dart';
 
 void _rename(KdbxDatabase db) => db.meta.name = 'Rinominato';
@@ -142,15 +143,13 @@ void main() {
     expect(bytesOf(databaseFile), bytes);
   });
 
-  testWidgets('"Sincronizza ora" dalla barra superiore', (tester) async {
+  testWidgets('"Sincronizza ora" dal menu della Home', (tester) async {
     await unlock(tester);
-    final sync = find.byTooltip(l10n.syncNow);
-
-    await tester.tap(sync);
+    await selectHomeAction(tester, l10n, l10n.syncNow);
     await pumpUntilFound(tester, find.text(l10n.syncUnchanged));
 
     await changeElsewhere(tester);
-    await tester.tap(sync);
+    await selectHomeAction(tester, l10n, l10n.syncNow);
     // Anche tempo simulato: il messaggio precedente deve uscire.
     final done = find.text(l10n.syncDone);
     for (var i = 0; i < 100 && done.evaluate().isEmpty; i++) {

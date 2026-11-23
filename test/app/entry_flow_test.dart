@@ -16,6 +16,7 @@ import 'package:keepass_mobile/shared/settings/app_settings.dart';
 import 'package:kpasslib/kpasslib.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/home_menu.dart';
 import '../helpers/test_database.dart';
 
 void main() {
@@ -572,13 +573,16 @@ void main() {
     await tester.runAsync(() async => file.writeAsBytes(await db.save()));
     await openApp(tester);
 
-    final favorites = find.byTooltip(l10n.favoritesTitle);
+    final favorites = find.text(l10n.favoritesTitle);
     final empty = find.text(l10n.favoritesEmpty);
     final add = find.byTooltip(l10n.entryFavoriteAdd);
     final remove = find.byTooltip(l10n.entryFavoriteRemove);
     final detail = find.widgetWithText(AppBar, 'Conto');
 
+    await openHomeMenu(tester, l10n);
     expect(favorites, findsNothing);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
     expect(find.text('Voce nel cestino'), findsNothing);
 
     await tester.tap(find.text('Banca'));
@@ -596,7 +600,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(favorites);
+    await selectHomeAction(tester, l10n, l10n.favoritesTitle);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, 'Conto'));
     await tester.pumpAndSettle();
@@ -611,7 +615,10 @@ void main() {
     expect(empty, findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
+    await openHomeMenu(tester, l10n);
     expect(favorites, findsNothing);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
   });
 
   testWidgets('TOTP: codice nascosto, rivelato e copiato', (tester) async {

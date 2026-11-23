@@ -6,6 +6,7 @@ import 'package:keepass_mobile/l10n/app_localizations.dart';
 import 'package:keepass_mobile/shared/database/database_session.dart';
 import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
+import 'package:keepass_mobile/shared/ui/app_bar_action_row.dart';
 import 'package:keepass_mobile/shared/ui/entry_tile.dart';
 import 'package:kpasslib/kpasslib.dart';
 import 'package:material_ui/material_ui.dart';
@@ -59,6 +60,8 @@ void main() {
             .read(databaseSessionProvider.notifier)
             .open(DatabaseSession(file: _firstFile, database: db));
         await _pumpSearch(tester, container, locale: locale);
+        expect(tester.getSize(find.byType(AppBar)).height, kToolbarHeight);
+        expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
 
         // when
         await tester.longPress(find.text('Voce A'));
@@ -70,10 +73,12 @@ void main() {
           l10n.itemsSelectAllShort,
         );
         expect(selectAll, findsOneWidget);
+        expect(tester.getSize(find.byType(AppBar)).height, kToolbarHeight + 48);
+        expect(find.byType(AppBarActionRow), findsOneWidget);
         expect(find.byIcon(Icons.select_all), findsNothing);
         expect(find.byType(Checkbox), findsNothing);
         expect(tester.getRect(selectAll).left, lessThan(24));
-        expect(tester.getRect(selectAll).top, greaterThanOrEqualTo(48));
+        expect(tester.getRect(selectAll).top, greaterThanOrEqualTo(56));
         expect(
           tester.getRect(find.byTooltip(l10n.entryDelete)).right,
           greaterThan(336),
@@ -100,11 +105,14 @@ void main() {
         await tester.tap(find.text('Voce B'));
         await tester.pumpAndSettle();
         expect(selectAll, findsOneWidget);
+        expect(tester.getSize(find.byType(AppBar)).height, kToolbarHeight + 48);
+        expect(find.byType(AppBarActionRow), findsOneWidget);
         expect(find.text(l10n.itemsSelected(1)), findsOneWidget);
 
         await tester.tap(find.byTooltip(l10n.cancel));
         await tester.pumpAndSettle();
         expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
+        expect(tester.getSize(find.byType(AppBar)).height, kToolbarHeight);
         expect(find.byType(TextField), findsOneWidget);
       },
     );

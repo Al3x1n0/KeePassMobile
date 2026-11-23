@@ -13,6 +13,7 @@ import 'package:keepass_mobile/shared/storage/preferences.dart';
 import 'package:kpasslib/kpasslib.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/home_menu.dart';
 import '../helpers/test_database.dart';
 
 void main() {
@@ -101,7 +102,7 @@ void main() {
       matching: find.widgetWithText(ListTile, label),
     );
     Future<void> openSortSheet() async {
-      await tester.tap(find.byTooltip(l10n.groupSort));
+      await selectHomeAction(tester, l10n, l10n.groupSort);
       await tester.pumpAndSettle();
     }
 
@@ -152,12 +153,12 @@ void main() {
     expect(find.text('Conto'), findsOneWidget);
 
     // Il blocco è disponibile tornando alla Home.
-    expect(find.byTooltip(l10n.groupLock), findsNothing);
+    expect(find.byTooltip(l10n.groupMore), findsNothing);
     await tester.pageBack();
     await tester.pumpAndSettle();
 
     // when: blocca il database
-    await tester.tap(find.byTooltip(l10n.groupLock));
+    await selectHomeAction(tester, l10n, l10n.groupLock);
     await tester.pumpAndSettle();
 
     // then: sblocco dello stesso database (D22), nessun dato visibile

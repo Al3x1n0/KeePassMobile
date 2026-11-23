@@ -287,7 +287,6 @@ class _SearchViewState extends ConsumerState<SearchView> {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: false,
-          toolbarHeight: 48,
           leading: _selected.isEmpty
               ? null
               : IconButton(

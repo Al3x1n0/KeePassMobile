@@ -14,6 +14,7 @@ import 'package:kpasslib/kpasslib.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/fake_secure_storage.dart';
+import '../helpers/home_menu.dart';
 import '../helpers/test_database.dart';
 
 void main() {
@@ -109,7 +110,7 @@ void main() {
           .length;
       final requests = biometricRequests();
 
-      await tester.tap(find.byTooltip(l10n.groupLock));
+      await selectHomeAction(tester, l10n, l10n.groupLock);
       await tester.pump();
 
       // Blocco completo, poi di nuovo l'impronta per lo stesso file.

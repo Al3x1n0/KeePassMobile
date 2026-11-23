@@ -21,6 +21,7 @@ import '../helpers/fake_secure_storage.dart';
 import '../helpers/fake_webdav_client.dart';
 import '../helpers/fake_sftp_client.dart';
 import '../helpers/memory_cache_documents.dart';
+import '../helpers/home_menu.dart';
 import '../helpers/test_database.dart';
 
 void main() {
@@ -130,7 +131,7 @@ void main() {
       ]);
 
       // Blocco: lo sblocco dello stesso file legge con le credenziali salvate.
-      await tester.tap(find.byTooltip(l10n.groupLock));
+      await selectHomeAction(tester, l10n, l10n.groupLock);
       await pumpUntilFound(tester, find.text(l10n.unlockButton));
       await tester.pumpAndSettle();
       await unlock(tester);
@@ -151,7 +152,7 @@ void main() {
       await unlock(tester);
       expect(secure.data, isEmpty);
 
-      await tester.tap(find.byTooltip(l10n.groupLock));
+      await selectHomeAction(tester, l10n, l10n.groupLock);
       await pumpUntilFound(tester, find.text(l10n.unlockButton));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), testMasterKey);
@@ -262,7 +263,7 @@ void main() {
       final recents = RecentFilesRepository(prefs, const FileStorage()).load();
       expect(recents.single.database.uri, 'sftp://ssh.example/prova.kdbx');
       sftp.fingerprint = 'SHA256:changed';
-      await tester.tap(find.byTooltip(l10n.groupLock));
+      await selectHomeAction(tester, l10n, l10n.groupLock);
       await pumpUntilFound(tester, find.text(l10n.unlockButton));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), testMasterKey);
@@ -277,7 +278,7 @@ void main() {
       await start(tester);
       await connectAndPick(tester, remember: true);
       await unlock(tester);
-      await tester.tap(find.byTooltip(l10n.groupLock));
+      await selectHomeAction(tester, l10n, l10n.groupLock);
       await pumpUntilFound(tester, find.text(l10n.unlockButton));
       await tester.pumpAndSettle();
       final calls = client.calls.length;

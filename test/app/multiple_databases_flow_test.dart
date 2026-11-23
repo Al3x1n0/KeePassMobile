@@ -14,6 +14,7 @@ import 'package:keepass_mobile/shared/storage/preferences.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kpasslib/kpasslib.dart';
 
+import '../helpers/home_menu.dart';
 import '../helpers/test_database.dart';
 
 void main() {
@@ -105,7 +106,7 @@ void main() {
     await tester.tap(find.text(l10n.unlockButton));
     await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Primo'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.databasesTitle));
+    await selectHomeAction(tester, l10n, l10n.databasesTitle);
     await tester.pumpAndSettle();
     final databaseSheet = find.byType(BottomSheet);
     expect(tester.widget<BottomSheet>(databaseSheet).showDragHandle, isTrue);
@@ -177,7 +178,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.databasesTitle));
+    await selectHomeAction(tester, l10n, l10n.databasesTitle);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Primo.kdbx'));
     await tester.pumpAndSettle();
@@ -210,7 +211,7 @@ void main() {
     expect(link.fields[EntryFields.url]!.text, secondRef.uri);
     expect(link.fields[EntryFields.password], isA<ProtectedTextField>());
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.databasesTitle));
+    await selectHomeAction(tester, l10n, l10n.databasesTitle);
     await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
@@ -220,7 +221,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Primo'), findsOneWidget);
-    await tester.tap(find.byTooltip(l10n.databasesTitle));
+    await selectHomeAction(tester, l10n, l10n.databasesTitle);
     await tester.pumpAndSettle();
     expect(find.text('Secondo.kdbx'), findsNothing);
     await tester.binding.handlePopRoute();

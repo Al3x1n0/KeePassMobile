@@ -11,6 +11,7 @@ import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:keepass_mobile/shared/storage/preferences.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/home_menu.dart';
 import '../helpers/test_database.dart';
 
 void main() {
@@ -241,7 +242,7 @@ void main() {
         contains('Voce sintetica'),
       );
       expect(find.widgetWithText(ListTile, bin.name), findsNothing);
-      await tester.tap(find.byTooltip(l10n.dbSettingsRecycleBin));
+      await selectHomeAction(tester, l10n, l10n.dbSettingsRecycleBin);
       await tester.pumpAndSettle();
       await tester.longPress(find.text('Origine'));
       await tester.pumpAndSettle();
@@ -273,7 +274,10 @@ void main() {
       expect(existingRecycleBin(initial), isNull);
       final before = file.readAsBytesSync();
       await open(tester);
-      expect(find.byTooltip(l10n.dbSettingsRecycleBin), findsNothing);
+      await openHomeMenu(tester, l10n);
+      expect(find.text(l10n.dbSettingsRecycleBin), findsNothing);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       expect(file.readAsBytesSync(), before);
 
       // when
@@ -296,9 +300,10 @@ void main() {
       await tester.tap(find.byTooltip(l10n.entryDelete));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, l10n.entryDelete));
-      final recycleBin = find.byTooltip(l10n.dbSettingsRecycleBin);
-      await pumpUntilFound(tester, recycleBin);
+      await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Prova'));
       await tester.pumpAndSettle();
+      await openHomeMenu(tester, l10n);
+      final recycleBin = find.text(l10n.dbSettingsRecycleBin);
       final db = (await tester.runAsync(() => reopenFile(file)))!;
       final binName = existingRecycleBin(db)!.name;
       expect(find.widgetWithText(ListTile, binName), findsNothing);
@@ -326,7 +331,7 @@ void main() {
     },
   );
 
-  testWidgets('mostra le azioni della Home nell’ordine richiesto', (
+  testWidgets('mostra Cerca e menu con le azioni Home nell’ordine richiesto', (
     tester,
   ) async {
     // given
@@ -340,29 +345,43 @@ void main() {
     await tester.runAsync(() async => file.writeAsBytes(await db.save()));
     await open(tester);
 
-    // then: da sinistra a destra, con tutte le azioni visibili.
+    // then: soltanto Cerca e altre azioni nella riga ordinaria.
+    final appBar = find.byType(AppBar);
+    final bar = tester.widget<AppBar>(appBar);
+    expect(bar.bottom, isNull);
+    expect(tester.getSize(appBar).height, kToolbarHeight);
+    final search = find.descendant(
+      of: appBar,
+      matching: find.byTooltip(l10n.searchTitle),
+    );
+    final more = find.descendant(
+      of: appBar,
+      matching: find.byTooltip(l10n.groupMore),
+    );
+    expect(search, findsOneWidget);
+    expect(more, findsOneWidget);
+    expect(bar.actions, hasLength(2));
+    expect(
+      tester.getRect(search).right,
+      lessThanOrEqualTo(tester.getRect(more).left),
+    );
+    expect(find.widgetWithText(ListTile, db.recycleBin!.name), findsNothing);
+
+    // when / then: dall'alto in basso nel popup.
+    await openHomeMenu(tester, l10n);
     final labels = [
-      l10n.dbSettingsRecycleBin,
+      l10n.favoritesTitle,
       l10n.groupSort,
       l10n.databasesTitle,
       l10n.syncNow,
-      l10n.favoritesTitle,
-      l10n.searchTitle,
+      l10n.dbSettingsRecycleBin,
       l10n.groupLock,
     ];
-    final appBar = find.byType(AppBar);
-    final actions = [
-      for (final label in labels)
-        find.descendant(of: appBar, matching: find.byTooltip(label)),
-    ];
-    for (final action in actions) {
-      expect(action, findsOneWidget);
-    }
     final positions = [
-      for (final action in actions) tester.getTopLeft(action).dx,
+      for (final label in labels) tester.getTopLeft(find.text(label)).dy,
     ];
     expect(positions, orderedEquals([...positions]..sort()));
-    expect(find.widgetWithText(ListTile, db.recycleBin!.name), findsNothing);
+    expect(find.byType(PopupMenuDivider), findsNothing);
   });
 
   testWidgets('nasconde cestino vuoto e preferiti assenti nella Home', (
@@ -376,9 +395,10 @@ void main() {
 
     // when / then
     await open(tester, waitFor: find.text(l10n.groupEmpty));
-    expect(find.byTooltip(l10n.dbSettingsRecycleBin), findsNothing);
-    expect(find.byTooltip(l10n.favoritesTitle), findsNothing);
-    expect(find.byTooltip(l10n.syncNow), findsOneWidget);
+    await openHomeMenu(tester, l10n);
+    expect(find.text(l10n.dbSettingsRecycleBin), findsNothing);
+    expect(find.text(l10n.favoritesTitle), findsNothing);
+    expect(find.text(l10n.syncNow), findsOneWidget);
     expect(file.readAsBytesSync(), before);
   });
 
@@ -395,7 +415,8 @@ void main() {
         }
         await tester.runAsync(() async => file.writeAsBytes(await db.save()));
         await open(tester);
-        final action = find.byTooltip(l10n.dbSettingsRecycleBin);
+        await openHomeMenu(tester, l10n);
+        final action = find.text(l10n.dbSettingsRecycleBin);
         expect(action, findsOneWidget);
         await tester.tap(action);
         await tester.pumpAndSettle();
@@ -418,7 +439,7 @@ void main() {
     await tester.runAsync(() async => file.writeAsBytes(await db.save()));
     final before = file.readAsBytesSync();
     await open(tester);
-    await tester.tap(find.byTooltip(l10n.dbSettingsRecycleBin));
+    await selectHomeAction(tester, l10n, l10n.dbSettingsRecycleBin);
     await tester.pumpAndSettle();
     expect(
       find.widgetWithText(AppBar, l10n.dbSettingsRecycleBin),
@@ -455,7 +476,8 @@ void main() {
     expect(savedBin.entries, isEmpty);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byTooltip(l10n.dbSettingsRecycleBin), findsNothing);
+    await openHomeMenu(tester, l10n);
+    expect(find.text(l10n.dbSettingsRecycleBin), findsNothing);
   });
 
   testWidgets('mostra Modifica gruppo solo per un gruppo fuori dal cestino', (
@@ -503,7 +525,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.dbSettingsRecycleBin));
+    await selectHomeAction(tester, l10n, l10n.dbSettingsRecycleBin);
     await tester.pumpAndSettle();
     await tester.longPress(find.text('Gruppo eliminato'));
     await tester.pumpAndSettle();

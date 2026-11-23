@@ -80,6 +80,12 @@ ThemeData _buildTheme(Brightness brightness) {
       centerTitle: true,
       scrolledUnderElevation: 0,
     ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: scheme.surfaceContainer,
+      elevation: 3,
+      shape: buttonShape,
+      menuPadding: const EdgeInsets.symmetric(vertical: AppSpacing.s),
+    ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: barColor,
       elevation: 0,
