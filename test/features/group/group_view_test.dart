@@ -17,6 +17,162 @@ void main() {
   const locale = Locale('it');
   final l10n = lookupAppLocalizations(locale);
 
+  for (final binLocale in [const Locale('it'), const Locale('en')]) {
+    testWidgets(
+      'Cestino ${binLocale.languageCode}: titolo localizzato e selezione dinamica',
+      (tester) async {
+        // given
+        tester.view.physicalSize = const Size(360, 640);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final binL10n = lookupAppLocalizations(binLocale);
+        final binTitle = binLocale.languageCode == 'it'
+            ? 'Cestino'
+            : 'Recycle Bin';
+        final db = newTestDatabase();
+        final bin = db.recycleBin!..name = 'Stored bin label';
+        final group = db.createGroup(parent: bin, name: 'Gruppo eliminato');
+        addTestEntry(db, bin, {EntryFields.title: 'Prima voce eliminata'});
+        addTestEntry(db, bin, {EntryFields.title: 'Seconda voce eliminata'});
+        final container = await newTestContainer();
+        container
+            .read(databaseSessionProvider.notifier)
+            .open(
+              DatabaseSession(
+                file: const FileRef(
+                  uri: 'file:///prova.kdbx',
+                  name: 'prova.kdbx',
+                ),
+                database: db,
+              ),
+            );
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              locale: binLocale,
+              localizationsDelegates: [
+                ...GlobalMaterialLocalizations.delegates,
+                ...AppLocalizations.localizationsDelegates,
+              ],
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: buildLightTheme(),
+              home: GroupView(groupId: itemIdOf(bin)),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // when
+        expect(find.widgetWithText(AppBar, binTitle), findsOneWidget);
+        expect(find.text(bin.name), findsNothing);
+        expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
+        await tester.longPress(find.text(group.name));
+        await tester.pumpAndSettle();
+
+        // then
+        final selectAll = find.widgetWithText(
+          TextButton,
+          binL10n.itemsSelectAllShort,
+        );
+        expect(selectAll, findsOneWidget);
+        expect(find.byIcon(Icons.select_all), findsNothing);
+        expect(find.byType(Checkbox), findsNothing);
+        final restore = find.byTooltip(binL10n.itemRestore);
+        final delete = find.byTooltip(binL10n.entryDelete);
+        expect(restore, findsOneWidget);
+        expect(delete, findsOneWidget);
+        expect(tester.getRect(selectAll).left, lessThan(24));
+        expect(tester.getRect(selectAll).top, greaterThanOrEqualTo(48));
+        expect(tester.getRect(delete).right, greaterThan(336));
+        expect(
+          tester.getRect(selectAll).right,
+          lessThan(tester.getRect(restore).left),
+        );
+
+        await tester.tap(selectAll);
+        await tester.pumpAndSettle();
+        expect(find.text(binL10n.itemsSelected(3)), findsOneWidget);
+        expect(selectAll, findsNothing);
+        expect(
+          tester
+              .widgetList<EntryTile>(find.byType(EntryTile))
+              .every((tile) => tile.selected),
+          isTrue,
+        );
+        expect(
+          tester
+              .widget<ListTile>(find.widgetWithText(ListTile, group.name))
+              .selected,
+          isTrue,
+        );
+        expect(restore, findsOneWidget);
+        expect(delete, findsOneWidget);
+
+        await tester.tap(find.text(group.name));
+        await tester.pumpAndSettle();
+        expect(find.text(binL10n.itemsSelected(2)), findsOneWidget);
+        expect(selectAll, findsOneWidget);
+
+        await tester.tap(find.byTooltip(binL10n.cancel));
+        await tester.pumpAndSettle();
+        expect(find.widgetWithText(AppBar, binTitle), findsOneWidget);
+        expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
+        expect(
+          tester
+              .widgetList<EntryTile>(find.byType(EntryTile))
+              .every((tile) => !tile.selected),
+          isTrue,
+        );
+      },
+    );
+  }
+
+  testWidgets('fuori dal Cestino conserva titolo e icona seleziona tutto', (
+    tester,
+  ) async {
+    // given
+    final db = newTestDatabase();
+    final group = db.createGroup(parent: db.root, name: 'Gruppo ordinario');
+    addTestEntry(db, group, {EntryFields.title: 'Voce ordinaria'});
+    final container = await newTestContainer();
+    container
+        .read(databaseSessionProvider.notifier)
+        .open(
+          DatabaseSession(
+            file: const FileRef(uri: 'file:///prova.kdbx', name: 'prova.kdbx'),
+            database: db,
+          ),
+        );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          locale: locale,
+          localizationsDelegates: [
+            ...GlobalMaterialLocalizations.delegates,
+            ...AppLocalizations.localizationsDelegates,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: buildLightTheme(),
+          home: GroupView(groupId: itemIdOf(group)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // when
+    expect(find.widgetWithText(AppBar, group.name), findsOneWidget);
+    await tester.longPress(find.text('Voce ordinaria'));
+    await tester.pumpAndSettle();
+
+    // then
+    expect(find.byIcon(Icons.select_all), findsOneWidget);
+    expect(find.byTooltip(l10n.itemsSelectAll), findsOneWidget);
+    expect(find.text(l10n.itemsSelectAllShort), findsNothing);
+  });
+
   for (final (limit, themeMode) in [
     (5, ThemeMode.light),
     (10, ThemeMode.light),

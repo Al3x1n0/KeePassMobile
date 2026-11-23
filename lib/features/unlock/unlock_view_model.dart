@@ -6,11 +6,13 @@ import 'package:kpasslib/kpasslib.dart';
 
 import '../../shared/database/database_errors.dart';
 import '../../shared/database/database_session.dart';
+import '../../shared/database/kdbx_items.dart';
 import '../../shared/database/external_change.dart';
 import '../../shared/security/biometric_key_store.dart';
 import '../../shared/security/device_security.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/storage/file_storage.dart';
+import '../../shared/storage/recent_passwords_store.dart';
 import '../../shared/storage/remote_cache.dart';
 import '../../shared/storage/remote_storage.dart';
 import '../file_select/recent_files.dart';
@@ -97,6 +99,9 @@ class UnlockViewModel extends AsyncNotifier<void> {
     String password,
     BiometricPromptTexts? biometricTexts,
   ) async {
+    final generation = ref
+        .read(databaseSessionProvider.notifier)
+        .lockGeneration;
     final storage = ref.read(fileStorageProvider);
     final databaseStorage = ref.read(databaseFileStorageProvider);
     final database = databaseStorage is CachedDatabaseStorage
@@ -136,6 +141,7 @@ class UnlockViewModel extends AsyncNotifier<void> {
         database.ref,
         keyFile?.ref,
         kdbx,
+        generation: generation,
         fileHash: fileHashOf(database.bytes),
         cacheStatus: databaseStorage is CachedDatabaseStorage
             ? await databaseStorage.opened(database)
@@ -150,6 +156,9 @@ class UnlockViewModel extends AsyncNotifier<void> {
     UnlockArgs args,
     BiometricPromptTexts texts,
   ) async {
+    final generation = ref
+        .read(databaseSessionProvider.notifier)
+        .lockGeneration;
     final databaseStorage = ref.read(databaseFileStorageProvider);
     final database = databaseStorage is CachedDatabaseStorage
         ? await databaseStorage.readForUnlock(
@@ -181,6 +190,7 @@ class UnlockViewModel extends AsyncNotifier<void> {
         database.ref,
         args.keyFile?.ref,
         kdbx,
+        generation: generation,
         fileHash: fileHashOf(database.bytes),
         cacheStatus: databaseStorage is CachedDatabaseStorage
             ? await databaseStorage.opened(database)
@@ -232,10 +242,15 @@ class UnlockViewModel extends AsyncNotifier<void> {
     FileRef database,
     FileRef? keyFile,
     KdbxDatabase kdbx, {
+    required int generation,
     required String fileHash,
     required RemoteCacheStatus cacheStatus,
   }) async {
-    if (!ref.mounted) return false;
+    if (!ref.mounted ||
+        ref.read(databaseSessionProvider.notifier).lockGeneration !=
+            generation) {
+      return false;
+    }
     final settings = ref.read(appSettingsProvider);
     if (settings.rememberRecentFiles) {
       await ref
@@ -267,14 +282,40 @@ class UnlockViewModel extends AsyncNotifier<void> {
       if (!ref.mounted) return false;
     }
 
+    final sessions = ref.read(databaseSessionProvider.notifier);
+    if (sessions.lockGeneration != generation) return false;
+    sessions.trackOpeningDatabase(kdbx);
+    KdbxDatabase? openingDatabase = kdbx;
+    var canceled = false;
+    ref.onDispose(() {
+      canceled = true;
+      openingDatabase?.clearSensitiveData();
+    });
+    final List<String> recentPasswordIds;
+    try {
+      recentPasswordIds = await ref
+          .read(recentPasswordsStoreProvider)
+          .read(
+            RecentPasswordsStore.databaseKey(
+              database,
+              idOfUuid(kdbx.root.uuid),
+            ),
+          );
+      if (canceled || !ref.mounted || sessions.lockGeneration != generation) {
+        return false;
+      }
+    } finally {
+      openingDatabase = null;
+      sessions.untrackOpeningDatabase(kdbx);
+    }
     final session = DatabaseSession(
       file: database,
       keyFile: keyFile,
       database: kdbx,
       fileHash: fileHash,
       cacheStatus: cacheStatus,
+      recentPasswordIds: recentPasswordIds,
     );
-    final sessions = ref.read(databaseSessionProvider.notifier);
     if (args.additional) {
       sessions.openAdditional(session, args.lockGeneration ?? -1);
     } else {

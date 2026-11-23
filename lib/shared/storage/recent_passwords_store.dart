@@ -15,7 +15,9 @@ class RecentPasswordsStore {
 
   static const _namespace = 'kpm_recent_passwords';
   static const _prefix = 'recent-passwords:';
-  static const _limit = 15;
+
+  /// Numero massimo di identificatori conservati per database.
+  static const limit = 15;
   static final _historyKey = RegExp(
     '^$_prefix'
     r'[0-9a-f]{64}$',
@@ -62,7 +64,7 @@ class RecentPasswordsStore {
       final entries = [entryId, ...previous.where((id) => id != entryId)];
       await _storage.write(
         key: databaseKey,
-        value: jsonEncode(entries.take(_limit).toList()),
+        value: jsonEncode(entries.take(limit).toList()),
         aOptions: _android,
         iOptions: _ios,
       );
@@ -90,7 +92,7 @@ class RecentPasswordsStore {
       final decoded = jsonDecode(raw);
       if (decoded is! List<Object?>) return const [];
       final valid = decoded.whereType<String>().where(_entryId.hasMatch);
-      return List.unmodifiable(valid.toSet().take(_limit));
+      return List.unmodifiable(valid.toSet().take(limit));
     } on FormatException {
       return const [];
     }

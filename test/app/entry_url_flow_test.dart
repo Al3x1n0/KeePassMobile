@@ -59,6 +59,7 @@ void main() {
   testWidgets('URL aperto nel browser con https://; cmd:// rifiutato', (
     tester,
   ) async {
+    final clipboard = FakeClipboard(tester.binding);
     final opener = _Opener();
     SharedPreferences.setMockInitialValues({
       RecentFilesRepository.storageKey: [
@@ -88,6 +89,12 @@ void main() {
     await tester.tap(find.byTooltip(l10n.entryUrlOpen));
     await tester.pumpAndSettle();
     expect(opener.opened, [Uri.parse('https://www.example.org')]);
+    expect(clipboard.text, isNull);
+    expect(find.byIcon(Icons.copy), findsNothing);
+    await tester.tap(find.widgetWithText(ListTile, l10n.entryUrl));
+    await tester.pumpAndSettle();
+    expect(clipboard.text, 'www.example.org');
+    expect(opener.opened, hasLength(1));
 
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -103,7 +110,12 @@ void main() {
       await tester.tap(find.text(title));
       await tester.pumpAndSettle();
       expect(find.byTooltip(l10n.entryUrlOpen), findsNothing);
-      expect(find.byTooltip(l10n.entryCopy(l10n.entryUrl)), findsOneWidget);
+      expect(
+        tester
+            .widget<ListTile>(find.widgetWithText(ListTile, l10n.entryUrl))
+            .onTap,
+        isNotNull,
+      );
     }
     expect(opener.opened, hasLength(1));
   });

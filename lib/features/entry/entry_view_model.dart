@@ -250,7 +250,7 @@ class EntryActions extends AsyncNotifier<void> {
             ref.read(databaseSessionProvider.notifier).lockGeneration &&
         ref.read(recentPasswordDatabaseKeyProvider) == key) {
       unawaited(ref.read(recentPasswordsStoreProvider).record(key, entryId));
-      ref.invalidate(recentPasswordIdsProvider(key));
+      ref.read(databaseSessionProvider.notifier).recordRecentPassword(entryId);
     }
     return clipboard.clearAfter;
   }

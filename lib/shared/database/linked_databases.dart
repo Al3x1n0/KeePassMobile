@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../storage/file_storage.dart';
 import '../crypto/app_crypto_engine.dart';
 import '../storage/preferences.dart';
+import '../storage/recent_passwords_store.dart';
 import 'database_session.dart';
 import 'external_change.dart';
 import 'field_references.dart';
@@ -142,15 +143,22 @@ class LinkedDatabaseApprovals {
 
 /// Cancellable open; no parent database is retained while waiting for I/O.
 class LinkedOpenOperation {
-  LinkedOpenOperation(this.storage, this.lookupParent, this.link);
+  LinkedOpenOperation(
+    this.storage,
+    this.lookupParent,
+    this.link, {
+    RecentPasswordsStore? recentPasswordsStore,
+  }) : _recentPasswordsStore = recentPasswordsStore ?? RecentPasswordsStore();
   final FileStorage storage;
   final DatabaseSession? Function() lookupParent;
   final LinkedDatabase link;
+  final RecentPasswordsStore _recentPasswordsStore;
   bool _canceled = false;
   Isolate? _isolate;
   ReceivePort? _port;
   Uint8List? _keyBytes;
   RestrictedFileRead? _readOperation;
+  KdbxDatabase? _openingDatabase;
 
   void cancel() {
     _canceled = true;
@@ -158,6 +166,7 @@ class LinkedOpenOperation {
     _isolate?.kill(priority: Isolate.immediate);
     _port?.close();
     _keyBytes?.fillRange(0, _keyBytes!.length, 0);
+    _openingDatabase?.clearSensitiveData();
   }
 
   Future<StoredFile> _read(FileRef file) async {
@@ -224,15 +233,29 @@ class LinkedOpenOperation {
         throw const DatabaseLockedException();
       }
       final result = await port.first;
-      if (_canceled) throw const DatabaseLockedException();
       if (result is! KdbxDatabase) throw const FileUnavailableException();
-      return DatabaseSession(
-        file: read.ref,
-        keyFile: link.keyFile,
-        database: result,
-        fileHash: fileHashOf(read.bytes),
-        restrictRedirects: true,
-      );
+      _openingDatabase = result;
+      try {
+        if (_canceled) throw const DatabaseLockedException();
+        final ids = await _recentPasswordsStore.read(
+          RecentPasswordsStore.databaseKey(
+            read.ref,
+            idOfUuid(result.root.uuid),
+          ),
+        );
+        if (_canceled) throw const DatabaseLockedException();
+        return DatabaseSession(
+          file: read.ref,
+          keyFile: link.keyFile,
+          database: result,
+          fileHash: fileHashOf(read.bytes),
+          restrictRedirects: true,
+          recentPasswordIds: ids,
+        );
+      } on Object {
+        result.clearSensitiveData();
+        rethrow;
+      }
     } finally {
       _isolate?.kill(priority: Isolate.immediate);
       _isolate = null;
@@ -240,6 +263,7 @@ class LinkedOpenOperation {
       _port = null;
       _keyBytes?.fillRange(0, _keyBytes!.length, 0);
       _keyBytes = null;
+      _openingDatabase = null;
     }
   }
 }

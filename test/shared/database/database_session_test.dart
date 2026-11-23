@@ -186,4 +186,92 @@ void main() {
     expect(field.protectedText.bytes, everyElement(0));
     expect(bytesOf(file), before);
   });
+
+  for (final dispose in [false, true]) {
+    test(
+      '${dispose ? "dispose" : "blocco"}: pulisce subito anche il database in precaricamento',
+      () async {
+        // given: la sessione non è ancora pubblicata, una lettura è in attesa.
+        final (file, database) = await saveToTempFile(newTestDatabase());
+        addTearDown(() => file.parent.deleteSync(recursive: true));
+        final key = database.header.transformedKey!.key;
+        final container = await newTestContainer();
+        final sessions = container.read(databaseSessionProvider.notifier);
+        sessions.trackOpeningDatabase(database);
+        expect(key.bytes, isNot(everyElement(0)));
+
+        // when
+        if (dispose) {
+          container.dispose();
+        } else {
+          sessions.lock();
+        }
+
+        // then: nessuna attesa per completare la lettura dello store.
+        expect(key.bytes, everyElement(0));
+        sessions.untrackOpeningDatabase(database);
+      },
+    );
+  }
+
+  test('cronologie separate: salvataggio, cambio database, chiusura e blocco', () async {
+    // given
+    final first = newTestDatabase();
+    final firstEntry = addTestEntry(first, first.root, {
+      EntryFields.title: 'Prima',
+    });
+    final secondEntry = addTestEntry(first, first.root, {
+      EntryFields.title: 'Seconda',
+    });
+    final firstId = itemIdOf(firstEntry);
+    final secondId = itemIdOf(secondEntry);
+    final (file, database) = await saveToTempFile(first);
+    addTearDown(() => file.parent.deleteSync(recursive: true));
+    final container = await newTestContainer();
+    final sessions = container.read(databaseSessionProvider.notifier);
+    final original = DatabaseSession(
+      file: fileRefOf(file),
+      database: database,
+      recentPasswordIds: [firstId],
+    );
+    sessions.open(original);
+    final firstIds = original.recentPasswordIds;
+    final started = ReceivePort();
+    addTearDown(started.close);
+
+    // when: una copia arriva durante il salvataggio della versione precedente.
+    final saving = sessions.apply(_signalEdit(started.sendPort));
+    await started.first;
+    sessions.recordRecentPassword(secondId);
+    await saving;
+
+    // then: la nuova versione conserva il recente aggiornato.
+    expect(container.read(databaseSessionProvider)!.recentPasswordIds, [
+      secondId,
+      firstId,
+    ]);
+    expect(firstIds, [secondId, firstId]);
+    expect(() => firstIds.add(firstId), throwsUnsupportedError);
+
+    final otherDatabase = newTestDatabase();
+    final (otherFile, other) = await saveToTempFile(otherDatabase);
+    addTearDown(() => otherFile.parent.deleteSync(recursive: true));
+    final otherSession = DatabaseSession(
+      file: fileRefOf(otherFile),
+      database: other,
+      recentPasswordIds: ['00000000000000000000000000000001'],
+    );
+    final otherIds = otherSession.recentPasswordIds;
+    sessions.openAdditional(otherSession, sessions.lockGeneration);
+    sessions.switchTo(fileRefOf(file));
+    expect(container.read(databaseSessionProvider)!.recentPasswordIds, [
+      secondId,
+      firstId,
+    ]);
+    sessions.closeSession(fileRefOf(file));
+    expect(firstIds, isEmpty);
+    expect(otherIds, ['00000000000000000000000000000001']);
+    sessions.lock();
+    expect(otherIds, isEmpty);
+  });
 }

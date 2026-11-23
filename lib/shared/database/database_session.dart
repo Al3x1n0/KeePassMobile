@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
@@ -10,19 +11,31 @@ import '../crypto/app_crypto_engine.dart';
 import 'external_change.dart';
 import '../security/biometric_key_store.dart';
 import '../storage/file_storage.dart';
+import '../storage/recent_passwords_store.dart';
 import '../storage/remote_cache.dart';
 import '../storage/remote_storage.dart';
 
 /// Database aperto. Esiste solo in memoria (SEC-02).
 @immutable
 class DatabaseSession {
-  const DatabaseSession({
+  DatabaseSession({
     required this.file,
     required this.database,
     this.keyFile,
     this.fileHash,
     this.cacheStatus = const RemoteCacheStatus(),
     this.restrictRedirects = false,
+    Iterable<String> recentPasswordIds = const [],
+  }) : _recentPasswordIds = recentPasswordIds.toList();
+
+  const DatabaseSession._({
+    required this.file,
+    required this.database,
+    required this.keyFile,
+    required this.fileHash,
+    required this.cacheStatus,
+    required this.restrictRedirects,
+    required this._recentPasswordIds,
   });
 
   final FileRef file;
@@ -34,6 +47,11 @@ class DatabaseSession {
   final String? fileHash;
   final RemoteCacheStatus cacheStatus;
   final bool restrictRedirects;
+  final List<String> _recentPasswordIds;
+
+  /// Identificatori precaricati per la sessione; vengono svuotati al blocco.
+  List<String> get recentPasswordIds =>
+      UnmodifiableListView(_recentPasswordIds);
 
   /// `false` quando la sessione ha solo la chiave derivata (sblocco
   /// biometrico, ADR-008): i salvataggi non ruotano il salt e la KDF non si
@@ -45,7 +63,7 @@ class DatabaseSession {
     Object? keyFile = _unchanged,
     String? fileHash,
     RemoteCacheStatus? cacheStatus,
-  }) => DatabaseSession(
+  }) => DatabaseSession._(
     file: file,
     database: database ?? this.database,
     keyFile: identical(keyFile, _unchanged)
@@ -54,6 +72,7 @@ class DatabaseSession {
     fileHash: fileHash ?? this.fileHash,
     cacheStatus: cacheStatus ?? this.cacheStatus,
     restrictRedirects: restrictRedirects,
+    recentPasswordIds: _recentPasswordIds,
   );
 }
 
@@ -87,6 +106,7 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
   bool _saving = false;
   _DatabaseSaveWorker? _saveWorker;
   KdbxDatabase? _stagedDatabase;
+  final _openingDatabases = <KdbxDatabase>{};
   final _otherSessions = <DatabaseSession>[];
   final _retired = <FileRef, List<WeakReference<KdbxDatabase>>>{};
   int _lockGeneration = 0;
@@ -108,12 +128,18 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
     final previous = state!;
     if (previous.file == session.file) {
       _retire(previous, session.database);
+      if (!identical(previous._recentPasswordIds, session._recentPasswordIds)) {
+        previous._recentPasswordIds.clear();
+      }
     } else {
       _otherSessions.add(previous);
     }
     _otherSessions.removeWhere((other) {
       if (other.file != session.file) return false;
       _retire(other, session.database);
+      if (!identical(other._recentPasswordIds, session._recentPasswordIds)) {
+        other._recentPasswordIds.clear();
+      }
       return true;
     });
     state = session;
@@ -157,10 +183,11 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
     ref.onDispose(() {
       _saveWorker?.cancel();
       _stagedDatabase?.clearSensitiveData();
-      active?.database.clearSensitiveData();
+      _clearOpeningDatabases();
+      if (active case final session?) _clearDatabase(session);
       active = null;
       for (final session in _otherSessions) {
-        session.database.clearSensitiveData();
+        _clearDatabase(session);
       }
       _otherSessions.clear();
       for (final reference in _retired.values.expand((values) => values)) {
@@ -188,6 +215,7 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
   }
 
   void _clearDatabase(DatabaseSession session) {
+    session._recentPasswordIds.clear();
     session.database.clearSensitiveData();
     for (final reference in _retired.remove(session.file) ?? const []) {
       reference.target?.clearSensitiveData();
@@ -196,6 +224,35 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
 
   /// `true` mentre un salvataggio è in corso.
   bool get isSaving => _saving;
+
+  /// Include un database in apertura nella pulizia immediata al blocco.
+  void trackOpeningDatabase(KdbxDatabase database) =>
+      _openingDatabases.add(database);
+
+  /// Termina la custodia del database dopo l'apertura o l'annullamento.
+  void untrackOpeningDatabase(KdbxDatabase database) =>
+      _openingDatabases.remove(database);
+
+  void _clearOpeningDatabases() {
+    for (final database in _openingDatabases) {
+      database.clearSensitiveData();
+    }
+    _openingDatabases.clear();
+  }
+
+  /// Aggiorna la cronologia in memoria dopo una copia riuscita.
+  void recordRecentPassword(String entryId) {
+    final session = state;
+    if (session == null) return;
+    final ids = session._recentPasswordIds;
+    ids
+      ..remove(entryId)
+      ..insert(0, entryId);
+    if (ids.length > RecentPasswordsStore.limit) {
+      ids.removeRange(RecentPasswordsStore.limit, ids.length);
+    }
+    state = session.copyWith();
+  }
 
   /// Da qui al blocco il database si salva con la sola chiave derivata, senza
   /// ruotare il salt della KDF: la chiave biometrica salvata resta valida
@@ -216,6 +273,7 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
     _lockGeneration++;
     _saveWorker?.cancel();
     _stagedDatabase?.clearSensitiveData();
+    _clearOpeningDatabases();
     _closedFiles = [
       for (final session in openSessions) ...[session.file, ?session.keyFile],
     ];

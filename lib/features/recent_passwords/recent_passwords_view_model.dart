@@ -19,10 +19,20 @@ final recentPasswordDatabaseKeyProvider = Provider.autoDispose<String?>((ref) {
   );
 });
 
-final recentPasswordIdsProvider = FutureProvider.autoDispose
-    .family<List<String>, String>(
-      (ref, key) => ref.watch(recentPasswordsStoreProvider).read(key),
-    );
+/// Identificatori già disponibili prima dell'ingresso nella Home.
+final recentPasswordIdsProvider = Provider.autoDispose
+    .family<List<String>, String>((ref, key) {
+      final session = ref.watch(databaseSessionProvider);
+      if (session == null ||
+          RecentPasswordsStore.databaseKey(
+                session.file,
+                idOfUuid(session.database.root.uuid),
+              ) !=
+              key) {
+        return const [];
+      }
+      return session.recentPasswordIds;
+    });
 
 /// Voci recenti del database attivo, entro il limite scelto dall'utente.
 final recentPasswordEntriesProvider = Provider.autoDispose<List<KdbxEntry>>((
@@ -33,8 +43,8 @@ final recentPasswordEntriesProvider = Provider.autoDispose<List<KdbxEntry>>((
   final database = ref.watch(databaseSessionProvider)?.database;
   if (database == null) return const [];
 
-  final ids = ref.watch(recentPasswordIdsProvider(key)).value;
-  if (ids == null || ids.isEmpty) return const [];
+  final ids = ref.watch(recentPasswordIdsProvider(key));
+  if (ids.isEmpty) return const [];
   final limit = ref.watch(
     appSettingsProvider.select((s) => s.recentPasswordLimit),
   );

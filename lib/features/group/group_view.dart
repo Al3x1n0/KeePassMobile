@@ -96,6 +96,16 @@ class _GroupViewState extends ConsumerState<GroupView> {
       });
     }
 
+    void selectAll() => setState(() {
+      _selected.addAll(visibleGroups.map(itemIdOf));
+      _selected.addAll(content.entries.map(itemIdOf));
+    });
+
+    final binSelection = inBin && _selected.isNotEmpty;
+    final hasUnselectedItems =
+        visibleGroups.any((group) => !_selected.contains(itemIdOf(group))) ||
+        content.entries.any((entry) => !_selected.contains(itemIdOf(entry)));
+
     final appBarActions = _selected.isNotEmpty
         ? [
             if (ref.read(databaseSessionProvider.notifier).openSessions.length >
@@ -137,16 +147,12 @@ class _GroupViewState extends ConsumerState<GroupView> {
                         }
                       },
               ),
-            IconButton(
-              tooltip: l10n.itemsSelectAll,
-              icon: const Icon(Icons.select_all),
-              onPressed: busy
-                  ? null
-                  : () => setState(() {
-                      _selected.addAll(visibleGroups.map(itemIdOf));
-                      _selected.addAll(content.entries.map(itemIdOf));
-                    }),
-            ),
+            if (!inBin)
+              IconButton(
+                tooltip: l10n.itemsSelectAll,
+                icon: const Icon(Icons.select_all),
+                onPressed: busy ? null : selectAll,
+              ),
             if (selectedGroup != null && selectedGroupId != null)
               IconButton(
                 tooltip: l10n.groupEdit,
@@ -251,7 +257,9 @@ class _GroupViewState extends ConsumerState<GroupView> {
             toolbarHeight: 48,
             title: Text(
               _selected.isEmpty
-                  ? content.group.name
+                  ? content.group == recycleBin
+                        ? l10n.dbSettingsRecycleBin
+                        : content.group.name
                   : l10n.itemsSelected(_selected.length),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -284,7 +292,21 @@ class _GroupViewState extends ConsumerState<GroupView> {
                                     ),
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
-                                      children: appBarActions,
+                                      children: [
+                                        if (binSelection) ...[
+                                          if (hasUnselectedItems)
+                                            TextButton(
+                                              onPressed: busy
+                                                  ? null
+                                                  : selectAll,
+                                              child: Text(
+                                                l10n.itemsSelectAllShort,
+                                              ),
+                                            ),
+                                          const Spacer(),
+                                        ],
+                                        ...appBarActions,
+                                      ],
                                     ),
                                   ),
                                 ),

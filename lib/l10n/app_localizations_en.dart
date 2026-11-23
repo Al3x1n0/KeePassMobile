@@ -316,6 +316,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get itemsSelectAll => 'Select all';
 
   @override
+  String get itemsSelectAllShort => 'Select all';
+
+  @override
   String get itemsDeleteRecycle =>
       'Move the selected items and their contents to the recycle bin?';
 
@@ -784,7 +787,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dbSettingsDefaultUserName => 'Default user name';
 
   @override
-  String get dbSettingsRecycleBin => 'Recycle bin';
+  String get dbSettingsRecycleBin => 'Recycle Bin';
 
   @override
   String get dbSettingsHistoryMaxItems => 'Versions in an entry\'s history';

@@ -690,41 +690,44 @@ class _FieldTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final toggle = onToggle;
     final open = onOpen;
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-      title: Text(label, style: Theme.of(context).textTheme.labelMedium),
-      subtitle: Semantics(
-        // Il valore nascosto non va letto dallo screen reader.
-        excludeSemantics: masked,
-        label: masked ? l10n.entryHiddenValue : null,
-        child: Text(
-          masked ? _mask : value,
-          style: Theme.of(context).textTheme.bodyLarge,
-          maxLines: multiline ? null : 3,
-          overflow: multiline ? null : TextOverflow.ellipsis,
-        ),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (toggle != null)
-            IconButton(
-              tooltip: masked ? l10n.entryShow : l10n.entryHide,
-              icon: Icon(masked ? Icons.visibility : Icons.visibility_off),
-              onPressed: toggle,
-            ),
-          if (open != null)
-            IconButton(
-              tooltip: l10n.entryUrlOpen,
-              icon: const Icon(Icons.open_in_new),
-              onPressed: open,
-            ),
-          IconButton(
-            tooltip: l10n.entryCopy(label),
-            icon: const Icon(Icons.copy),
-            onPressed: onCopy,
+    return Semantics(
+      onTapHint: onCopy == null ? null : l10n.entryCopy(label),
+      child: ListTile(
+        onTap: onCopy,
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+        title: Text(label, style: Theme.of(context).textTheme.labelMedium),
+        subtitle: Semantics(
+          // Il valore nascosto non va letto dallo screen reader.
+          excludeSemantics: masked,
+          label: masked ? l10n.entryHiddenValue : null,
+          child: Text(
+            masked ? _mask : value,
+            style: Theme.of(context).textTheme.bodyLarge,
+            maxLines: multiline ? null : 3,
+            overflow: multiline ? null : TextOverflow.ellipsis,
           ),
-        ],
+        ),
+        trailing: toggle == null && open == null
+            ? null
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (toggle != null)
+                    IconButton(
+                      tooltip: masked ? l10n.entryShow : l10n.entryHide,
+                      icon: Icon(
+                        masked ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: toggle,
+                    ),
+                  if (open != null)
+                    IconButton(
+                      tooltip: l10n.entryUrlOpen,
+                      icon: const Icon(Icons.open_in_new),
+                      onPressed: open,
+                    ),
+                ],
+              ),
       ),
     );
   }

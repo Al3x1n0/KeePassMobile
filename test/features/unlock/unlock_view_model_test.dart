@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,14 +7,38 @@ import 'package:keepass_mobile/features/file_select/recent_files.dart';
 import 'package:keepass_mobile/features/unlock/unlock_view_model.dart';
 import 'package:keepass_mobile/shared/database/database_errors.dart';
 import 'package:keepass_mobile/shared/database/database_session.dart';
+import 'package:keepass_mobile/shared/database/kdbx_items.dart';
+import 'package:keepass_mobile/features/recent_passwords/recent_passwords_view_model.dart';
 import 'package:keepass_mobile/shared/security/biometric_key_store.dart';
 import 'package:keepass_mobile/shared/settings/app_settings.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
 import 'package:keepass_mobile/shared/storage/preferences.dart';
+import 'package:keepass_mobile/shared/storage/recent_passwords_store.dart';
 import 'package:kpasslib/kpasslib.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_secure_storage.dart';
+
+class _DelayedHistoryStore extends RecentPasswordsStore {
+  final started = Completer<String>();
+  final result = Completer<List<String>>();
+
+  @override
+  Future<List<String>> read(String databaseKey) {
+    started.complete(databaseKey);
+    return result.future;
+  }
+}
+
+class _ObservedSessions extends DatabaseSessionNotifier {
+  KdbxDatabase? openingDatabase;
+
+  @override
+  void trackOpeningDatabase(KdbxDatabase database) {
+    openingDatabase = database;
+    super.trackOpeningDatabase(database);
+  }
+}
 
 /// Legge i fixture e simula un riferimento aggiornato dal sistema (bookmark
 /// iOS obsoleto).
@@ -41,11 +66,19 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
-  ProviderContainer newContainer({FileStorage? storage}) {
+  ProviderContainer newContainer({
+    FileStorage? storage,
+    RecentPasswordsStore? history,
+    DatabaseSessionNotifier? sessions,
+  }) {
     final container = ProviderContainer.test(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         if (storage != null) fileStorageProvider.overrideWithValue(storage),
+        if (history != null)
+          recentPasswordsStoreProvider.overrideWithValue(history),
+        if (sessions != null)
+          databaseSessionProvider.overrideWith(() => sessions),
       ],
     );
     // Mantiene vivo il provider autoDispose come farebbe la schermata.
@@ -254,6 +287,95 @@ void main() {
     expect(container.read(databaseSessionProvider), isNull);
   });
 
+  test(
+    'precarica gli ID prima di pubblicare la sessione anche con opzione spenta',
+    () async {
+      // given
+      await AppSettingsRepository(prefs)
+          .save(const AppSettings(showRecentPasswords: false));
+      final history = _DelayedHistoryStore();
+      final container = newContainer(history: history);
+      final source = picked('test4_aes_uncompressed.kdbx');
+      final database = await openDatabase(
+        data: source.bytes!,
+        password: 'password',
+      );
+      final id = itemIdOf(database.root.allEntries.first);
+      final key = RecentPasswordsStore.databaseKey(
+        source.ref,
+        itemIdOf(database.root),
+      );
+      database.clearSensitiveData();
+      final publishedIds = <List<String>>[];
+      container.listen(databaseSessionProvider, (_, next) {
+        if (next != null) publishedIds.add(List.of(next.recentPasswordIds));
+      });
+
+      // when
+      final opening = container
+          .read(unlockViewModelProvider.notifier)
+          .unlock(
+            args: UnlockArgs(database: source),
+            password: 'password',
+          );
+      expect(await history.started.future, key);
+      expect(container.read(databaseSessionProvider), isNull);
+      expect(container.read(unlockViewModelProvider).isLoading, isTrue);
+      history.result.complete([id]);
+      await opening;
+
+      // then
+      expect(publishedIds, [
+        [id],
+      ]);
+      expect(container.read(recentPasswordEntriesProvider), isEmpty);
+      await container
+          .read(appSettingsProvider.notifier)
+          .update(const AppSettings(showRecentPasswords: true));
+      expect(container.read(recentPasswordIdsProvider(key)), [id]);
+      expect(container.read(recentPasswordEntriesProvider).map(itemIdOf), [id]);
+      container.read(databaseSessionProvider.notifier).lock();
+      expect(container.read(recentPasswordIdsProvider(key)), isEmpty);
+      expect(container.read(recentPasswordEntriesProvider), isEmpty);
+    },
+  );
+
+  for (final ending in ['blocco', 'dispose', 'annullamento']) {
+    test(
+      'lettura recenti in corso: $ending pulisce i buffer e impedisce apertura tardiva',
+      () async {
+        final history = _DelayedHistoryStore();
+        final observed = _ObservedSessions();
+        final container = newContainer(history: history, sessions: observed);
+        final opening = container
+            .read(unlockViewModelProvider.notifier)
+            .unlock(
+              args: UnlockArgs(database: picked('test4_aes_uncompressed.kdbx')),
+              password: 'password',
+            );
+        await history.started.future;
+        final key = observed.openingDatabase!.header.transformedKey!.key;
+        expect(key.bytes, isNot(everyElement(0)));
+
+        if (ending == 'dispose') {
+          container.dispose();
+        } else if (ending == 'annullamento') {
+          container.invalidate(unlockViewModelProvider);
+        } else {
+          container.read(databaseSessionProvider.notifier).lock();
+        }
+        expect(key.bytes, everyElement(0));
+        history.result.complete(['0' * 32]);
+        await opening;
+
+        if (ending != 'dispose') {
+          expect(container.read(databaseSessionProvider), isNull);
+          expect(container.read(recentPasswordEntriesProvider), isEmpty);
+        }
+      },
+    );
+  }
+
   group('sblocco biometrico', () {
     const texts = BiometricPromptTexts(title: 't', subtitle: 's', cancel: 'c');
     const name = 'test4_aes_uncompressed.kdbx';
@@ -309,6 +431,39 @@ void main() {
       expect(session?.database.root.allEntries, isNotEmpty);
       expect(session?.hasRawKey, isFalse);
     });
+
+    test(
+      'la sessione biometrica pubblica subito le password recenti',
+      () async {
+        final (container, _) = await enabled();
+        final source = picked(name);
+        final database = await openDatabase(
+          data: source.bytes!,
+          password: 'password',
+        );
+        final id = itemIdOf(database.root.allEntries.first);
+        final key = RecentPasswordsStore.databaseKey(
+          source.ref,
+          itemIdOf(database.root),
+        );
+        database.clearSensitiveData();
+        await container.read(recentPasswordsStoreProvider).record(key, id);
+        final published = <List<String>>[];
+        container.listen(databaseSessionProvider, (_, next) {
+          if (next != null) published.add(List.of(next.recentPasswordIds));
+        });
+
+        await unlockWithBiometrics(container);
+
+        expect(published, [
+          [id],
+        ]);
+        expect(container.read(recentPasswordEntriesProvider).map(itemIdOf), [
+          id,
+        ]);
+        expect(container.read(databaseSessionProvider)?.hasRawKey, isFalse);
+      },
+    );
 
     test('annullato dall\'utente: nessun errore, nessuna sessione', () async {
       final (container, _) = await enabled();
@@ -413,7 +568,9 @@ void main() {
       'password con chiave già aggiornata: nessuna richiesta biometrica',
       () async {
         final (container, _) = await enabled();
-        final requests = secure.options.length;
+        final requests = secure.options
+            .where((o) => o['storageNamespace'] != 'kpm_recent_passwords')
+            .length;
 
         await container
             .read(unlockViewModelProvider.notifier)
@@ -423,7 +580,12 @@ void main() {
               biometricTexts: texts,
             );
 
-        expect(secure.options, hasLength(requests));
+        expect(
+          secure.options.where(
+            (o) => o['storageNamespace'] != 'kpm_recent_passwords',
+          ),
+          hasLength(requests),
+        );
         expect(container.read(databaseSessionProvider)?.hasRawKey, isFalse);
       },
     );
@@ -442,7 +604,12 @@ void main() {
             );
 
         expect(container.read(databaseSessionProvider)?.hasRawKey, isTrue);
-        expect(secure.options, isEmpty);
+        expect(
+          secure.options.where(
+            (o) => o['storageNamespace'] != 'kpm_recent_passwords',
+          ),
+          isEmpty,
+        );
       },
     );
   });

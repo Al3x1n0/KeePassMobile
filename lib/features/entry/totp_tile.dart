@@ -59,58 +59,51 @@ class _TotpTileState extends ConsumerState<TotpTile> {
     final remaining = widget.config.secondsRemaining(now);
     final masked = !_revealed;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-      title: Text(l10n.entryTotp, style: theme.textTheme.labelMedium),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Semantics(
-            excludeSemantics: masked,
-            label: masked ? l10n.entryHiddenValue : null,
-            child: Text(
-              masked ? _mask : code,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Row(
-            children: [
-              // I secondi sono già letti dal testo accanto.
-              Expanded(
-                child: ExcludeSemantics(
-                  child: LinearProgressIndicator(
-                    value: remaining / widget.config.period,
-                  ),
+    return Semantics(
+      onTapHint: l10n.entryCopy(l10n.entryTotp),
+      child: ListTile(
+        onTap: () =>
+            widget.onCopy(widget.config.codeAt(ref.read(totpClockProvider)())),
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+        title: Text(l10n.entryTotp, style: theme.textTheme.labelMedium),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(
+              excludeSemantics: masked,
+              label: masked ? l10n.entryHiddenValue : null,
+              child: Text(
+                masked ? _mask : code,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontFamily: 'monospace',
                 ),
               ),
-              const SizedBox(width: AppSpacing.s),
-              Text(
-                l10n.entryTotpRemaining(remaining),
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ],
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            tooltip: masked ? l10n.entryShow : l10n.entryHide,
-            icon: Icon(masked ? Icons.visibility : Icons.visibility_off),
-            onPressed: () => setState(() => _revealed = !_revealed),
-          ),
-          IconButton(
-            tooltip: l10n.entryCopy(l10n.entryTotp),
-            icon: const Icon(Icons.copy),
-            onPressed: () => widget.onCopy(
-              widget.config.codeAt(ref.read(totpClockProvider)()),
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.xs),
+            Row(
+              children: [
+                // I secondi sono già letti dal testo accanto.
+                Expanded(
+                  child: ExcludeSemantics(
+                    child: LinearProgressIndicator(
+                      value: remaining / widget.config.period,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s),
+                Text(
+                  l10n.entryTotpRemaining(remaining),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ],
+        ),
+        trailing: IconButton(
+          tooltip: masked ? l10n.entryShow : l10n.entryHide,
+          icon: Icon(masked ? Icons.visibility : Icons.visibility_off),
+          onPressed: () => setState(() => _revealed = !_revealed),
+        ),
       ),
     );
   }

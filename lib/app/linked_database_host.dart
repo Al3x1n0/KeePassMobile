@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../shared/database/database_session.dart';
 import '../shared/database/linked_databases.dart';
 import '../shared/storage/file_storage.dart';
+import '../shared/storage/recent_passwords_store.dart';
 import 'router.dart';
 
 /// Runs only the passive database-opening subset of AutoOpen.
@@ -152,11 +153,14 @@ class _LinkedDatabaseHostState extends ConsumerState<LinkedDatabaseHost> {
             ref.read(fileStorageProvider),
             lookup,
             link,
+            recentPasswordsStore: ref.read(recentPasswordsStoreProvider),
           );
           _opening = operation;
           _openingParent = parentFile;
+          DatabaseSession? child;
+          var opened = false;
           try {
-            final child = await operation.run();
+            child = await operation.run();
             if (!mounted ||
                 sessions.lockGeneration != generation ||
                 lookup() == null) {
@@ -164,6 +168,7 @@ class _LinkedDatabaseHostState extends ConsumerState<LinkedDatabaseHost> {
             }
             final selected = ref.read(databaseSessionProvider)?.file;
             sessions.openAdditional(child, generation);
+            opened = true;
             pending.add(child.file);
             if (selected != null &&
                 sessions.openSessions.any((s) => s.file == selected)) {
@@ -187,6 +192,7 @@ class _LinkedDatabaseHostState extends ConsumerState<LinkedDatabaseHost> {
               }
             }
           } finally {
+            if (!opened) child?.database.clearSensitiveData();
             if (identical(_opening, operation)) {
               _opening = null;
               _openingParent = null;

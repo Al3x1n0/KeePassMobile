@@ -92,6 +92,7 @@
   "entryDelete": "Elimina",
   "itemsSelected": "{count} selezionati",
   "itemsSelectAll": "Seleziona tutto",
+  "itemsSelectAllShort": "Selez. tutti",
   "@itemsSelected": {
     "placeholders": {
       "count": {

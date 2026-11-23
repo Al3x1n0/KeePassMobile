@@ -235,7 +235,9 @@ void main() {
     expect(find.text('pin-123'), findsOneWidget);
     expect(find.text('9999'), findsNothing);
 
-    await tester.tap(find.byTooltip(l10n.entryCopy(l10n.entryPassword)));
+    expect(find.byIcon(Icons.copy), findsNothing);
+    expect(clipboard.text, isNull);
+    await tester.tap(find.widgetWithText(ListTile, l10n.entryPassword));
     await tester.pumpAndSettle();
     expect(clipboard.text, 'pin-123');
     expect(find.text(l10n.entryCopied(30)), findsOneWidget);
@@ -624,7 +626,8 @@ void main() {
     expect(find.text('996554'), findsNothing);
     expect(find.text(l10n.entryTotpRemaining(1)), findsOneWidget);
 
-    await tester.tap(find.byTooltip(l10n.entryCopy(l10n.entryTotp)));
+    expect(find.byIcon(Icons.copy), findsNothing);
+    await tester.tap(find.widgetWithText(ListTile, l10n.entryTotp));
     await tester.pumpAndSettle();
     expect(clipboard.text, '996554');
 
@@ -696,7 +699,7 @@ void main() {
     Future<void> copyFromAccount(String label) async {
       await tap(find.text('Banca'));
       await tap(account);
-      await tap(find.byTooltip(l10n.entryCopy(label)));
+      await tap(find.widgetWithText(ListTile, label));
       await back();
       await back();
       await pumpUntilFound(tester, account);
@@ -723,7 +726,7 @@ void main() {
     await revealSetting(setting);
     await tap(setting);
     await tap(tab(l10n.navigationHome));
-    expect(account, findsNothing);
+    expect(account, findsOneWidget);
 
     await copyFromAccount(l10n.entryTotp);
     expect(clipboard.text, '996554');
@@ -779,19 +782,14 @@ void main() {
       expect(find.text('{PASSWORD}'), findsNothing);
       expect(find.text('pin-123'), findsNothing);
       await tester.scrollUntilVisible(find.text('Alias'), 200);
-      await tester.tap(find.byTooltip(l10n.entryCopy('Alias')));
+      await tester.tap(find.widgetWithText(ListTile, 'Alias'));
       await tester.pumpAndSettle();
       expect(clipboard.text, 'pin-123');
       await tester.scrollUntilVisible(find.text(l10n.errorFieldReference), 200);
-      final button = tester.widget<IconButton>(
-        find
-            .ancestor(
-              of: find.byTooltip(l10n.entryCopy('Mancante')),
-              matching: find.byType(IconButton),
-            )
-            .first,
+      final field = tester.widget<ListTile>(
+        find.widgetWithText(ListTile, 'Mancante'),
       );
-      expect(button.onPressed, isNull);
+      expect(field.onTap, isNull);
       expect(
         (await entryOnDisk(tester, 'Conto'))!.fields['Alias']!.text,
         '{PASSWORD}',

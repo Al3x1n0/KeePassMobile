@@ -113,6 +113,7 @@
   "entryDelete": "Delete",
   "itemsSelected": "{count} selected",
   "itemsSelectAll": "Select all",
+  "itemsSelectAllShort": "Select all",
   "@itemsSelected": {
     "placeholders": {
       "count": {
@@ -362,7 +363,7 @@
   "dbSettingsName": "Database name",
   "dbSettingsRootGroupName": "Root group name",
   "dbSettingsDefaultUserName": "Default user name",
-  "dbSettingsRecycleBin": "Recycle bin",
+  "dbSettingsRecycleBin": "Recycle Bin",
   "dbSettingsHistoryMaxItems": "Versions in an entry's history",
   "dbSettingsHistoryMaxSize": "Maximum size of an entry's history (MiB)",
   "dbSettingsEmptyUnlimited": "Empty: no limit",

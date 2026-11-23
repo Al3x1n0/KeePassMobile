@@ -248,7 +248,10 @@ void main() {
       await tester.tap(find.text('Seconda voce'));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(l10n.itemRestore));
-      await pumpUntilFound(tester, find.widgetWithText(AppBar, bin.name));
+      await pumpUntilFound(
+        tester,
+        find.widgetWithText(AppBar, l10n.dbSettingsRecycleBin),
+      );
       final restored = (await tester.runAsync(() => reopenFile(file)))!;
       expect(restored.root.groups.map((g) => g.name), contains('Origine'));
       expect(restored.root.entries.map(entryTitle), contains('Seconda voce'));
@@ -311,7 +314,10 @@ void main() {
       await tester.longPress(find.text('Rinominato'));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(l10n.itemRestore));
-      await pumpUntilFound(tester, find.widgetWithText(AppBar, binName));
+      await pumpUntilFound(
+        tester,
+        find.widgetWithText(AppBar, l10n.dbSettingsRecycleBin),
+      );
 
       // then
       expect(find.text('Rinominato'), findsNothing);
@@ -414,7 +420,10 @@ void main() {
     await open(tester);
     await tester.tap(find.byTooltip(l10n.dbSettingsRecycleBin));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, bin.name), findsOneWidget);
+    expect(
+      find.widgetWithText(AppBar, l10n.dbSettingsRecycleBin),
+      findsOneWidget,
+    );
     expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
     expect(find.byIcon(Icons.delete_forever_outlined), findsNothing);
     expect(find.byTooltip(l10n.groupAddEntry), findsNothing);
@@ -423,7 +432,7 @@ void main() {
     await tester.longPress(find.text('Gruppo eliminato'));
     await tester.pumpAndSettle();
     expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNotNull);
-    await tester.tap(find.byTooltip(l10n.itemsSelectAll));
+    await tester.tap(find.text(l10n.itemsSelectAllShort));
     await tester.pumpAndSettle();
     expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
     await tester.tap(find.byTooltip(l10n.entryDelete));

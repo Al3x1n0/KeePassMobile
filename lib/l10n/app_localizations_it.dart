@@ -318,6 +318,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get itemsSelectAll => 'Seleziona tutto';
 
   @override
+  String get itemsSelectAllShort => 'Selez. tutti';
+
+  @override
   String get itemsDeleteRecycle =>
       'Spostare gli elementi selezionati e il loro contenuto nel cestino?';
 

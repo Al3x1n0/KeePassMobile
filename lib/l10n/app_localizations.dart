@@ -650,6 +650,12 @@ abstract class AppLocalizations {
   /// **'Select all'**
   String get itemsSelectAll;
 
+  /// No description provided for @itemsSelectAllShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get itemsSelectAllShort;
+
   /// No description provided for @itemsDeleteRecycle.
   ///
   /// In en, this message translates to:
@@ -1481,7 +1487,7 @@ abstract class AppLocalizations {
   /// No description provided for @dbSettingsRecycleBin.
   ///
   /// In en, this message translates to:
-  /// **'Recycle bin'**
+  /// **'Recycle Bin'**
   String get dbSettingsRecycleBin;
 
   /// No description provided for @dbSettingsHistoryMaxItems.
