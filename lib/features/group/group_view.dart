@@ -66,7 +66,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
     final recentEntries = widget.groupId == null && _selected.isEmpty
         ? ref.watch(recentPasswordEntriesProvider)
         : const <KdbxEntry>[];
-    final recentRows = recentEntries.isEmpty ? 0 : recentEntries.length + 1;
+    final recentSectionCount = recentEntries.isEmpty ? 0 : 1;
     ref.listen(itemActionsProvider(id), (_, next) {
       if (next case AsyncError(:final error)) {
         ScaffoldMessenger.of(
@@ -352,31 +352,16 @@ class _GroupViewState extends ConsumerState<GroupView> {
                       )
                     : ListView.builder(
                         itemCount:
-                            recentRows +
+                            recentSectionCount +
                             content.groups.length +
                             content.entries.length,
                         itemBuilder: (context, index) {
-                          if (index < recentRows) {
-                            if (index == 0) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.m,
-                                  vertical: AppSpacing.s,
-                                ),
-                                child: Semantics(
-                                  header: true,
-                                  child: Text(
-                                    l10n.recentPasswordsTitle,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium,
-                                  ),
-                                ),
-                              );
-                            }
-                            return EntryTile(entry: recentEntries[index - 1]);
+                          if (index < recentSectionCount) {
+                            return _RecentPasswordsSection(
+                              entries: recentEntries,
+                            );
                           }
-                          final groupIndex = index - recentRows;
+                          final groupIndex = index - recentSectionCount;
                           if (groupIndex < content.groups.length) {
                             final group = content.groups[groupIndex];
                             final isBin = group == content.recycleBin;
@@ -787,6 +772,50 @@ class _GroupViewState extends ConsumerState<GroupView> {
     messenger
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _RecentPasswordsSection extends StatelessWidget {
+  const _RecentPasswordsSection({required this.entries});
+
+  final List<KdbxEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.m,
+        vertical: AppSpacing.s,
+      ),
+      child: Material(
+        color: theme.colorScheme.primary.withValues(alpha: 0.16),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.m,
+                vertical: AppSpacing.s,
+              ),
+              child: Semantics(
+                header: true,
+                child: Text(
+                  AppLocalizations.of(context).recentPasswordsTitle,
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+            ),
+            for (final entry in entries) EntryTile(entry: entry),
+          ],
+        ),
+      ),
+    );
   }
 }
 
