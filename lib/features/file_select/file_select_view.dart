@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,8 +11,10 @@ import '../../shared/database/database_errors.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/database/database_session.dart';
 import '../../shared/storage/remote_storage.dart';
+import '../../shared/ui/demo_database_dialog.dart';
 import '../unlock/relock.dart';
 import '../unlock/unlock_view_model.dart';
+import 'demo_database.dart';
 import 'recent_files.dart';
 
 /// Scelta del database: file recenti e apertura di un nuovo file
@@ -216,18 +217,12 @@ class _FileSelectViewState extends ConsumerState<FileSelectView> {
                           ),
                         ),
                         child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(AppSpacing.l),
-                                child: Text(
-                                  l10n.fileSelectNoRecent,
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                              if (!widget.additional) _demoTile(l10n),
-                            ],
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.l),
+                            child: Text(
+                              l10n.fileSelectNoRecent,
+                              textAlign: TextAlign.center,
+                            ),
                           ),
                         ),
                       ),
@@ -235,7 +230,7 @@ class _FileSelectViewState extends ConsumerState<FileSelectView> {
                   )
                 : ListView.builder(
                     padding: EdgeInsets.only(bottom: bottomClearance),
-                    itemCount: recents.length + (widget.additional ? 1 : 2),
+                    itemCount: recents.length + 1,
                     itemBuilder: (context, index) {
                       if (index == 0) {
                         return Padding(
@@ -254,9 +249,11 @@ class _FileSelectViewState extends ConsumerState<FileSelectView> {
                           ),
                         );
                       }
-                      if (index > recents.length) return _demoTile(l10n);
                       final recent = recents[index - 1];
                       final remote = RemoteStorage.handles(recent.database);
+                      final demo = ref
+                          .read(demoDatabaseRepositoryProvider)
+                          .isDemo(recent.database);
                       return ListTile(
                         leading: Icon(
                           remote
@@ -264,7 +261,9 @@ class _FileSelectViewState extends ConsumerState<FileSelectView> {
                               : Icons.description_outlined,
                         ),
                         title: Text(recent.database.name),
-                        subtitle: remote
+                        subtitle: demo
+                            ? Text(l10n.demoDatabaseSubtitle)
+                            : remote
                             ? Text(
                                 Uri.tryParse(recent.database.uri)?.host ?? '',
                               )
@@ -275,6 +274,13 @@ class _FileSelectViewState extends ConsumerState<FileSelectView> {
                                 tooltip: l10n.fileSelectRemove,
                                 icon: const Icon(Icons.close),
                                 onPressed: () async {
+                                  if (demo) {
+                                    final confirmed =
+                                        await showDemoDatabaseRemovalDialog(
+                                          context,
+                                        );
+                                    if (!confirmed || !context.mounted) return;
+                                  }
                                   try {
                                     await ref
                                         .read(recentFilesProvider.notifier)
@@ -314,44 +320,6 @@ class _FileSelectViewState extends ConsumerState<FileSelectView> {
         );
       },
     );
-  }
-
-  Widget _demoTile(AppLocalizations l10n) => ListTile(
-    leading: const Icon(Icons.explore_outlined),
-    title: Text(l10n.fileSelectDemo),
-    subtitle: Text(l10n.fileSelectDemoHint),
-    onTap: _savingDemo ? null : _saveDemo,
-  );
-
-  bool _savingDemo = false;
-
-  Future<void> _saveDemo() async {
-    if (_savingDemo) return;
-    setState(() => _savingDemo = true);
-    final storage = ref.read(fileStorageProvider);
-    try {
-      const name = 'Rifugio-Aurora.kdbx';
-      final data = await rootBundle.load('assets/demo/$name');
-      if (!mounted) return;
-      final file = await storage.create(
-        suggestedName: name,
-        bytes: Uint8List.sublistView(data),
-      );
-      if (file == null || !mounted) return;
-      await context.push(
-        AppRoutes.unlock,
-        extra: UnlockArgs(database: PickedFile(ref: file)),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).errorFileUnavailable),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _savingDemo = false);
-    }
   }
 
   Future<void> _openFile() async {

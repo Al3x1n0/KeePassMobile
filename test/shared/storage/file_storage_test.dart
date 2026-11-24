@@ -12,6 +12,53 @@ class _FakeDocuments extends DocumentAccess {
   final released = <String>[];
   String? refreshTo;
   Exception? failWith;
+  bool demoRemoved = false;
+  bool? keepDemoFile;
+  int demoLeases = 0;
+
+  @override
+  Future<bool> ensureDemoDatabase(Uint8List bytes) async {
+    if (failWith case final e?) throw e;
+    if (demoRemoved) return false;
+    files.putIfAbsent(DocumentAccess.demoDatabaseUri, () => bytes);
+    return true;
+  }
+
+  @override
+  Future<void> deleteDemoDatabase({bool keepFile = false}) async {
+    if (failWith case final e?) throw e;
+    demoRemoved = true;
+    keepDemoFile = keepFile;
+    if (!keepFile && demoLeases == 0) {
+      files.remove(DocumentAccess.demoDatabaseUri);
+    }
+  }
+
+  @override
+  Future<bool> retainDemoDatabase() async {
+    if (failWith case final e?) throw e;
+    if (demoRemoved || !files.containsKey(DocumentAccess.demoDatabaseUri)) {
+      return false;
+    }
+    demoLeases++;
+    return true;
+  }
+
+  @override
+  Future<void> releaseDemoDatabase() async {
+    if (failWith case final e?) throw e;
+    if (demoLeases == 0) return;
+    demoLeases--;
+    if (demoLeases == 0 && demoRemoved) {
+      files.remove(DocumentAccess.demoDatabaseUri);
+    }
+  }
+
+  @override
+  Future<bool> isDemoDatabaseRemoved() async {
+    if (failWith case final e?) throw e;
+    return demoRemoved;
+  }
 
   @override
   Future<DocumentData> read(String uri) async {
@@ -48,6 +95,93 @@ void main() {
 
   FileRef local(String name) =>
       FileRef(uri: File('${dir.path}/$name').uri.toString(), name: name);
+
+  group('demo privata', () {
+    test(
+      'riferimento stabile, modifica e rilettura come database locale',
+      () async {
+        final ref = await storage.ensureDemoDatabase(Uint8List.fromList([1]));
+        expect(ref, await storage.demoDatabaseRef());
+        expect(ref?.uri, DocumentAccess.demoDatabaseUri);
+
+        await storage.write(ref!, Uint8List.fromList([2, 3]));
+
+        expect((await storage.read(ref)).bytes, [2, 3]);
+      },
+    );
+
+    test(
+      'la seconda installazione conserva le modifiche già salvate',
+      () async {
+        final ref = await storage.ensureDemoDatabase(Uint8List.fromList([1]));
+        await storage.write(ref!, Uint8List.fromList([9]));
+
+        await storage.ensureDemoDatabase(Uint8List.fromList([1]));
+
+        expect((await storage.read(ref)).bytes, [9]);
+      },
+    );
+
+    test(
+      'rimozione rinviata conserva il file e impedisce la reinstallazione',
+      () async {
+        final ref = await storage.ensureDemoDatabase(Uint8List.fromList([1]));
+
+        await storage.deleteDemoDatabase(keepFile: true);
+
+        expect(documents.keepDemoFile, isTrue);
+        expect((await storage.read(ref!)).bytes, [1]);
+        expect(await storage.ensureDemoDatabase(Uint8List(1)), isNull);
+
+        await storage.deleteDemoDatabase();
+        expect(storage.read(ref), throwsA(isA<FileUnavailableException>()));
+      },
+    );
+
+    test('gli errori del canale restano errori storage tipizzati', () async {
+      documents.failWith = const DocumentAccessException('io');
+      await expectLater(
+        storage.ensureDemoDatabase(Uint8List(1)),
+        throwsA(isA<FileWriteException>()),
+      );
+      await expectLater(
+        storage.deleteDemoDatabase(),
+        throwsA(isA<FileWriteException>()),
+      );
+      await expectLater(
+        storage.retainDemoDatabase(),
+        throwsA(isA<FileWriteException>()),
+      );
+      await expectLater(
+        storage.releaseDemoDatabase(),
+        throwsA(isA<FileWriteException>()),
+      );
+      await expectLater(
+        storage.isDemoDatabaseRemoved(),
+        throwsA(isA<FileUnavailableException>()),
+      );
+    });
+
+    test(
+      'la rimozione attende tutti gli accessi di sessione e ne rifiuta altri',
+      () async {
+        final ref = await storage.ensureDemoDatabase(Uint8List.fromList([1]));
+        expect(await storage.retainDemoDatabase(), isTrue);
+        expect(await storage.retainDemoDatabase(), isTrue);
+        expect(await storage.isDemoDatabaseRemoved(), isFalse);
+
+        await storage.deleteDemoDatabase();
+
+        expect(await storage.isDemoDatabaseRemoved(), isTrue);
+        expect(await storage.retainDemoDatabase(), isFalse);
+        await storage.write(ref!, Uint8List.fromList([2]));
+        await storage.releaseDemoDatabase();
+        expect((await storage.read(ref)).bytes, [2]);
+        await storage.releaseDemoDatabase();
+        expect(storage.read(ref), throwsA(isA<FileUnavailableException>()));
+      },
+    );
+  });
 
   group('file locali', () {
     test(

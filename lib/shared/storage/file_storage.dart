@@ -16,8 +16,8 @@ import 'webdav_client.dart';
 class FileRef {
   const FileRef({required this.uri, required this.name});
 
-  /// `file://`, `content://` (Android), `bookmark:` (iOS) o `https://` / `sftp://` (file
-  /// su un server WebDAV, ADR-014: mai credenziali nel riferimento).
+  /// `file://`, `content://` (Android), `bookmark:` (iOS), `app-private:demo`
+  /// o `https://` / `sftp://` (file su server, mai credenziali nel riferimento).
   final String uri;
 
   /// Nome da mostrare.
@@ -224,6 +224,78 @@ class FileStorage {
       throw const FileUnavailableException();
     } on DocumentAccessException {
       throw const FileWriteException();
+    }
+  }
+
+  /// Riferimento stabile alla copia privata della demo, senza crearla.
+  Future<FileRef> demoDatabaseRef() async => const FileRef(
+    uri: DocumentAccess.demoDatabaseUri,
+    name: 'Rifugio-Aurora.kdbx',
+  );
+
+  /// Installa la demo senza sovrascrivere un file già presente.
+  ///
+  /// Restituisce `null` se è stata rimossa definitivamente. La copia e lo
+  /// stato di rimozione sono gestiti atomicamente dal canale nativo.
+  Future<FileRef?> ensureDemoDatabase(Uint8List bytes) async {
+    try {
+      if (!await _documents.ensureDemoDatabase(bytes)) return null;
+      return await demoDatabaseRef();
+    } on DocumentUnavailableException {
+      throw const FileUnavailableException();
+    } on DocumentAccessException {
+      throw const FileWriteException();
+    }
+  }
+
+  /// Rimuove definitivamente la demo, conservando il file con [keepFile].
+  ///
+  /// La cancellazione riguarda soltanto la copia privata gestita dall'app.
+  /// Gli accessi trattenuti con [retainDemoDatabase] rinviano la cancellazione
+  /// fino all'ultimo [releaseDemoDatabase], anche fra motori Flutter diversi.
+  Future<void> deleteDemoDatabase({bool keepFile = false}) async {
+    try {
+      await _documents.deleteDemoDatabase(keepFile: keepFile);
+    } on DocumentUnavailableException {
+      throw const FileUnavailableException();
+    } on DocumentAccessException {
+      throw const FileWriteException();
+    }
+  }
+
+  /// Trattiene la demo per una sessione se esiste e non è stata rimossa.
+  ///
+  /// Restituisce `false` se la copia è assente o rimossa. Un accesso già
+  /// acquisito può continuare a leggere e scrivere fino a [releaseDemoDatabase].
+  Future<bool> retainDemoDatabase() async {
+    try {
+      return await _documents.retainDemoDatabase();
+    } on DocumentUnavailableException {
+      throw const FileUnavailableException();
+    } on DocumentAccessException {
+      throw const FileWriteException();
+    }
+  }
+
+  /// Rilascia un accesso alla demo acquisito dal motore corrente.
+  Future<void> releaseDemoDatabase() async {
+    try {
+      await _documents.releaseDemoDatabase();
+    } on DocumentUnavailableException {
+      throw const FileUnavailableException();
+    } on DocumentAccessException {
+      throw const FileWriteException();
+    }
+  }
+
+  /// Verifica la rimozione persistente condivisa da tutti i motori Flutter.
+  Future<bool> isDemoDatabaseRemoved() async {
+    try {
+      return await _documents.isDemoDatabaseRemoved();
+    } on DocumentUnavailableException {
+      throw const FileUnavailableException();
+    } on DocumentAccessException {
+      throw const FileUnavailableException();
     }
   }
 

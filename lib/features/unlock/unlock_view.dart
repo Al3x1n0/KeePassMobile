@@ -13,6 +13,7 @@ import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/remote_cache.dart';
 import '../../shared/storage/remote_storage.dart';
 import '../../shared/ui/sensitive_text_editing.dart';
+import '../file_select/demo_database.dart';
 import 'unlock_view_model.dart';
 
 /// Schermata di sblocco: password principale e file chiave facoltativo; con la
@@ -182,6 +183,17 @@ class _UnlockViewState extends ConsumerState<UnlockView> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  if (ref
+                      .read(demoDatabaseRepositoryProvider)
+                      .isDemo(widget.args.database.ref)) ...[
+                    const SizedBox(height: AppSpacing.s),
+                    Text(
+                      l10n.demoDatabasePassword,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.l),
                   SensitiveTextEditing(
                     child: TextField(

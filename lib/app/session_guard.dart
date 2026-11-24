@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/file_select/recent_files.dart';
+import '../features/file_select/demo_database.dart';
 import '../features/unlock/relock.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/database/database_session.dart';
@@ -52,6 +53,7 @@ final openNotificationAllowedProvider = Provider<bool>((_) => true);
 ///   notifiche si chiede alla prima apertura di un database;
 /// - alla chiusura, rilascio dei permessi dei file non ricordati nei recenti.
 final sessionGuardProvider = Provider<SessionGuard>((ref) {
+  ref.watch(demoDatabaseCleanupProvider);
   final guard = SessionGuard._(ref);
   ref.onDispose(guard._dispose);
   guard._start();

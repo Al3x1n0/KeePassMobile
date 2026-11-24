@@ -14,6 +14,10 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
   private static let bookmarkPrefix = "bookmark:"
   private static let maxDocumentBytes = 128 * 1024 * 1024
   private static let cacheLock = NSLock()
+  private static let demoLock = NSLock()
+  private static var demoLeaseCount = 0
+  private static let demoUri = "app-private:demo"
+  private static let demoName = "Rifugio-Aurora.kdbx"
   // Inizializzata una volta per processo, anche con più motori Flutter.
   private static let exportStaging = Result<URL, Error> {
     let manager = FileManager.default
@@ -30,8 +34,16 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
   private var pendingPick: FlutterResult?
   /// Creazione in corso: risultato e cartella temporanea del file da esportare.
   private var pendingCreate: (result: FlutterResult, folder: URL)?
+  private var heldDemoLeases = 0
   // Coda seriale: letture e scritture sullo stesso documento restano in ordine.
   private let io = DispatchQueue(label: "io.github.al3x1n0.keepassmobile.document_access.io")
+
+  deinit {
+    Self.demoLock.lock()
+    defer { Self.demoLock.unlock() }
+    // I blocchi in coda trattengono l'istanza fino al completamento delle operazioni.
+    try? releaseDemoLeases(all: true)
+  }
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     _ = exportStaging
@@ -66,6 +78,64 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
       }
       runIo(result) {
         try self.write(uri, bytes.data)
+        return nil
+      }
+    case "ensureDemoDatabase":
+      guard let bytes = args?["bytes"] as? FlutterStandardTypedData else {
+        return result(Self.error("io"))
+      }
+      runIo(result) {
+        Self.demoLock.lock()
+        defer { Self.demoLock.unlock() }
+        let manager = FileManager.default
+        let folder = try Self.demoFolder()
+        if manager.fileExists(atPath: folder.appendingPathComponent("removed").path) {
+          return false
+        }
+        let file = folder.appendingPathComponent(Self.demoName)
+        if !manager.fileExists(atPath: file.path) {
+          try bytes.data.write(to: file, options: [.atomic, .completeFileProtection])
+        }
+        return true
+      }
+    case "deleteDemoDatabase":
+      runIo(result) {
+        Self.demoLock.lock()
+        defer { Self.demoLock.unlock() }
+        let folder = try Self.demoFolder()
+        try Data([1]).write(to: folder.appendingPathComponent("removed"), options: .atomic)
+        if args?["keepFile"] as? Bool != true && Self.demoLeaseCount == 0 {
+          try Self.deleteDemoFile(folder)
+        }
+        return nil
+      }
+    case "isDemoDatabaseRemoved":
+      runIo(result) {
+        Self.demoLock.lock()
+        defer { Self.demoLock.unlock() }
+        return try FileManager.default.fileExists(
+          atPath: Self.demoFolder().appendingPathComponent("removed").path)
+      }
+    case "retainDemoDatabase":
+      runIo(result) {
+        Self.demoLock.lock()
+        defer { Self.demoLock.unlock() }
+        let folder = try Self.demoFolder()
+        let manager = FileManager.default
+        if manager.fileExists(atPath: folder.appendingPathComponent("removed").path) ||
+          !manager.fileExists(atPath: folder.appendingPathComponent(Self.demoName).path)
+        {
+          return false
+        }
+        self.heldDemoLeases += 1
+        Self.demoLeaseCount += 1
+        return true
+      }
+    case "releaseDemoDatabase":
+      runIo(result) {
+        Self.demoLock.lock()
+        defer { Self.demoLock.unlock() }
+        try self.releaseDemoLeases()
         return nil
       }
     case "readRemoteCache", "writeRemoteCache", "listRemoteCacheIds", "deleteRemoteCache":
@@ -121,6 +191,39 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
   private static func isCacheId(_ value: String) -> Bool {
     value.utf8.count == 64 &&
       value.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil
+  }
+
+  private static func demoFolder() throws -> URL {
+    let manager = FileManager.default
+    var folder = try manager.url(for: .applicationSupportDirectory,
+      in: .userDomainMask, appropriateFor: nil, create: true)
+      .appendingPathComponent("demo_database", isDirectory: true)
+    try manager.createDirectory(at: folder, withIntermediateDirectories: true)
+    var values = URLResourceValues()
+    values.isExcludedFromBackup = true
+    try folder.setResourceValues(values)
+    return folder
+  }
+
+  private static func deleteDemoFile(_ folder: URL) throws {
+    let file = folder.appendingPathComponent(Self.demoName)
+    if FileManager.default.fileExists(atPath: file.path) {
+      try FileManager.default.removeItem(at: file)
+    }
+  }
+
+  // Tutti gli accessi ai contatori avvengono sotto demoLock, condiviso fra engine.
+  private func releaseDemoLeases(all: Bool = false) throws {
+    let count = all ? heldDemoLeases : min(heldDemoLeases, 1)
+    if count == 0 { return }
+    heldDemoLeases -= count
+    Self.demoLeaseCount -= count
+    let folder = try Self.demoFolder()
+    if Self.demoLeaseCount == 0 && FileManager.default.fileExists(
+      atPath: folder.appendingPathComponent("removed").path)
+    {
+      try Self.deleteDemoFile(folder)
+    }
   }
 
   private static func cacheError() -> NSError {
@@ -263,6 +366,11 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
   }
 
   private func read(_ uri: String) throws -> (Data, String?) {
+    if uri == Self.demoUri {
+      Self.demoLock.lock()
+      defer { Self.demoLock.unlock() }
+      return (try coordinatedRead(Self.demoFolder().appendingPathComponent(Self.demoName)), nil)
+    }
     let (url, stale) = try resolve(uri)
     let accessing = url.startAccessingSecurityScopedResource()
     defer { if accessing { url.stopAccessingSecurityScopedResource() } }
@@ -278,6 +386,14 @@ public class DocumentAccessPlugin: NSObject, FlutterPlugin, UIDocumentPickerDele
   }
 
   private func write(_ uri: String, _ data: Data) throws {
+    if uri == Self.demoUri {
+      Self.demoLock.lock()
+      defer { Self.demoLock.unlock() }
+      let file = try Self.demoFolder().appendingPathComponent(Self.demoName)
+      guard FileManager.default.fileExists(atPath: file.path) else { throw Unavailable() }
+      try data.write(to: file, options: [.atomic, .completeFileProtection])
+      return
+    }
     let (url, _) = try resolve(uri)
     let accessing = url.startAccessingSecurityScopedResource()
     defer { if accessing { url.stopAccessingSecurityScopedResource() } }

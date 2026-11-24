@@ -29,10 +29,24 @@ class AppLocalizationsIt extends AppLocalizations {
   String get navigationCheck => 'Controllo';
 
   @override
-  String get fileSelectDemo => 'Salva una copia demo';
+  String get demoDatabaseSubtitle => 'Database demo · Password: demo1234';
 
   @override
-  String get fileSelectDemoHint => 'Dati fittizi · Password: demo1234';
+  String get demoDatabasePassword => 'Password demo: demo1234';
+
+  @override
+  String get demoDatabaseRemoveTitle => 'Rimuovi database demo';
+
+  @override
+  String get demoDatabaseRemoveMessage =>
+      'Confermi di voler rimuovere il database d\'esempio? Una volta rimosso non potrà più essere ripristinato.';
+
+  @override
+  String get demoDatabaseRemoveWithRecents =>
+      'Disattivando \"Ricorda file recenti\" verrà rimosso anche il database d\'esempio, che non potrà più essere ripristinato. Confermi di voler continuare?';
+
+  @override
+  String get demoDatabaseRemoveConfirm => 'Conferma';
 
   @override
   String get fileSelectTitle => 'Apri database';

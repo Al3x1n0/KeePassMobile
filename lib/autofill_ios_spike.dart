@@ -7,7 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:kpasslib/kpasslib.dart';
 
 import 'features/autofill/autofill_matcher.dart';
+import 'features/file_select/demo_database.dart';
 import 'features/file_select/recent_files.dart';
+import 'l10n/app_localizations.dart';
 import 'shared/crypto/app_crypto_engine.dart';
 import 'shared/database/database_session.dart';
 import 'shared/database/kdbx_items.dart';
@@ -46,6 +48,11 @@ class _SpikeApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'KeePassMobile',
+    localizationsDelegates: [
+      ...GlobalMaterialLocalizations.delegates,
+      ...AppLocalizations.localizationsDelegates,
+    ],
+    supportedLocales: AppLocalizations.supportedLocales,
     theme: ThemeData(
       colorSchemeSeed: const Color(0xFF2E7D32),
       appBarTheme: const AppBarTheme(centerTitle: false),
@@ -239,6 +246,11 @@ class _SpikeViewState extends State<_SpikeView> {
           enableSuggestions: false,
           enableIMEPersonalizedLearning: false,
           inputFormatters: [LengthLimitingTextInputFormatter(1024)],
+          decoration: InputDecoration(
+            helperText: recent.database == DemoDatabaseRepository.file
+                ? AppLocalizations.of(context).demoDatabasePassword
+                : null,
+          ),
         ),
         actions: [
           TextButton(
@@ -278,6 +290,9 @@ class _SpikeViewState extends State<_SpikeView> {
               ListTile(
                 leading: const Icon(Icons.lock_outline),
                 title: Text(recent.database.name),
+                subtitle: recent.database == DemoDatabaseRepository.file
+                    ? Text(AppLocalizations.of(context).demoDatabaseSubtitle)
+                    : null,
                 onTap: _busy ? null : () => _ask(recent),
               )
           else

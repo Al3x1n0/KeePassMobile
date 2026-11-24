@@ -94,6 +94,9 @@ final class DocumentAccessException implements Exception {
 class DocumentAccess {
   const DocumentAccess();
 
+  /// Riferimento stabile alla copia privata del database dimostrativo.
+  static const demoDatabaseUri = 'app-private:demo';
+
   @visibleForTesting
   static const channel = MethodChannel(
     'io.github.al3x1n0.keepassmobile/document_access',
@@ -167,6 +170,50 @@ class DocumentAccess {
   /// Rinuncia al permesso persistente sul documento (solo Android; su iOS il
   /// bookmark va semplicemente dimenticato).
   Future<void> release(String uri) => _invoke<void>('release', {'uri': uri});
+
+  /// Installa [bytes] soltanto se la demo non esiste e non è stata rimossa.
+  ///
+  /// Il confronto e la copia atomica sono serializzati fra i motori Flutter.
+  /// Restituisce `false` se la rimozione definitiva è già stata registrata.
+  Future<bool> ensureDemoDatabase(Uint8List bytes) async {
+    final installed = await _invoke<bool>('ensureDemoDatabase', {
+      'bytes': bytes,
+    });
+    if (installed == null) throw const DocumentAccessException('io');
+    return installed;
+  }
+
+  /// Registra la rimozione definitiva della demo e ne elimina la copia.
+  ///
+  /// Con [keepFile] conserva il file per una sessione ancora aperta. Una
+  /// chiamata successiva senza [keepFile] completa la cancellazione dopo
+  /// l'ultimo [releaseDemoDatabase], anche fra motori Flutter diversi.
+  /// Le sessioni che hanno già trattenuto la demo continuano a leggere e
+  /// scrivere finché rilasciano il proprio accesso.
+  Future<void> deleteDemoDatabase({bool keepFile = false}) =>
+      _invoke<void>('deleteDemoDatabase', {'keepFile': keepFile});
+
+  /// Trattiene la copia privata per una sessione del motore corrente.
+  ///
+  /// Restituisce `false` se la copia è assente o rimossa. Ogni risultato
+  /// `true` richiede un [releaseDemoDatabase] alla chiusura della sessione.
+  Future<bool> retainDemoDatabase() async {
+    final retained = await _invoke<bool>('retainDemoDatabase');
+    if (retained == null) throw const DocumentAccessException('io');
+    return retained;
+  }
+
+  /// Rilascia un accesso del motore corrente e completa la rimozione pendente.
+  ///
+  /// Non rilascia gli accessi acquisiti da altri motori Flutter.
+  Future<void> releaseDemoDatabase() => _invoke<void>('releaseDemoDatabase');
+
+  /// Verifica lo stato nativo di rimozione condiviso fra i motori Flutter.
+  Future<bool> isDemoDatabaseRemoved() async {
+    final removed = await _invoke<bool>('isDemoDatabaseRemoved');
+    if (removed == null) throw const DocumentAccessException('io');
+    return removed;
+  }
 
   /// Record cifrato della cache remota, identificato da un hash (ADR-017).
   /// Nessun nome o riferimento al file remoto attraversa il canale.

@@ -118,6 +118,88 @@ void main() {
     expect(calls.single.method, 'release');
   });
 
+  test(
+    'demo: installazione privata e rimozione rinviata usano il canale',
+    () async {
+      reply((call) => call.method == 'ensureDemoDatabase' ? true : null);
+      final bytes = Uint8List.fromList([1, 2, 3]);
+
+      expect(await access.ensureDemoDatabase(bytes), isTrue);
+      await access.deleteDemoDatabase(keepFile: true);
+      await access.deleteDemoDatabase();
+
+      expect(calls.map((call) => call.method), [
+        'ensureDemoDatabase',
+        'deleteDemoDatabase',
+        'deleteDemoDatabase',
+      ]);
+      expect(calls[0].arguments, {'bytes': bytes});
+      expect(calls[1].arguments, {'keepFile': true});
+      expect(calls[2].arguments, {'keepFile': false});
+    },
+  );
+
+  test('demo rimossa: il canale impedisce una nuova installazione', () async {
+    reply((_) => false);
+    expect(await access.ensureDemoDatabase(Uint8List(1)), isFalse);
+  });
+
+  test(
+    'demo: una risposta assente non equivale a rimozione definitiva',
+    () async {
+      reply((_) => null);
+      await expectLater(
+        access.ensureDemoDatabase(Uint8List(1)),
+        throwsA(isA<DocumentAccessException>()),
+      );
+    },
+  );
+
+  test(
+    'demo: accesso di sessione e stato rimozione condivisi dal canale',
+    () async {
+      reply(
+        (call) => switch (call.method) {
+          'retainDemoDatabase' => true,
+          'isDemoDatabaseRemoved' => false,
+          _ => null,
+        },
+      );
+
+      expect(await access.retainDemoDatabase(), isTrue);
+      expect(await access.isDemoDatabaseRemoved(), isFalse);
+      await access.releaseDemoDatabase();
+
+      expect(calls.map((call) => call.method), [
+        'retainDemoDatabase',
+        'isDemoDatabaseRemoved',
+        'releaseDemoDatabase',
+      ]);
+      expect(calls.map((call) => call.arguments), everyElement(isNull));
+    },
+  );
+
+  test('demo rimossa: accesso rifiutato e stato nativo leggibile', () async {
+    reply((call) => call.method == 'isDemoDatabaseRemoved');
+    expect(await access.retainDemoDatabase(), isFalse);
+    expect(await access.isDemoDatabaseRemoved(), isTrue);
+  });
+
+  test(
+    'demo: risposte assenti non autorizzano accessi o nascondono rimozioni',
+    () async {
+      reply((_) => null);
+      await expectLater(
+        access.retainDemoDatabase(),
+        throwsA(isA<DocumentAccessException>()),
+      );
+      await expectLater(
+        access.isDemoDatabaseRemoved(),
+        throwsA(isA<DocumentAccessException>()),
+      );
+    },
+  );
+
   test('errore "unavailable": DocumentUnavailableException', () {
     reply((_) => throw PlatformException(code: 'unavailable'));
     expect(

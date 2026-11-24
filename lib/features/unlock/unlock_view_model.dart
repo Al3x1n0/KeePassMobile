@@ -16,6 +16,7 @@ import '../../shared/storage/recent_passwords_store.dart';
 import '../../shared/storage/remote_cache.dart';
 import '../../shared/storage/remote_storage.dart';
 import '../file_select/recent_files.dart';
+import '../file_select/demo_database.dart';
 
 /// Database da sbloccare e file chiave proposto (dai file recenti).
 @immutable
@@ -67,7 +68,7 @@ class UnlockViewModel extends AsyncNotifier<void> {
     if (state.isLoading) return;
     state = const AsyncLoading();
     final result = await AsyncValue.guard(
-      () => _open(args, password, biometricTexts),
+      () => _withDemoAccess(args, () => _open(args, password, biometricTexts)),
     );
     if (ref.mounted) state = result;
   }
@@ -82,7 +83,7 @@ class UnlockViewModel extends AsyncNotifier<void> {
     if (state.isLoading) return;
     state = const AsyncLoading();
     final result = await AsyncValue.guard(
-      () => _openWithBiometrics(args, texts),
+      () => _withDemoAccess(args, () => _openWithBiometrics(args, texts)),
     );
     if (!ref.mounted) return;
     state = switch (result) {
@@ -92,6 +93,34 @@ class UnlockViewModel extends AsyncNotifier<void> {
         const AsyncData(null),
       _ => result,
     };
+  }
+
+  Future<void> _withDemoAccess(
+    UnlockArgs args,
+    Future<void> Function() open,
+  ) async {
+    final demo = ref.read(demoDatabaseRepositoryProvider);
+    if (!demo.isDemo(args.database.ref)) return open();
+    ref.read(demoDatabaseCleanupProvider);
+    final access = await demo.acquireForUnlock();
+    try {
+      if (ref.mounted) await open();
+    } finally {
+      await demo.finishOpening(access);
+    }
+  }
+
+  Future<bool> _demoRemoved(DemoDatabaseRepository demo, FileRef file) async {
+    if (!demo.isDemo(file)) return false;
+    return demo.refreshRemovalState(
+      keep: {
+        for (final session
+            in ref.read(databaseSessionProvider.notifier).openSessions) ...[
+          session.file,
+          ?session.keyFile,
+        ],
+      },
+    );
   }
 
   Future<void> _open(
@@ -251,6 +280,8 @@ class UnlockViewModel extends AsyncNotifier<void> {
             generation) {
       return false;
     }
+    final demo = ref.read(demoDatabaseRepositoryProvider);
+    if (await _demoRemoved(demo, database) || !ref.mounted) return false;
     final settings = ref.read(appSettingsProvider);
     if (settings.rememberRecentFiles) {
       await ref
@@ -301,7 +332,13 @@ class UnlockViewModel extends AsyncNotifier<void> {
               idOfUuid(kdbx.root.uuid),
             ),
           );
-      if (canceled || !ref.mounted || sessions.lockGeneration != generation) {
+      if (!canceled && ref.mounted && await _demoRemoved(demo, database)) {
+        return false;
+      }
+      if (canceled ||
+          !ref.mounted ||
+          sessions.lockGeneration != generation ||
+          (demo.isDemo(database) && demo.isRemoved)) {
         return false;
       }
     } finally {

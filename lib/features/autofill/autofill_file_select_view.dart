@@ -7,6 +7,7 @@ import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/storage/file_storage.dart';
 import '../file_select/recent_files.dart';
+import '../file_select/demo_database.dart';
 import '../unlock/relock.dart';
 import '../unlock/unlock_view_model.dart';
 import 'autofill_channel.dart';
@@ -80,10 +81,15 @@ class _AutofillFileSelectViewState
                   ListTile(
                     leading: const Icon(Icons.lock_outline),
                     title: Text(recent.database.name),
-                    subtitle: switch (recent.keyFile) {
-                      final key? => Text(key.name),
-                      null => null,
-                    },
+                    subtitle:
+                        ref
+                            .read(demoDatabaseRepositoryProvider)
+                            .isDemo(recent.database)
+                        ? Text(l10n.demoDatabaseSubtitle)
+                        : switch (recent.keyFile) {
+                            final key? => Text(key.name),
+                            null => null,
+                          },
                     onTap: () => _open(_argsOf(recent)),
                   ),
               ],

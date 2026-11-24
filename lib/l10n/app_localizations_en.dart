@@ -28,10 +28,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navigationCheck => 'Check';
 
   @override
-  String get fileSelectDemo => 'Save a demo copy';
+  String get demoDatabaseSubtitle => 'Demo database · Password: demo1234';
 
   @override
-  String get fileSelectDemoHint => 'Fictional data · Password: demo1234';
+  String get demoDatabasePassword => 'Demo password: demo1234';
+
+  @override
+  String get demoDatabaseRemoveTitle => 'Remove demo database';
+
+  @override
+  String get demoDatabaseRemoveMessage =>
+      'Confirm removing the example database? Once removed, it cannot be restored.';
+
+  @override
+  String get demoDatabaseRemoveWithRecents =>
+      'Turning off \"Remember recent files\" will also remove the example database, which cannot be restored. Confirm continuing?';
+
+  @override
+  String get demoDatabaseRemoveConfirm => 'Confirm';
 
   @override
   String get fileSelectTitle => 'Open database';

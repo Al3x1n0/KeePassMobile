@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,27 +29,11 @@ class _Picker extends FilePickerService {
   }
 }
 
-class _DemoStorage extends FileStorage {
-  String? suggestedName;
-  Uint8List? savedBytes;
-
-  @override
-  Future<FileRef?> create({
-    required String suggestedName,
-    required Uint8List bytes,
-  }) async {
-    this.suggestedName = suggestedName;
-    savedBytes = bytes;
-    return FileRef(uri: 'file:///demo.kdbx', name: suggestedName);
-  }
-}
-
 class _Harness {
-  _Harness(this.router, this.picker, this.storage);
+  _Harness(this.router, this.picker);
 
   final GoRouter router;
   final _Picker picker;
-  final _DemoStorage storage;
   Object? lastExtra;
 }
 
@@ -88,7 +71,6 @@ Future<_Harness> _pumpSelection(
   });
   final prefs = (await tester.runAsync(SharedPreferences.getInstance))!;
   final picker = _Picker();
-  final storage = _DemoStorage();
   late _Harness harness;
   final router = GoRouter(
     initialLocation: additional ? AppRoutes.additionalDatabase : '/',
@@ -122,14 +104,13 @@ Future<_Harness> _pumpSelection(
         ),
     ],
   );
-  harness = _Harness(router, picker, storage);
+  harness = _Harness(router, picker);
   addTearDown(router.dispose);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         filePickerServiceProvider.overrideWithValue(picker),
-        fileStorageProvider.overrideWithValue(storage),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -311,7 +292,7 @@ void main() {
 
               // then
               final contentTop = tester.getRect(find.byType(AppBar)).bottom;
-              if (recentCount == 0 && additional) {
+              if (recentCount == 0) {
                 final message = find.text(l10n.fileSelectNoRecent);
                 expect(
                   tester.getRect(message).bottom,
@@ -324,11 +305,11 @@ void main() {
                   message.hitTestable(at: Alignment.topCenter),
                   findsOneWidget,
                 );
-                expect(find.text(l10n.fileSelectDemo), findsNothing);
+                expect(find.byType(ListTile), findsNothing);
               } else {
                 final lastTile = find.widgetWithText(
                   ListTile,
-                  additional ? 'Recente 29.kdbx' : l10n.fileSelectDemo,
+                  'Recente 29.kdbx',
                 );
                 expect(
                   tester.getRect(lastTile).bottom,
@@ -367,12 +348,7 @@ void main() {
                 );
                 final args = harness.lastExtra! as UnlockArgs;
                 expect(args.additional, additional);
-                if (additional) {
-                  expect(args.database.ref.name, 'Recente 29.kdbx');
-                } else {
-                  expect(harness.storage.suggestedName, 'Rifugio-Aurora.kdbx');
-                  expect(harness.storage.savedBytes, isNotEmpty);
-                }
+                expect(args.database.ref.name, 'Recente 29.kdbx');
               }
               expect(tester.takeException(), isNull);
             },

@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../shared/security/biometric_key_store.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/preferences.dart';
+import '../../shared/database/database_session.dart';
+import 'demo_database.dart';
 
 /// Database aperto di recente, con il file chiave usato (come
 /// Keepass2Android, opzione "ricorda file chiave" attiva di default).
@@ -63,15 +65,24 @@ class RecentFilesRepository {
     RecentFile file, {
     FileRef? replacing,
     Set<FileRef> keep = const {},
-  }) => _save([
-    file,
-    ...load().where(
-      (f) => f.database != file.database && f.database != replacing,
-    ),
-  ], keep: keep);
+  }) {
+    // Uno sblocco iniziato prima della conferma non deve reinserire la demo.
+    if (file.database == DemoDatabaseRepository.file &&
+        _prefs.getString(DemoDatabaseRepository.stateKey) == 'removed') {
+      return Future.value(load());
+    }
+    return _save([
+      file,
+      ...load().where(
+        (f) => f.database != file.database && f.database != replacing,
+      ),
+    ], keep: keep);
+  }
 
-  Future<List<RecentFile>> forget(FileRef database) =>
-      _save(load().where((f) => f.database != database).toList());
+  Future<List<RecentFile>> forget(
+    FileRef database, {
+    Set<FileRef> keep = const {},
+  }) => _save(load().where((f) => f.database != database).toList(), keep: keep);
 
   /// Svuota l'elenco ("Ricorda file recenti" disattivato). I file in [keep]
   /// (quelli del database aperto) conservano il permesso.
@@ -142,10 +153,23 @@ class RecentFilesViewModel extends Notifier<List<RecentFile>> {
 
   /// Toglie [file] dall'elenco e ne disattiva lo sblocco biometrico.
   Future<void> forget(RecentFile file) async {
-    final files = await ref
-        .read(recentFilesRepositoryProvider)
-        .forget(file.database);
-    await ref.read(biometricKeyStoreProvider).remove(file.database);
+    final demo = ref.read(demoDatabaseRepositoryProvider);
+    final recents = ref.read(recentFilesRepositoryProvider);
+    final biometrics = ref.read(biometricKeyStoreProvider);
+    if (demo.isDemo(file.database)) {
+      final keep = {
+        for (final session
+            in ref.read(databaseSessionProvider.notifier).openSessions) ...[
+          session.file,
+          ?session.keyFile,
+        ],
+      };
+      await demo.remove(keep: keep);
+      if (ref.mounted) state = recents.load();
+      return;
+    }
+    final files = await recents.forget(file.database);
+    await biometrics.remove(file.database);
     if (ref.mounted) state = files;
   }
 }

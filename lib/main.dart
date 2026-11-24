@@ -7,6 +7,7 @@ import 'app/external_change_dialog.dart';
 import 'app/remote_dialogs.dart';
 import 'autofill_ios_spike.dart';
 import 'features/autofill/autofill_app.dart';
+import 'features/file_select/demo_database.dart';
 import 'shared/crypto/app_crypto_engine.dart';
 import 'shared/database/external_change.dart';
 import 'shared/storage/preferences.dart';
@@ -17,6 +18,7 @@ Future<void> main() async {
   // Argon2 nativo per kpasslib (ADR-002). Gli isolate lo reinstallano.
   AppCryptoEngine.install();
   final preferences = await SharedPreferences.getInstance();
+  await initializeDemoDatabase(preferences);
   runApp(
     ProviderScope(
       overrides: [

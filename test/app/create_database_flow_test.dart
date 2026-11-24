@@ -1,10 +1,13 @@
-import 'dart:io';
+import 'dart:convert';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/app.dart';
 import 'package:keepass_mobile/features/create_database/create_database_view_model.dart';
+import 'package:keepass_mobile/features/file_select/demo_database.dart';
+import 'package:keepass_mobile/features/file_select/recent_files.dart';
+
 import 'package:keepass_mobile/l10n/app_localizations.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
 import 'package:keepass_mobile/shared/storage/preferences.dart';
@@ -17,30 +20,31 @@ import '../helpers/test_database.dart';
 void main() {
   final l10n = lookupAppLocalizations(const Locale('en'));
 
-  testWidgets('la demo salva una copia del file incluso e apre lo sblocco', (
-    tester,
-  ) async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = (await tester.runAsync(SharedPreferences.getInstance))!;
-    final storage = FakeCreateStorage();
-    addTearDown(() => storage.dir.deleteSync(recursive: true));
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          fileStorageProvider.overrideWithValue(storage),
+  testWidgets(
+    'la demo preinstallata apre lo sblocco con la password di prova',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        RecentFilesRepository.storageKey: [
+          jsonEncode(
+            const RecentFile(database: DemoDatabaseRepository.file).toJson(),
+          ),
         ],
-        child: const KeePassMobileApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.fileSelectDemo));
-    await pumpUntilFound(tester, find.text(l10n.unlockButton));
-    expect(storage.suggestedName, 'Rifugio-Aurora.kdbx');
-    final original = File('assets/demo/Rifugio-Aurora.kdbx');
-    final copy = File('${storage.dir.path}/${storage.suggestedName}');
-    expect(copy.readAsBytesSync(), original.readAsBytesSync());
-  });
+      });
+      final prefs = (await tester.runAsync(SharedPreferences.getInstance))!;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          child: const KeePassMobileApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.demoDatabaseSubtitle), findsOneWidget);
+      await tester.tap(find.text(DemoDatabaseRepository.file.name));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.unlockButton), findsOneWidget);
+      expect(find.text(l10n.demoDatabasePassword), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'nuovo database: conferma diversa rifiutata, poi creato e aperto',

@@ -14,11 +14,13 @@ import '../../shared/database/kdbx_items.dart';
 import '../../shared/licenses/bundled_licenses.dart';
 import '../../shared/security/device_security.dart';
 import '../../shared/settings/app_settings.dart';
+import '../../shared/ui/demo_database_dialog.dart';
 import '../../shared/ui/expandable_section.dart';
 import '../../shared/ui/linked_database_edit_dialog.dart';
 import '../../shared/ui/selection_sheet.dart';
 import '../autofill/autofill_channel.dart';
 import '../export/export_view_model.dart';
+import '../file_select/demo_database.dart';
 import 'settings_view_model.dart';
 
 /// Impostazioni dell'app, raggiungibili con il database aperto o chiuso.
@@ -320,8 +322,30 @@ class SettingsView extends ConsumerWidget {
                 SwitchListTile(
                   title: Text(l10n.settingsRememberRecentFiles),
                   value: settings.rememberRecentFiles,
-                  onChanged: (v) =>
-                      update(settings.copyWith(rememberRecentFiles: v)),
+                  onChanged: (v) async {
+                    if (!v &&
+                        ref.read(demoDatabaseRepositoryProvider).isPresent) {
+                      final confirmed = await showDemoDatabaseRemovalDialog(
+                        context,
+                        clearingRecents: true,
+                      );
+                      if (!confirmed || !context.mounted) return;
+                    }
+                    try {
+                      await ref
+                          .read(settingsViewModelProvider.notifier)
+                          .update(
+                            ref
+                                .read(settingsViewModelProvider)
+                                .copyWith(rememberRecentFiles: v),
+                          );
+                    } on Exception {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.errorGeneric)),
+                      );
+                    }
+                  },
                 ),
                 // Il file chiave si ricorda solo insieme al database.
                 SwitchListTile(

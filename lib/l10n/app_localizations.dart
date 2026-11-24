@@ -134,17 +134,41 @@ abstract class AppLocalizations {
   /// **'Check'**
   String get navigationCheck;
 
-  /// No description provided for @fileSelectDemo.
+  /// No description provided for @demoDatabaseSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Save a demo copy'**
-  String get fileSelectDemo;
+  /// **'Demo database · Password: demo1234'**
+  String get demoDatabaseSubtitle;
 
-  /// No description provided for @fileSelectDemoHint.
+  /// No description provided for @demoDatabasePassword.
   ///
   /// In en, this message translates to:
-  /// **'Fictional data · Password: demo1234'**
-  String get fileSelectDemoHint;
+  /// **'Demo password: demo1234'**
+  String get demoDatabasePassword;
+
+  /// No description provided for @demoDatabaseRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove demo database'**
+  String get demoDatabaseRemoveTitle;
+
+  /// No description provided for @demoDatabaseRemoveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm removing the example database? Once removed, it cannot be restored.'**
+  String get demoDatabaseRemoveMessage;
+
+  /// No description provided for @demoDatabaseRemoveWithRecents.
+  ///
+  /// In en, this message translates to:
+  /// **'Turning off \"Remember recent files\" will also remove the example database, which cannot be restored. Confirm continuing?'**
+  String get demoDatabaseRemoveWithRecents;
+
+  /// No description provided for @demoDatabaseRemoveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get demoDatabaseRemoveConfirm;
 
   /// No description provided for @fileSelectTitle.
   ///
