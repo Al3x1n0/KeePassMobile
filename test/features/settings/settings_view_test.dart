@@ -1,0 +1,360 @@
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:keepass_mobile/app/theme.dart';
+import 'package:keepass_mobile/features/settings/settings_view.dart';
+import 'package:keepass_mobile/features/settings/settings_view_model.dart';
+import 'package:keepass_mobile/l10n/app_localizations.dart';
+import 'package:keepass_mobile/shared/database/database_session.dart';
+import 'package:keepass_mobile/shared/storage/file_storage.dart';
+import 'package:keepass_mobile/shared/ui/expandable_section.dart';
+import 'package:material_ui/material_ui.dart';
+
+import '../../helpers/test_database.dart';
+
+void main() {
+  void viewport(WidgetTester tester, Size size) {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
+  Widget app(
+    ProviderContainer container, {
+    Locale locale = const Locale('en'),
+    bool databaseOpen = false,
+    Key? settingsKey,
+    double textScale = 1,
+  }) => UncontrolledProviderScope(
+    container: container,
+    child: MaterialApp(
+      locale: locale,
+      localizationsDelegates: [
+        ...GlobalMaterialLocalizations.delegates,
+        ...AppLocalizations.localizationsDelegates,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      theme: buildLightTheme(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
+      home: SettingsView(
+        key: settingsKey,
+        showDatabaseNavigation: databaseOpen,
+      ),
+    ),
+  );
+
+  Future<ProviderContainer> container({
+    bool databaseOpen = false,
+    Future<String?>? version,
+  }) async {
+    final result = await newTestContainer(
+      overrides: [
+        if (version != null)
+          settingsAppVersionProvider.overrideWith((ref) => version),
+      ],
+    );
+    if (databaseOpen) {
+      result
+          .read(databaseSessionProvider.notifier)
+          .open(
+            DatabaseSession(
+              file: const FileRef(
+                uri: 'file:///prova.kdbx',
+                name: 'prova.kdbx',
+              ),
+              database: newTestDatabase(),
+            ),
+          );
+    }
+    return result;
+  }
+
+  Finder section(String title) => find.byWidgetPredicate(
+    (widget) => widget is ExpandableSection && widget.title == title,
+  );
+
+  for (final locale in [const Locale('it'), const Locale('en')]) {
+    final l10n = lookupAppLocalizations(locale);
+    for (final databaseOpen in [false, true]) {
+      testWidgets(
+        'Impostazioni ${locale.languageCode}: riquadri ordinati ed espansi con database ${databaseOpen ? "aperto" : "chiuso"}',
+        (tester) async {
+          // given
+          viewport(tester, const Size(800, 3000));
+          final scope = await container(
+            databaseOpen: databaseOpen,
+            version: Future.value('1.2.3'),
+          );
+
+          // when
+          await tester.pumpWidget(
+            app(scope, locale: locale, databaseOpen: databaseOpen),
+          );
+          await tester.pumpAndSettle();
+
+          // then
+          final titles = [
+            if (databaseOpen) l10n.settingsDatabase,
+            l10n.settingsSecurity,
+            l10n.settingsDisplay,
+            l10n.settingsFiles,
+            l10n.settingsAbout,
+          ];
+          expect(
+            tester
+                .widgetList<ExpandableSection>(find.byType(ExpandableSection))
+                .map((widget) => widget.title),
+            titles,
+          );
+          final contents = {
+            if (databaseOpen) l10n.settingsDatabase: l10n.dbSettingsTitle,
+            l10n.settingsSecurity: l10n.settingsClipboardTimeout,
+            l10n.settingsDisplay: l10n.settingsMaskPassword,
+            l10n.settingsFiles: l10n.settingsRememberRecentFiles,
+            l10n.settingsAbout: l10n.settingsAppVersion,
+          };
+          for (final entry in contents.entries) {
+            expect(
+              find
+                  .descendant(
+                    of: section(entry.key),
+                    matching: find.text(entry.value),
+                  )
+                  .hitTestable(),
+              findsOneWidget,
+            );
+          }
+          expect(
+            section(l10n.settingsDatabase),
+            databaseOpen ? findsOneWidget : findsNothing,
+          );
+          final about = section(l10n.settingsAbout);
+          final context = tester.element(about);
+          final licenses = MaterialLocalizations.of(context).licensesPageTitle;
+          expect(
+            find.descendant(of: about, matching: find.text(licenses)),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(
+              of: section(l10n.settingsFiles),
+              matching: find.text(licenses),
+            ),
+            findsNothing,
+          );
+          expect(
+            tester.getTopLeft(find.text(licenses)).dy,
+            lessThan(tester.getTopLeft(find.text(l10n.settingsAppVersion)).dy),
+          );
+          final versionTile = find.widgetWithText(
+            ListTile,
+            l10n.settingsAppVersion,
+          );
+          final tile = tester.widget<ListTile>(versionTile);
+          expect(tile.onTap, isNull);
+          expect(tile.onLongPress, isNull);
+          expect(
+            find.descendant(of: versionTile, matching: find.text('1.2.3')),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(of: versionTile, matching: find.byType(Icon)),
+            findsNothing,
+          );
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
+  testWidgets(
+    'i riquadri si richiudono separatamente e ripartono espansi alla riapertura',
+    (tester) async {
+      // given
+      viewport(tester, const Size(800, 3000));
+      final scope = await container(version: Future.value('1.2.3'));
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      await tester.pumpWidget(app(scope, settingsKey: const ValueKey('prima')));
+      await tester.pumpAndSettle();
+
+      // when
+      await tester.tap(find.text(l10n.settingsSecurity));
+      await tester.pumpAndSettle();
+
+      // then
+      expect(
+        find.text(l10n.settingsClipboardTimeout).hitTestable(),
+        findsNothing,
+      );
+      expect(
+        find.text(l10n.settingsMaskPassword).hitTestable(),
+        findsOneWidget,
+      );
+      expect(
+        find.text(l10n.settingsRememberRecentFiles).hitTestable(),
+        findsOneWidget,
+      );
+      await tester.tap(find.text(l10n.settingsAbout));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.settingsAppVersion).hitTestable(), findsNothing);
+      expect(
+        find.text(l10n.settingsMaskPassword).hitTestable(),
+        findsOneWidget,
+      );
+
+      await tester.pumpWidget(
+        app(scope, settingsKey: const ValueKey('seconda')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text(l10n.settingsClipboardTimeout).hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.settingsAppVersion).hitTestable(), findsOneWidget);
+    },
+  );
+
+  testWidgets('un riquadro resta chiuso dopo aver scorso le Impostazioni', (
+    tester,
+  ) async {
+    // given
+    viewport(tester, const Size(360, 640));
+    final scope = await container(version: Future.value('1.2.3'));
+    final l10n = lookupAppLocalizations(const Locale('en'));
+    await tester.pumpWidget(app(scope));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.settingsSecurity));
+    await tester.pumpAndSettle();
+
+    // when
+    await tester.scrollUntilVisible(find.text(l10n.settingsAbout), 250);
+    await tester.ensureVisible(find.text(l10n.settingsAbout));
+    await tester.pumpAndSettle();
+    final scroll = tester.state<ScrollableState>(find.byType(Scrollable));
+    scroll.position.jumpTo(0);
+    await tester.pumpAndSettle();
+
+    // then
+    expect(find.text(l10n.settingsSecurity).hitTestable(), findsOneWidget);
+    expect(
+      find.text(l10n.settingsClipboardTimeout).hitTestable(),
+      findsNothing,
+    );
+    await tester.tap(find.text(l10n.settingsSecurity));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(l10n.settingsClipboardTimeout).hitTestable(),
+      findsOneWidget,
+    );
+  });
+
+  for (final locale in [const Locale('it'), const Locale('en')]) {
+    for (final value in ['123.456.789', null]) {
+      testWidgets(
+        'versione ${locale.languageCode} ${value ?? "non disponibile"}: riga e titolo restano fermi durante il caricamento',
+        (tester) async {
+          // given
+          viewport(tester, const Size(320, 640));
+          final result = Completer<String?>();
+          final scope = await container(version: result.future);
+          final l10n = lookupAppLocalizations(locale);
+          await tester.pumpWidget(app(scope, locale: locale, textScale: 2));
+          await tester.pumpAndSettle();
+          final tile = find.widgetWithText(ListTile, l10n.settingsAppVersion);
+          await tester.scrollUntilVisible(tile, 250);
+          await tester.ensureVisible(tile);
+          await tester.pumpAndSettle();
+          final before = tester.getRect(tile);
+          final titleBefore = tester.getRect(
+            find.text(l10n.settingsAppVersion),
+          );
+          expect(
+            find.descendant(of: tile, matching: find.text('—')),
+            findsOneWidget,
+          );
+
+          // when
+          result.complete(value);
+          await tester.pumpAndSettle();
+
+          // then
+          expect(tester.getRect(tile), before);
+          expect(
+            tester.getRect(find.text(l10n.settingsAppVersion)),
+            titleBefore,
+          );
+          expect(
+            find.descendant(of: tile, matching: find.text(value ?? '—')),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
+  testWidgets(
+    'il canale nativo assente lascia la versione non disponibile senza errori',
+    (tester) async {
+      // given
+      final scope = await container();
+      final l10n = lookupAppLocalizations(const Locale('en'));
+
+      // when
+      await tester.pumpWidget(app(scope));
+      await tester.pumpAndSettle();
+      final tile = find.widgetWithText(ListTile, l10n.settingsAppVersion);
+      await tester.scrollUntilVisible(tile, 250);
+      await tester.ensureVisible(tile);
+      await tester.pumpAndSettle();
+
+      // then
+      expect(
+        find.descendant(of: tile, matching: find.text('—')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final locale in [const Locale('it'), const Locale('en')]) {
+    testWidgets(
+      'Impostazioni ${locale.languageCode}: testo doppio a 320 dp senza overflow',
+      (tester) async {
+        // given
+        viewport(tester, const Size(320, 640));
+        final scope = await container(version: Future.value('1.2.3'));
+        final l10n = lookupAppLocalizations(locale);
+
+        // when
+        await tester.pumpWidget(app(scope, locale: locale, textScale: 2));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        for (final title in [
+          l10n.settingsDisplay,
+          l10n.settingsFiles,
+          l10n.settingsAbout,
+          l10n.settingsAppVersion,
+        ]) {
+          await tester.scrollUntilVisible(find.text(title), 200);
+          await tester.ensureVisible(find.text(title));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        }
+
+        // then
+        expect(
+          find.text(l10n.settingsAppVersion).hitTestable(),
+          findsOneWidget,
+        );
+        expect(find.text('1.2.3').hitTestable(), findsOneWidget);
+      },
+    );
+  }
+}

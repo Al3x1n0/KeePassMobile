@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../shared/database/database_session.dart';
 import '../../shared/security/biometric_key_store.dart';
+import '../../shared/security/device_security.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/remote_cache.dart';
@@ -12,6 +13,11 @@ final settingsViewModelProvider =
     NotifierProvider.autoDispose<SettingsViewModel, AppSettings>(
       SettingsViewModel.new,
     );
+
+/// Versione pubblica dell'app, senza numero di build, letta dal sistema.
+final settingsAppVersionProvider = FutureProvider.autoDispose<String?>(
+  (ref) => ref.watch(appSecurityProvider).getAppVersion(),
+);
 
 class SettingsViewModel extends Notifier<AppSettings> {
   @override

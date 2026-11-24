@@ -689,8 +689,16 @@ void main() {
         findsNothing,
       );
       expect(
-        find.descendant(of: panel, matching: find.byIcon(Icons.expand_more)),
-        findsOneWidget,
+        tester
+            .widget<RotationTransition>(
+              find.descendant(
+                of: panel,
+                matching: find.byType(RotationTransition),
+              ),
+            )
+            .turns
+            .value,
+        0.5,
       );
       await tester.tap(heading);
       await tester.pumpAndSettle();

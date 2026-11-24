@@ -25,6 +25,8 @@ public class AppSecurityPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
+    case "getAppVersion":
+      result(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
     case "hasStrongBiometrics":
       var error: NSError?
       result(

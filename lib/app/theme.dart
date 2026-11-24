@@ -8,6 +8,25 @@ abstract final class AppSpacing {
   static const double l = 24;
 }
 
+/// Aspetto e transizioni dei riquadri espandibili condivisi.
+abstract final class AppSectionLayout {
+  static const double backgroundOpacity = 0.16;
+  static const double headerMinHeight = 48;
+  static const transitionDuration = Duration(milliseconds: 200);
+  static const transitionCurve = Curves.easeInOutCubic;
+  static const margin = EdgeInsets.symmetric(
+    horizontal: AppSpacing.m,
+    vertical: AppSpacing.s,
+  );
+  static const headerPadding = EdgeInsets.symmetric(
+    horizontal: AppSpacing.m,
+    vertical: AppSpacing.s,
+  );
+  static const shape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.circular(16)),
+  );
+}
+
 /// Dimensioni della navigazione flottante e dello spazio per il pulsante aggiungi.
 abstract final class AppNavigationLayout {
   static const double destinationMinHeight = 48;

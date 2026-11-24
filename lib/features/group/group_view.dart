@@ -21,6 +21,7 @@ import '../../shared/ui/app_bar_action_row.dart';
 import '../../shared/ui/cross_database_copy_sheet.dart';
 import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/entry_tile.dart';
+import '../../shared/ui/expandable_section.dart';
 import '../../shared/ui/group_destination_sheet.dart';
 import '../../shared/ui/remote_cache_banner.dart';
 import '../../shared/ui/selection_sheet.dart';
@@ -657,71 +658,16 @@ class _GroupViewState extends ConsumerState<GroupView> {
   }
 }
 
-class _RecentPasswordsSection extends StatefulWidget {
+class _RecentPasswordsSection extends StatelessWidget {
   const _RecentPasswordsSection({required this.entries});
 
   final List<KdbxEntry> entries;
 
   @override
-  State<_RecentPasswordsSection> createState() =>
-      _RecentPasswordsSectionState();
-}
-
-class _RecentPasswordsSectionState extends State<_RecentPasswordsSection> {
-  bool _expanded = true;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.m,
-        vertical: AppSpacing.s,
-      ),
-      child: Material(
-        color: theme.colorScheme.primary.withValues(alpha: 0.16),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(16)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Semantics(
-              header: true,
-              expanded: _expanded,
-              child: InkWell(
-                onTap: () => setState(() => _expanded = !_expanded),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.m,
-                    vertical: AppSpacing.s,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 48),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            AppLocalizations.of(context).recentPasswordsTitle,
-                            style: theme.textTheme.titleMedium,
-                          ),
-                        ),
-                        Icon(_expanded ? Icons.expand_less : Icons.expand_more),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (_expanded)
-              for (final entry in widget.entries) EntryTile(entry: entry),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => ExpandableSection(
+    title: AppLocalizations.of(context).recentPasswordsTitle,
+    children: [for (final entry in entries) EntryTile(entry: entry)],
+  );
 }
 
 /// Proposta dello sblocco biometrico dopo uno sblocco con password (D23), nel

@@ -62,6 +62,7 @@ class AppSecurityPlugin :
 
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
     when (call.method) {
+      "getAppVersion" -> result.success(getAppVersion())
       "hasStrongBiometrics" -> result.success(hasStrongBiometrics())
       "requestNotificationPermission" -> requestNotificationPermission(result)
       "showOpenNotification" -> {
@@ -86,6 +87,23 @@ class AppSecurityPlugin :
         result.success(true)
       }
       else -> result.notImplemented()
+    }
+  }
+
+  private fun getAppVersion(): String? {
+    val ctx = context ?: return null
+    return try {
+      val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ctx.packageManager.getPackageInfo(ctx.packageName, PackageManager.PackageInfoFlags.of(0))
+      } else {
+        @Suppress("DEPRECATION")
+        ctx.packageManager.getPackageInfo(ctx.packageName, 0)
+      }
+      info.versionName
+    } catch (e: PackageManager.NameNotFoundException) {
+      null
+    } catch (e: SecurityException) {
+      null
     }
   }
 

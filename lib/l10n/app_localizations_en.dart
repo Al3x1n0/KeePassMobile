@@ -498,10 +498,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSecurity => 'Security';
 
   @override
-  String get settingsDisplay => 'Display';
+  String get settingsDisplay => 'Appearance';
 
   @override
   String get settingsFiles => 'Files';
+
+  @override
+  String get settingsAbout => 'About';
+
+  @override
+  String get settingsAppVersion => 'App version';
 
   @override
   String get settingsClipboardTimeout => 'Clear clipboard after';

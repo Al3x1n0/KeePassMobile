@@ -75,6 +75,66 @@ void main() {
     });
   });
 
+  group('getAppVersion', () {
+    tearDown(
+      () => messenger.setMockMethodCallHandler(AppSecurity.methodChannel, null),
+    );
+
+    test('legge solo il numero della versione nativa', () async {
+      messenger.setMockMethodCallHandler(AppSecurity.methodChannel, (
+        call,
+      ) async {
+        expect(call.method, 'getAppVersion');
+        expect(call.arguments, isNull);
+        return ' 1.2.3 ';
+      });
+
+      expect(await const AppSecurity().getAppVersion(), '1.2.3');
+    });
+
+    test('esclude build number e suffissi dal numero mostrato', () async {
+      for (final version in ['1.2.3+42', '1.2.3-beta.1+42']) {
+        messenger.setMockMethodCallHandler(
+          AppSecurity.methodChannel,
+          (_) async => version,
+        );
+
+        expect(await const AppSecurity().getAppVersion(), '1.2.3');
+      }
+    });
+
+    test('risposta mancante o malformata: null', () async {
+      for (final version in <Object?>[
+        null,
+        '',
+        ' ',
+        '1.2',
+        'version 1.2.3',
+        42,
+      ]) {
+        messenger.setMockMethodCallHandler(
+          AppSecurity.methodChannel,
+          (_) async => version,
+        );
+
+        expect(await const AppSecurity().getAppVersion(), isNull);
+      }
+    });
+
+    test('errore del codice nativo: null', () async {
+      messenger.setMockMethodCallHandler(
+        AppSecurity.methodChannel,
+        (_) async => throw PlatformException(code: 'version_unavailable'),
+      );
+
+      expect(await const AppSecurity().getAppVersion(), isNull);
+    });
+
+    test('plugin o metodo assente: null', () async {
+      expect(await const AppSecurity().getAppVersion(), isNull);
+    });
+  });
+
   group('notifica del database aperto', () {
     const texts = OpenNotificationTexts(
       channel: 'canale',

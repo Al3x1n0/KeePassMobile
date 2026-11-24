@@ -500,10 +500,16 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsSecurity => 'Sicurezza';
 
   @override
-  String get settingsDisplay => 'Visualizzazione';
+  String get settingsDisplay => 'Aspetto';
 
   @override
   String get settingsFiles => 'File';
+
+  @override
+  String get settingsAbout => 'Informazioni';
+
+  @override
+  String get settingsAppVersion => 'Versione app';
 
   @override
   String get settingsClipboardTimeout => 'Pulizia degli appunti';

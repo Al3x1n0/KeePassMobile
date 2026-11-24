@@ -349,7 +349,10 @@ void main() {
         final list = find.byType(ListView);
         expect(tester.getRect(list).bottom, 640);
         if (!databaseOpen) {
-          expect(tester.widget<ListView>(list).padding, isNull);
+          expect(
+            tester.widget<ListView>(list).padding,
+            const EdgeInsets.only(bottom: 24 + AppSpacing.m),
+          );
         }
 
         // when
@@ -359,11 +362,12 @@ void main() {
         scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
         await tester.pumpAndSettle();
 
-        // then: l'ultima riga e il suo comando restano sopra la capsula.
+        // then: l'ultima riga e il comando delle licenze restano sopra la capsula.
         final context = tester.element(list);
         final licensesTitle = MaterialLocalizations.of(context)
             .licensesPageTitle;
-        final lastTile = find.widgetWithText(ListTile, licensesTitle);
+        final lastTile = find.widgetWithText(ListTile, l10n.settingsAppVersion);
+        final licenseTile = find.widgetWithText(ListTile, licensesTitle);
         final contentBottom = databaseOpen
             ? tester.getRect(find.byType(BackdropFilter)).top
             : 640 - 24;
@@ -371,7 +375,8 @@ void main() {
           tester.getRect(lastTile).bottom,
           lessThanOrEqualTo(contentBottom),
         );
-        await tester.tap(lastTile);
+        expect(tester.widget<ListTile>(lastTile).onTap, isNull);
+        await tester.tap(licenseTile);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 500));
         expect(find.byType(LicensePage), findsOneWidget);

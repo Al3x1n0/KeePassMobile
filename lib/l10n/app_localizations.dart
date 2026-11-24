@@ -989,7 +989,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsDisplay.
   ///
   /// In en, this message translates to:
-  /// **'Display'**
+  /// **'Appearance'**
   String get settingsDisplay;
 
   /// No description provided for @settingsFiles.
@@ -997,6 +997,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Files'**
   String get settingsFiles;
+
+  /// No description provided for @settingsAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsAbout;
+
+  /// No description provided for @settingsAppVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'App version'**
+  String get settingsAppVersion;
 
   /// No description provided for @settingsClipboardTimeout.
   ///

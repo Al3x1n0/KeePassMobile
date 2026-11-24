@@ -61,6 +61,26 @@ class AppSecurity {
     'io.github.al3x1n0.keepassmobile/app_security',
   );
 
+  /// Legge la versione dell'app come numero `x.x.x`, senza build o suffissi.
+  ///
+  /// Usa `versionName` su Android e `CFBundleShortVersionString` su iOS.
+  /// Restituisce `null` se il dato non è disponibile o il plugin non è registrato.
+  Future<String?> getAppVersion() async {
+    try {
+      final version = await methodChannel.invokeMethod<Object?>(
+        'getAppVersion',
+      );
+      if (version is! String) return null;
+      return RegExp(r'^(\d+\.\d+\.\d+)(?:[-+].+)?$')
+          .firstMatch(version.trim())
+          ?.group(1);
+    } on PlatformException {
+      return null;
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
   /// `true` se c'è una biometria forte registrata (impronta o volto):
   /// Android `BiometricManager.canAuthenticate(BIOMETRIC_STRONG)` (da Android
   /// 10), iOS `LAContext.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics)`.
