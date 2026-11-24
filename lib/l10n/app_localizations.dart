@@ -158,6 +158,12 @@ abstract class AppLocalizations {
   /// **'Open file'**
   String get fileSelectOpenFile;
 
+  /// No description provided for @fileSelectNewDatabase.
+  ///
+  /// In en, this message translates to:
+  /// **'New DB'**
+  String get fileSelectNewDatabase;
+
   /// No description provided for @fileSelectRecentFiles.
   ///
   /// In en, this message translates to:

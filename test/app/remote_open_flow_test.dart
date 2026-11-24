@@ -79,7 +79,9 @@ void main() {
     WidgetTester tester, {
     required bool remember,
   }) async {
-    await tester.tap(find.byTooltip(l10n.remoteOpenTitle));
+    await tester.tap(
+      find.widgetWithText(FloatingActionButton, l10n.remoteOpenTitle),
+    );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, l10n.remoteAddress),
@@ -190,7 +192,9 @@ void main() {
     tester,
   ) async {
     await start(tester);
-    await tester.tap(find.byTooltip(l10n.remoteOpenTitle));
+    await tester.tap(
+      find.widgetWithText(FloatingActionButton, l10n.remoteOpenTitle),
+    );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, l10n.remoteAddress),
@@ -212,7 +216,9 @@ void main() {
 
   testWidgets('indirizzo http: rifiutato senza connettersi', (tester) async {
     await start(tester);
-    await tester.tap(find.byTooltip(l10n.remoteOpenTitle));
+    await tester.tap(
+      find.widgetWithText(FloatingActionButton, l10n.remoteOpenTitle),
+    );
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, l10n.remoteAddress),
@@ -232,7 +238,9 @@ void main() {
     'SFTP: conferma impronta, apre e blocca il database, blocca chiave cambiata',
     (tester) async {
       await start(tester);
-      await tester.tap(find.byTooltip(l10n.remoteOpenTitle));
+      await tester.tap(
+        find.widgetWithText(FloatingActionButton, l10n.remoteOpenTitle),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text(l10n.remoteServerType));
       await tester.pumpAndSettle();

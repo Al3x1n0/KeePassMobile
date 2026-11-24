@@ -41,6 +41,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get fileSelectOpenFile => 'Apri file';
 
   @override
+  String get fileSelectNewDatabase => 'Nuovo DB';
+
+  @override
   String get fileSelectRecentFiles => 'File recenti';
 
   @override

@@ -10,6 +10,7 @@
   "fileSelectDemoHint": "Fictional data · Password: demo1234",
   "fileSelectTitle": "Open database",
   "fileSelectOpenFile": "Open file",
+  "fileSelectNewDatabase": "New DB",
   "fileSelectRecentFiles": "Recent files",
   "fileSelectNoRecent": "No recent files. Open a KeePass database (.kdbx) to start.",
   "fileSelectRemove": "Remove from recent files",

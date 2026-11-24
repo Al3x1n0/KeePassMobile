@@ -10,6 +10,7 @@
   "fileSelectDemoHint": "Dati fittizi · Password: demo1234",
   "fileSelectTitle": "Apri database",
   "fileSelectOpenFile": "Apri file",
+  "fileSelectNewDatabase": "Nuovo DB",
   "fileSelectRecentFiles": "File recenti",
   "fileSelectNoRecent": "Nessun file recente. Apri un database KeePass (.kdbx) per iniziare.",
   "fileSelectRemove": "Rimuovi dai file recenti",

@@ -62,8 +62,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip(l10n.createDatabaseTitle));
+      await tester.tap(
+        find.widgetWithText(FloatingActionButton, l10n.fileSelectNewDatabase),
+      );
       await tester.pumpAndSettle();
+      expect(
+        find.widgetWithText(AppBar, l10n.createDatabaseTitle),
+        findsOneWidget,
+      );
       final fields = find.byType(TextFormField);
 
       // Nessuna chiave: errore.

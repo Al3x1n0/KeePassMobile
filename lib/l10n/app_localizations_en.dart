@@ -40,6 +40,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileSelectOpenFile => 'Open file';
 
   @override
+  String get fileSelectNewDatabase => 'New DB';
+
+  @override
   String get fileSelectRecentFiles => 'Recent files';
 
   @override

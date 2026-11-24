@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,126 +50,269 @@ class _FileSelectViewState extends ConsumerState<FileSelectView> {
       if (next != null) _reopenAfterLock();
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.fileSelectTitle),
-        actions: [
-          IconButton(
-            tooltip: l10n.remoteOpenTitle,
-            icon: const Icon(Icons.cloud_outlined),
-            onPressed: () => context.push(
-              widget.additional
-                  ? AppRoutes.additionalRemote
-                  : AppRoutes.remoteOpen,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final theme = Theme.of(context);
+        final fabTheme = theme.floatingActionButtonTheme;
+        final media = MediaQuery.of(context);
+        final labelStyle =
+            fabTheme.extendedTextStyle ?? theme.textTheme.labelLarge!;
+        final textStyle = media.boldText
+            ? labelStyle.copyWith(fontWeight: FontWeight.bold)
+            : labelStyle;
+        final iconSize = fabTheme.iconSize ?? AppFileSelectLayout.fabIconSize;
+        final labels = [
+          if (!widget.additional) l10n.fileSelectNewDatabase,
+          l10n.fileSelectOpenFile,
+          l10n.remoteOpenTitle,
+        ];
+        final labelChrome =
+            AppFileSelectLayout.fabPadding.horizontal + iconSize + AppSpacing.s;
+        final painter = TextPainter(
+          textDirection: Directionality.of(context),
+          textScaler: media.textScaler,
+          locale: Localizations.localeOf(context),
+        );
+        var labelWidth = 0.0;
+        for (final label in labels) {
+          painter.text = TextSpan(text: label, style: textStyle);
+          painter.layout();
+          labelWidth = math.max(labelWidth, painter.width);
+        }
+        labelWidth = math.min(
+          labelWidth.ceilToDouble(),
+          math.max(
+            0,
+            constraints.maxWidth -
+                media.padding.horizontal -
+                AppSpacing.m * 2 -
+                labelChrome,
           ),
-          if (!widget.additional)
-            IconButton(
-              tooltip: l10n.createDatabaseTitle,
-              icon: const Icon(Icons.note_add_outlined),
-              onPressed: () => context.push(AppRoutes.createDatabase),
-            ),
-          if (!widget.additional)
-            IconButton(
-              tooltip: l10n.settingsTitle,
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => context.push(AppRoutes.appSettings),
-            ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openFile,
-        icon: const Icon(Icons.folder_open),
-        label: Text(l10n.fileSelectOpenFile),
-      ),
-      body: recents.isEmpty
-          ? Center(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(AppSpacing.l),
-                      child: Text(
-                        l10n.fileSelectNoRecent,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    if (!widget.additional) _demoTile(l10n),
-                  ],
+        );
+        final buttonHeights = <String, double>{};
+        for (final label in labels) {
+          painter.text = TextSpan(text: label, style: textStyle);
+          painter.layout(maxWidth: labelWidth);
+          buttonHeights[label] = math.max(
+            AppFileSelectLayout.fabMinHeight,
+            painter.height.ceilToDouble() + AppSpacing.s * 2,
+          );
+        }
+        painter.dispose();
+        final stackHeight =
+            buttonHeights.values.fold(0.0, (sum, height) => sum + height) +
+            (labels.length - 1) * AppSpacing.s;
+        // Se la pila non entra, scorre senza coprire AppBar e contenuti.
+        final visibleStackHeight = math.min(
+          stackHeight,
+          math.max(
+            AppFileSelectLayout.fabMinHeight,
+            constraints.maxHeight -
+                media.padding.vertical -
+                media.viewInsets.bottom -
+                kToolbarHeight -
+                AppSpacing.m * 2 -
+                AppFileSelectLayout.contentMinHeight,
+          ),
+        );
+        final bottomClearance =
+            visibleStackHeight + AppSpacing.m * 2 + media.padding.bottom;
+
+        Widget action(
+          String label,
+          IconData icon,
+          String tag,
+          VoidCallback onPressed,
+        ) => SizedBox(
+          height: buttonHeights[label],
+          child: FloatingActionButton.extended(
+            heroTag: '$tag-${widget.additional}',
+            onPressed: onPressed,
+            icon: Icon(icon),
+            extendedTextStyle: textStyle,
+            extendedIconLabelSpacing: AppSpacing.s,
+            extendedPadding: AppFileSelectLayout.fabPadding,
+            label: SizedBox(width: labelWidth, child: Text(label)),
+          ),
+        );
+
+        final buttons = SizedBox(
+          width: labelWidth + labelChrome,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (!widget.additional) ...[
+                action(
+                  l10n.fileSelectNewDatabase,
+                  Icons.note_add_outlined,
+                  'file-select-new',
+                  () => context.push(AppRoutes.createDatabase),
+                ),
+                const SizedBox(height: AppSpacing.s),
+              ],
+              action(
+                l10n.fileSelectOpenFile,
+                Icons.folder_open,
+                'file-select-file',
+                _openFile,
+              ),
+              const SizedBox(height: AppSpacing.s),
+              action(
+                l10n.remoteOpenTitle,
+                Icons.cloud_outlined,
+                'file-select-server',
+                () => context.push(
+                  widget.additional
+                      ? AppRoutes.additionalRemote
+                      : AppRoutes.remoteOpen,
                 ),
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.only(bottom: 88),
-              itemCount: recents.length + (widget.additional ? 1 : 2),
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.m,
-                      AppSpacing.m,
-                      AppSpacing.m,
-                      AppSpacing.s,
+            ],
+          ),
+        );
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(l10n.fileSelectTitle),
+            actions: [
+              if (!widget.additional)
+                IconButton(
+                  tooltip: l10n.settingsTitle,
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => context.push(AppRoutes.appSettings),
+                ),
+            ],
+          ),
+          floatingActionButton: Theme(
+            data: theme.copyWith(
+              floatingActionButtonTheme: fabTheme.copyWith(
+                extendedSizeConstraints: const BoxConstraints(
+                  minHeight: AppFileSelectLayout.fabMinHeight,
+                ),
+              ),
+            ),
+            child: stackHeight > visibleStackHeight
+                ? SizedBox(
+                    height: visibleStackHeight,
+                    child: SingleChildScrollView(
+                      primary: false,
+                      child: buttons,
                     ),
-                    child: Semantics(
-                      header: true,
-                      child: Text(
-                        l10n.fileSelectRecentFiles,
-                        style: Theme.of(context).textTheme.titleSmall,
+                  )
+                : buttons,
+          ),
+          body: SafeArea(
+            bottom: false,
+            child: recents.isEmpty
+                ? LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      padding: EdgeInsets.only(bottom: bottomClearance),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: math.max(
+                            0,
+                            constraints.maxHeight - bottomClearance,
+                          ),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(AppSpacing.l),
+                                child: Text(
+                                  l10n.fileSelectNoRecent,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              if (!widget.additional) _demoTile(l10n),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  );
-                }
-                if (index > recents.length) return _demoTile(l10n);
-                final recent = recents[index - 1];
-                final remote = RemoteStorage.handles(recent.database);
-                return ListTile(
-                  leading: Icon(
-                    remote ? Icons.cloud_outlined : Icons.description_outlined,
-                  ),
-                  title: Text(recent.database.name),
-                  subtitle: remote
-                      ? Text(Uri.tryParse(recent.database.uri)?.host ?? '')
-                      : null,
-                  trailing: widget.additional
-                      ? null
-                      : IconButton(
-                          tooltip: l10n.fileSelectRemove,
-                          icon: const Icon(Icons.close),
-                          onPressed: () async {
-                            try {
-                              await ref
-                                  .read(recentFilesProvider.notifier)
-                                  .forget(recent);
-                            } on Exception {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(l10n.errorGeneric)),
-                                );
-                              }
-                            }
-                          },
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.only(bottom: bottomClearance),
+                    itemCount: recents.length + (widget.additional ? 1 : 2),
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.m,
+                            AppSpacing.m,
+                            AppSpacing.m,
+                            AppSpacing.s,
+                          ),
+                          child: Semantics(
+                            header: true,
+                            child: Text(
+                              l10n.fileSelectRecentFiles,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ),
+                        );
+                      }
+                      if (index > recents.length) return _demoTile(l10n);
+                      final recent = recents[index - 1];
+                      final remote = RemoteStorage.handles(recent.database);
+                      return ListTile(
+                        leading: Icon(
+                          remote
+                              ? Icons.cloud_outlined
+                              : Icons.description_outlined,
                         ),
-                  onTap: () => context.push(
-                    widget.additional
-                        ? AppRoutes.additionalUnlock
-                        : AppRoutes.unlock,
-                    extra: UnlockArgs(
-                      additional: widget.additional,
-                      lockGeneration: ref
-                          .read(databaseSessionProvider.notifier)
-                          .lockGeneration,
-                      database: PickedFile(ref: recent.database),
-                      keyFile: switch (recent.keyFile) {
-                        final key? => PickedFile(ref: key),
-                        null => null,
-                      },
-                    ),
+                        title: Text(recent.database.name),
+                        subtitle: remote
+                            ? Text(
+                                Uri.tryParse(recent.database.uri)?.host ?? '',
+                              )
+                            : null,
+                        trailing: widget.additional
+                            ? null
+                            : IconButton(
+                                tooltip: l10n.fileSelectRemove,
+                                icon: const Icon(Icons.close),
+                                onPressed: () async {
+                                  try {
+                                    await ref
+                                        .read(recentFilesProvider.notifier)
+                                        .forget(recent);
+                                  } on Exception {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                            SnackBar(
+                                              content: Text(l10n.errorGeneric),
+                                            ),
+                                          );
+                                    }
+                                  }
+                                },
+                              ),
+                        onTap: () => context.push(
+                          widget.additional
+                              ? AppRoutes.additionalUnlock
+                              : AppRoutes.unlock,
+                          extra: UnlockArgs(
+                            additional: widget.additional,
+                            lockGeneration: ref
+                                .read(databaseSessionProvider.notifier)
+                                .lockGeneration,
+                            database: PickedFile(ref: recent.database),
+                            keyFile: switch (recent.keyFile) {
+                              final key? => PickedFile(ref: key),
+                              null => null,
+                            },
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
+          ),
+        );
+      },
     );
   }
 

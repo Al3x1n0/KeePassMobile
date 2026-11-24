@@ -8,6 +8,17 @@ abstract final class AppSpacing {
   static const double l = 24;
 }
 
+/// Dimensioni della pila di azioni per l'apertura dei database.
+abstract final class AppFileSelectLayout {
+  static const double fabMinHeight = 56;
+  static const double fabIconSize = 24;
+  static const double contentMinHeight = 96;
+  static const fabPadding = EdgeInsetsDirectional.only(
+    start: AppSpacing.m,
+    end: AppSpacing.m + AppSpacing.xs,
+  );
+}
+
 /// Aspetto e transizioni dei riquadri espandibili condivisi.
 abstract final class AppSectionLayout {
   static const double backgroundOpacity = 0.16;

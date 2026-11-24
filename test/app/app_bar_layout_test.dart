@@ -121,7 +121,7 @@ void main() {
           expect(
             tester.getRect(fileTitle).right,
             lessThanOrEqualTo(
-              tester.getRect(find.byTooltip(l10n.remoteOpenTitle)).left,
+              tester.getRect(find.byTooltip(l10n.settingsTitle)).left,
             ),
           );
 
