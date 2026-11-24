@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../features/create_database/create_database_view.dart';
 import '../features/database_settings/change_master_key_view.dart';
@@ -18,7 +18,9 @@ import '../features/settings/settings_view.dart';
 import '../features/unlock/unlock_view.dart';
 import '../features/unlock/unlock_view_model.dart';
 import '../shared/database/database_session.dart';
+import 'database_navigation_shell.dart';
 import 'routes.dart';
+import 'theme.dart';
 
 /// Router dell'app. Le route del database sono raggiungibili solo con un
 /// database sbloccato; aprire o bloccare il database cambia la route.
@@ -72,81 +74,107 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.appSettings,
         builder: (_, _) => const SettingsView(),
       ),
-      GoRoute(
-        path: AppRoutes.database,
-        builder: (_, _) => const GroupView(),
+      ShellRoute(
+        pageBuilder: (_, state, child) => NoTransitionPage<void>(
+          key: state.pageKey,
+          child: DatabaseNavigationShell(
+            location: state.uri.path,
+            child: child,
+          ),
+        ),
         routes: [
           GoRoute(
-            path: 'group/:groupId',
-            builder: (_, state) =>
-                GroupView(groupId: state.pathParameters['groupId']),
+            path: AppRoutes.database,
+            builder: (_, _) => const GroupView(),
             routes: [
               GoRoute(
-                path: 'new',
-                builder: (_, state) => EntryEditView(
-                  target: EntryEditTarget.create(
-                    state.pathParameters['groupId'] ?? '',
-                    templateId: state.extra is String
-                        ? state.extra as String
-                        : null,
+                path: 'group/:groupId',
+                builder: (_, state) =>
+                    GroupView(groupId: state.pathParameters['groupId']),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (_, state) => EntryEditView(
+                      target: EntryEditTarget.create(
+                        state.pathParameters['groupId'] ?? '',
+                        templateId: state.extra is String
+                            ? state.extra as String
+                            : null,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-          GoRoute(
-            path: 'entry/:entryId',
-            builder: (_, state) =>
-                EntryView(entryId: state.pathParameters['entryId'] ?? ''),
-            routes: [
               GoRoute(
-                path: 'edit',
-                builder: (_, state) => EntryEditView(
-                  target: EntryEditTarget.edit(
-                    state.pathParameters['entryId'] ?? '',
+                path: 'entry/:entryId',
+                builder: (_, state) =>
+                    EntryView(entryId: state.pathParameters['entryId'] ?? ''),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (_, state) => EntryEditView(
+                      target: EntryEditTarget.edit(
+                        state.pathParameters['entryId'] ?? '',
+                      ),
+                    ),
                   ),
+                  GoRoute(
+                    path: 'history/:index',
+                    builder: (_, state) => EntryView(
+                      entryId: state.pathParameters['entryId'] ?? '',
+                      historyIndex:
+                          int.tryParse(state.pathParameters['index'] ?? '') ??
+                          -1,
+                    ),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'open',
+                builder: (_, _) => const FileSelectView(additional: true),
+                routes: [
+                  GoRoute(
+                    path: 'remote',
+                    builder: (_, _) => const RemoteOpenView(additional: true),
+                  ),
+                  GoRoute(
+                    path: 'unlock',
+                    builder: (_, state) => state.extra is UnlockArgs
+                        ? UnlockView(args: state.extra! as UnlockArgs)
+                        : const FileSelectView(additional: true),
+                  ),
+                ],
+              ),
+              GoRoute(path: 'search', builder: (_, _) => const SearchView()),
+              GoRoute(
+                path: 'favorites',
+                builder: (_, _) => const FavoritesView(),
+              ),
+              GoRoute(
+                path: 'generator',
+                builder: (_, _) => const GeneratorView(),
+              ),
+              GoRoute(
+                path: 'settings',
+                pageBuilder: (_, state) => CustomTransitionPage<void>(
+                  key: state.pageKey,
+                  transitionDuration: AppNavigationLayout.transitionDuration,
+                  reverseTransitionDuration:
+                      AppNavigationLayout.transitionDuration,
+                  child: const SettingsView(showDatabaseNavigation: true),
+                  transitionsBuilder: (_, animation, _, child) =>
+                      FadeTransition(opacity: animation, child: child),
                 ),
               ),
               GoRoute(
-                path: 'history/:index',
-                builder: (_, state) => EntryView(
-                  entryId: state.pathParameters['entryId'] ?? '',
-                  historyIndex:
-                      int.tryParse(state.pathParameters['index'] ?? '') ?? -1,
-                ),
-              ),
-            ],
-          ),
-          GoRoute(
-            path: 'open',
-            builder: (_, _) => const FileSelectView(additional: true),
-            routes: [
-              GoRoute(
-                path: 'remote',
-                builder: (_, _) => const RemoteOpenView(additional: true),
+                path: 'database-settings',
+                builder: (_, _) => const DatabaseSettingsView(),
               ),
               GoRoute(
-                path: 'unlock',
-                builder: (_, state) => state.extra is UnlockArgs
-                    ? UnlockView(args: state.extra! as UnlockArgs)
-                    : const FileSelectView(additional: true),
+                path: 'change-key',
+                builder: (_, _) => const ChangeMasterKeyView(),
               ),
             ],
-          ),
-          GoRoute(path: 'search', builder: (_, _) => const SearchView()),
-          GoRoute(path: 'favorites', builder: (_, _) => const FavoritesView()),
-          GoRoute(path: 'generator', builder: (_, _) => const GeneratorView()),
-          GoRoute(
-            path: 'settings',
-            builder: (_, _) => const SettingsView(showDatabaseNavigation: true),
-          ),
-          GoRoute(
-            path: 'database-settings',
-            builder: (_, _) => const DatabaseSettingsView(),
-          ),
-          GoRoute(
-            path: 'change-key',
-            builder: (_, _) => const ChangeMasterKeyView(),
           ),
         ],
       ),

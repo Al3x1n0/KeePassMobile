@@ -111,9 +111,7 @@ void main() {
       expect(find.textContaining('exceeds the maximum size'), findsOneWidget);
       expect(find.text('big.bin'), findsNothing);
       // L'avviso copre il pulsante: lo si chiude prima di riprovare.
-      tester
-          .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger))
-          .hideCurrentSnackBar();
+      ScaffoldMessenger.of(tester.element(add)).hideCurrentSnackBar();
       await tester.pumpAndSettle();
 
       await tester.tap(add);

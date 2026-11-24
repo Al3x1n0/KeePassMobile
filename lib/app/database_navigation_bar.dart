@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:go_router/go_router.dart';
@@ -38,6 +39,7 @@ class DatabaseNavigationBar extends StatelessWidget {
       (Icons.shield_outlined, l10n.navigationCheck, false),
       (Icons.settings_outlined, l10n.settingsTitle, true),
     ];
+    final selectedIndex = settingsSelected ? 3 : 0;
 
     return SafeArea(
       top: false,
@@ -66,29 +68,105 @@ class DatabaseNavigationBar extends StatelessWidget {
                 shape: StadiumBorder(
                   side: BorderSide(
                     color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.45,
+                      alpha: AppNavigationLayout.borderOpacity,
                     ),
                   ),
                 ),
                 child: Padding(
                   padding: AppNavigationLayout.surfacePadding,
-                  child: IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (final (index, destination) in destinations.indexed)
-                          Expanded(
-                            child: _DatabaseDestination(
-                              icon: destination.$1,
-                              label: destination.$2,
-                              selected: index == (settingsSelected ? 3 : 0),
-                              onTap: destination.$3
-                                  ? () => selectDestination(index)
-                                  : null,
-                            ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final labelStyle =
+                          navigationTheme.labelTextStyle?.resolve(
+                            const <WidgetState>{},
+                          ) ??
+                          theme.textTheme.labelMedium;
+                      final preferredWidths = <double>[];
+                      for (final (_, label, enabled) in destinations) {
+                        final painter = TextPainter(
+                          text: TextSpan(text: label, style: labelStyle),
+                          textDirection: Directionality.of(context),
+                          textScaler: MediaQuery.textScalerOf(context),
+                        )..layout();
+                        preferredWidths.add(
+                          math.max(
+                            enabled
+                                ? AppNavigationLayout.enabledMinWidth
+                                : kMinInteractiveDimension,
+                            painter.width +
+                                (enabled
+                                    ? AppNavigationLayout.labelSidePadding * 2
+                                    : 0),
                           ),
-                      ],
-                    ),
+                        );
+                        painter.dispose();
+                      }
+                      final minimumWidth =
+                          kMinInteractiveDimension * destinations.length;
+                      final preferredWidth = preferredWidths.fold<double>(
+                        0,
+                        (sum, width) => sum + width,
+                      );
+                      final extraWidth =
+                          math.max(0.0, constraints.maxWidth - preferredWidth) /
+                          destinations.length;
+                      final shrinkRatio = preferredWidth > constraints.maxWidth
+                          ? math.max(
+                              0.0,
+                              (constraints.maxWidth - minimumWidth) /
+                                  (preferredWidth - minimumWidth),
+                            )
+                          : 1.0;
+                      final widths = [
+                        for (final width in preferredWidths)
+                          kMinInteractiveDimension +
+                              (width - kMinInteractiveDimension) * shrinkRatio +
+                              extraWidth,
+                      ];
+
+                      return IntrinsicHeight(
+                        child: Stack(
+                          children: [
+                            AnimatedPositionedDirectional(
+                              duration: AppNavigationLayout.transitionDuration,
+                              curve: AppNavigationLayout.selectionCurve,
+                              start: widths
+                                  .take(selectedIndex)
+                                  .fold<double>(0, (sum, width) => sum + width),
+                              top: 0,
+                              bottom: 0,
+                              width: widths[selectedIndex],
+                              child: IgnorePointer(
+                                child: DecoratedBox(
+                                  decoration: ShapeDecoration(
+                                    color: navigationTheme.indicatorColor,
+                                    shape: const StadiumBorder(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                for (final (index, destination)
+                                    in destinations.indexed)
+                                  SizedBox(
+                                    width: widths[index],
+                                    child: _DatabaseDestination(
+                                      icon: destination.$1,
+                                      label: destination.$2,
+                                      selected: index == selectedIndex,
+                                      onTap: destination.$3
+                                          ? () => selectDestination(index)
+                                          : null,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -115,11 +193,19 @@ class _DatabaseDestination extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final navigationTheme = Theme.of(context).navigationBarTheme;
+    final theme = Theme.of(context);
+    final navigationTheme = theme.navigationBarTheme;
     final states = {
       if (selected) WidgetState.selected,
       if (onTap == null) WidgetState.disabled,
     };
+    final iconColor =
+        navigationTheme.iconTheme?.resolve(states)?.color ??
+        theme.colorScheme.onSurfaceVariant;
+    final labelStyle =
+        navigationTheme.labelTextStyle?.resolve(states) ??
+        theme.textTheme.labelMedium ??
+        DefaultTextStyle.of(context).style;
     return Semantics(
       button: true,
       selected: selected,
@@ -128,7 +214,7 @@ class _DatabaseDestination extends StatelessWidget {
         message: label,
         excludeFromSemantics: true,
         child: Material(
-          color: selected ? navigationTheme.indicatorColor : Colors.transparent,
+          color: Colors.transparent,
           shape: const StadiumBorder(),
           child: InkWell(
             onTap: onTap,
@@ -139,22 +225,29 @@ class _DatabaseDestination extends StatelessWidget {
                 minHeight: AppNavigationLayout.destinationMinHeight,
               ),
               child: Padding(
-                padding: AppNavigationLayout.destinationPadding,
+                padding: onTap == null
+                    ? AppNavigationLayout.disabledDestinationPadding
+                    : AppNavigationLayout.destinationPadding,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconTheme(
-                      data:
-                          navigationTheme.iconTheme?.resolve(states) ??
-                          const IconThemeData(),
-                      child: Icon(icon, size: AppNavigationLayout.iconSize),
+                    TweenAnimationBuilder<Color?>(
+                      tween: ColorTween(end: iconColor),
+                      duration: AppNavigationLayout.transitionDuration,
+                      curve: AppNavigationLayout.selectionCurve,
+                      builder: (context, color, child) => Icon(
+                        icon,
+                        size: AppNavigationLayout.iconSize,
+                        color: color,
+                      ),
                     ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: navigationTheme.labelTextStyle?.resolve(states),
+                    const SizedBox(height: AppNavigationLayout.iconLabelGap),
+                    AnimatedDefaultTextStyle(
+                      style: labelStyle,
+                      duration: AppNavigationLayout.transitionDuration,
+                      curve: AppNavigationLayout.selectionCurve,
+                      child: Text(label, textAlign: TextAlign.center),
                     ),
                   ],
                 ),

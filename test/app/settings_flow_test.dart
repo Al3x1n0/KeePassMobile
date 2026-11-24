@@ -375,6 +375,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 500));
         expect(find.byType(LicensePage), findsOneWidget);
+        expect(find.byType(DatabaseNavigationBar), findsNothing);
         expect(tester.takeException(), isNull);
       },
     );

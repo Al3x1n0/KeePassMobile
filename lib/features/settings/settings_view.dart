@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../app/database_navigation_bar.dart';
+import '../../app/database_navigation_shell.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -57,7 +57,7 @@ class SettingsView extends ConsumerWidget {
       extendBody: showNavigation,
       appBar: AppBar(title: Text(l10n.settingsTitle)),
       bottomNavigationBar: showNavigation
-          ? const DatabaseNavigationBar(settingsSelected: true)
+          ? DatabaseNavigationShell.bottomBar(context, settingsSelected: true)
           : null,
       body: Builder(
         builder: (context) => ListView(
@@ -314,6 +314,7 @@ class SettingsView extends ConsumerWidget {
                 showLicensePage(
                   context: context,
                   applicationName: 'KeePassMobile',
+                  useRootNavigator: true,
                 );
               },
             ),

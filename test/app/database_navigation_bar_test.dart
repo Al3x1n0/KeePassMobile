@@ -12,8 +12,10 @@ Future<void> _pumpBar(
   Locale locale = const Locale('it'),
   bool settingsSelected = false,
   TextScaler textScaler = TextScaler.noScaling,
+  double width = 320,
+  bool settle = true,
 }) async {
-  tester.view.physicalSize = const Size(320, 640);
+  tester.view.physicalSize = Size(width, 640);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -48,7 +50,7 @@ Future<void> _pumpBar(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) await tester.pumpAndSettle();
 }
 
 Finder _tab(String label) => find
@@ -59,6 +61,13 @@ Finder _tab(String label) => find
       ),
     )
     .first;
+
+Finder _indicator() => find.descendant(
+  of: find.byType(DatabaseNavigationBar),
+  matching: find.byWidgetPredicate(
+    (widget) => widget is AnimatedPositionedDirectional,
+  ),
+);
 
 void _expectContains(Rect outer, Rect inner) {
   expect(inner.left, greaterThanOrEqualTo(outer.left));
@@ -94,7 +103,7 @@ void main() {
 
         final color = material.color!;
         expect(color.a, greaterThan(0));
-        expect(color.a, lessThan(1));
+        expect(color.a, lessThan(0.5));
         expect(
           color.toARGB32() & 0x00FFFFFF,
           brightness == Brightness.dark ? 0x0020202E : 0x00F5F5F7,
@@ -147,25 +156,26 @@ void main() {
             expect(target.height, greaterThanOrEqualTo(48));
 
             if (index != activeIndex) continue;
-            final activePill = find
-                .ancestor(
-                  of: find.text(label),
-                  matching: find.byWidgetPredicate(
-                    (widget) =>
-                        widget is Material &&
-                        widget.shape is StadiumBorder &&
-                        widget.color ==
-                            Theme.of(tester.element(tab))
-                                .navigationBarTheme
-                                .indicatorColor,
-                  ),
-                )
-                .first;
+            final activePill = _indicator();
             expect(activePill, findsOneWidget);
             final pill = tester.getRect(activePill);
-            _expectContains(pill, tester.getRect(find.text(label)));
+            final labelBounds = tester.getRect(find.text(label));
+            _expectContains(pill, labelBounds);
             _expectContains(pill, tester.getRect(find.byIcon(icon)));
-            final activeColor = tester.widget<Material>(activePill).color!;
+            expect(labelBounds.left - pill.left, greaterThanOrEqualTo(8));
+            expect(pill.right - labelBounds.right, greaterThanOrEqualTo(8));
+            final decoration =
+                tester
+                        .widget<DecoratedBox>(
+                          find.descendant(
+                            of: activePill,
+                            matching: find.byType(DecoratedBox),
+                          ),
+                        )
+                        .decoration
+                    as ShapeDecoration;
+            final activeColor = decoration.color!;
+            expect(decoration.shape, isA<StadiumBorder>());
             expect(activeColor.a, greaterThan(0));
             expect(activeColor.a, lessThan(1));
             expect(activeColor.toARGB32() & 0x00FFFFFF, 0x000066FF);
@@ -186,6 +196,55 @@ void main() {
         },
       );
     }
+
+    testWidgets(
+      'barra ${brightness.name}: capsula compatta e selezione con margini',
+      (tester) async {
+        // Il font dei widget test è più largo dei caratteri dell'app.
+        await _pumpBar(tester, brightness: brightness, width: 600);
+        final capsule = tester.getRect(find.byType(BackdropFilter));
+        final pill = tester.getRect(_indicator());
+        expect(capsule.height, 56);
+        expect(pill.width, greaterThan(pill.height));
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'barra ${brightness.name}: lo stesso ovale si sposta e si allarga verso Impostazioni',
+      (tester) async {
+        // given
+        await _pumpBar(tester, brightness: brightness, width: 600);
+        final element = tester.element(_indicator());
+        final home = tester.getRect(_indicator());
+
+        // when
+        await _pumpBar(
+          tester,
+          brightness: brightness,
+          width: 600,
+          settingsSelected: true,
+          settle: false,
+        );
+        expect(tester.element(_indicator()), same(element));
+        expect(tester.getRect(_indicator()), home);
+        await tester.pump(const Duration(milliseconds: 120));
+        final halfway = tester.getRect(_indicator());
+        await tester.pumpAndSettle();
+        final settings = tester.getRect(_indicator());
+
+        // then: posizione e larghezza cambiano senza ricreare l'indicatore.
+        expect(halfway.left, greaterThan(home.left));
+        expect(halfway.left, lessThan(settings.left));
+        expect(halfway.width, greaterThan(home.width));
+        expect(halfway.width, lessThan(settings.width));
+        expect(settings.width, greaterThan(home.width));
+        final label = tester.getRect(find.text('Impostazioni'));
+        expect(label.left - settings.left, greaterThanOrEqualTo(8));
+        expect(settings.right - label.right, greaterThanOrEqualTo(8));
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     for (final locale in [const Locale('it'), const Locale('en')]) {
       testWidgets(

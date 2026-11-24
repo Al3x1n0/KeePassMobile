@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kpasslib/kpasslib.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../app/database_navigation_bar.dart';
+import '../../app/database_navigation_shell.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -98,12 +98,12 @@ class _GroupViewState extends ConsumerState<GroupView> {
 
     void toggleSelection(String itemId) {
       if (busy) return;
-      setState(() {
+      _updateSelection(() {
         if (!_selected.remove(itemId)) _selected.add(itemId);
       });
     }
 
-    void selectAll() => setState(() {
+    void selectAll() => _updateSelection(() {
       _selected.addAll(visibleGroups.map(itemIdOf));
       _selected.addAll(content.entries.map(itemIdOf));
     });
@@ -129,7 +129,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
                               _selected.toList(),
                             ) &&
                             mounted) {
-                          setState(_selected.clear);
+                          _updateSelection(_selected.clear);
                         }
                       },
               ),
@@ -149,7 +149,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
                               move: true,
                             ) &&
                             mounted) {
-                          setState(_selected.clear);
+                          _updateSelection(_selected.clear);
                         }
                       },
               ),
@@ -169,7 +169,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
                             icon: selectedGroup.icon,
                           ),
                         );
-                        if (mounted) setState(_selected.clear);
+                        if (mounted) _updateSelection(_selected.clear);
                       },
               ),
             if (inBin)
@@ -205,7 +205,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
         canPop: _selected.isEmpty,
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop && _selected.isNotEmpty && !busy) {
-            setState(_selected.clear);
+            _updateSelection(_selected.clear);
           }
         },
         child: Scaffold(
@@ -227,7 +227,9 @@ class _GroupViewState extends ConsumerState<GroupView> {
                 : IconButton(
                     tooltip: l10n.cancel,
                     icon: const Icon(Icons.close),
-                    onPressed: busy ? null : () => setState(_selected.clear),
+                    onPressed: busy
+                        ? null
+                        : () => _updateSelection(_selected.clear),
                   ),
             actions: widget.groupId == null && _selected.isEmpty
                 ? [
@@ -237,6 +239,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
                       onPressed: () => context.push(AppRoutes.search),
                     ),
                     PopupMenuButton<_HomeAction>(
+                      useRootNavigator: true,
                       tooltip: l10n.groupMore,
                       icon: const Icon(Icons.more_vert),
                       position: PopupMenuPosition.under,
@@ -314,7 +317,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
                   ),
           ),
           bottomNavigationBar: _selected.isEmpty
-              ? const DatabaseNavigationBar()
+              ? DatabaseNavigationShell.bottomBar(context)
               : null,
           floatingActionButton: inBin || _selected.isNotEmpty
               ? null
@@ -410,6 +413,11 @@ class _GroupViewState extends ConsumerState<GroupView> {
     );
   }
 
+  void _updateSelection(VoidCallback change) {
+    setState(change);
+    DatabaseNavigationShell.selectionChanged(context, _selected.isNotEmpty);
+  }
+
   PopupMenuItem<_HomeAction> _homeMenuItem(
     _HomeAction action,
     IconData icon,
@@ -457,7 +465,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
     final success = await ref
         .read(itemActionsProvider(id).notifier)
         .deleteItems(_selected.toList());
-    if (success && mounted) setState(_selected.clear);
+    if (success && mounted) _updateSelection(_selected.clear);
   }
 
   Future<void> _moveSelection(
@@ -471,14 +479,14 @@ class _GroupViewState extends ConsumerState<GroupView> {
     final success = await ref
         .read(itemActionsProvider(id).notifier)
         .moveItems(selected, target);
-    if (success && mounted) setState(_selected.clear);
+    if (success && mounted) _updateSelection(_selected.clear);
   }
 
   Future<void> _restoreSelection(WidgetRef ref, String id) async {
     final success = await ref
         .read(itemActionsProvider(id).notifier)
         .restoreItems(_selected.toList());
-    if (success && mounted) setState(_selected.clear);
+    if (success && mounted) _updateSelection(_selected.clear);
   }
 
   Future<void> _chooseSortOrder(BuildContext context, WidgetRef ref) async {

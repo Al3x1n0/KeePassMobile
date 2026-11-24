@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/app.dart';
+import 'package:keepass_mobile/app/database_navigation_bar.dart';
+import 'package:keepass_mobile/app/database_navigation_shell.dart';
 import 'package:keepass_mobile/features/file_select/recent_files.dart';
 import 'package:keepass_mobile/l10n/app_localizations.dart';
 import 'package:keepass_mobile/shared/security/biometric_key_store.dart';
@@ -109,13 +111,36 @@ void main() {
           )
           .length;
       final requests = biometricRequests();
+      final databaseNavigator = find.descendant(
+        of: find.byType(DatabaseNavigationShell),
+        matching: find.byType(Navigator),
+      );
+      final previousNavigator = tester.state<NavigatorState>(databaseNavigator);
 
       await selectHomeAction(tester, l10n, l10n.groupLock);
       await tester.pump();
 
       // Blocco completo, poi di nuovo l'impronta per lo stesso file.
       await pumpUntilFound(tester, find.text('Conto'));
+      await tester.pumpAndSettle();
       expect(biometricRequests(), requests + 1);
+      expect(previousNavigator.mounted, isFalse);
+      expect(
+        tester.state<NavigatorState>(databaseNavigator),
+        isNot(same(previousNavigator)),
+      );
+
+      final bar = find.byType(DatabaseNavigationBar);
+      final barElement = tester.element(bar);
+      await tester.tap(
+        find.descendant(of: bar, matching: find.text(l10n.settingsTitle)),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.element(bar), same(barElement));
+      expect(
+        tester.widget<DatabaseNavigationBar>(bar).settingsSelected,
+        isTrue,
+      );
     },
   );
 }

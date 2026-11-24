@@ -24,7 +24,7 @@ Future<void> addLinkedDatabase(BuildContext context, WidgetRef ref) async {
   ];
   if (available.isEmpty) return;
   final l10n = AppLocalizations.of(context);
-  final navigator = Navigator.of(context);
+  final navigator = Navigator.of(context, rootNavigator: true);
   final password = TextEditingController();
   Route<_LinkedTarget>? pickerRoute;
   final route = DialogRoute<({_LinkedTarget child, String password})>(
@@ -41,8 +41,10 @@ Future<void> addLinkedDatabase(BuildContext context, WidgetRef ref) async {
   ) {
     if (next != null) return;
     final picker = pickerRoute;
-    if (picker != null && picker.isActive) navigator.removeRoute(picker);
-    if (route.isActive) navigator.removeRoute(route);
+    if (picker != null && picker.isActive) {
+      picker.navigator?.removeRoute(picker);
+    }
+    if (route.isActive) route.navigator?.removeRoute(route);
   });
   try {
     final result = await navigator.push(route);

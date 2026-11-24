@@ -10,11 +10,17 @@ abstract final class AppSpacing {
 
 /// Dimensioni della navigazione flottante e dello spazio per il pulsante aggiungi.
 abstract final class AppNavigationLayout {
-  static const double destinationMinHeight = 64;
-  static const double iconSize = 24;
+  static const double destinationMinHeight = 48;
+  static const double enabledMinWidth = 64;
+  static const double labelSidePadding = AppSpacing.s + AppSpacing.xs;
+  static const double iconSize = 22;
+  static const double iconLabelGap = 2;
   static const double blurSigma = 12;
-  static const double shadowBlurRadius = 20;
+  static const double borderOpacity = 0.22;
+  static const double shadowBlurRadius = 16;
   static const double fabClearance = 56 + AppSpacing.m * 2;
+  static const transitionDuration = Duration(milliseconds: 240);
+  static const selectionCurve = Curves.easeOutCubic;
 
   static const margin = EdgeInsets.fromLTRB(
     AppSpacing.m,
@@ -24,7 +30,11 @@ abstract final class AppNavigationLayout {
   );
   static const surfacePadding = EdgeInsets.all(AppSpacing.xs);
   static const destinationPadding = EdgeInsets.symmetric(
-    vertical: AppSpacing.s,
+    horizontal: labelSidePadding,
+    vertical: AppSpacing.xs,
+  );
+  static const disabledDestinationPadding = EdgeInsets.symmetric(
+    vertical: AppSpacing.xs,
   );
 }
 
@@ -107,10 +117,10 @@ ThemeData _buildTheme(Brightness brightness) {
       menuPadding: const EdgeInsets.symmetric(vertical: AppSpacing.s),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: barColor.withValues(alpha: 0.84),
+      backgroundColor: barColor.withValues(alpha: dark ? 0.32 : 0.28),
       elevation: 0,
-      shadowColor: scheme.shadow.withValues(alpha: dark ? 0.24 : 0.10),
-      indicatorColor: AppColors.blue.withValues(alpha: dark ? 0.20 : 0.12),
+      shadowColor: scheme.shadow.withValues(alpha: dark ? 0.16 : 0.06),
+      indicatorColor: AppColors.blue.withValues(alpha: dark ? 0.18 : 0.10),
       indicatorShape: const StadiumBorder(),
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => IconThemeData(
@@ -124,6 +134,7 @@ ThemeData _buildTheme(Brightness brightness) {
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => navigationLabel?.copyWith(
           letterSpacing: 0,
+          height: 1.2,
           color: states.contains(WidgetState.disabled)
               ? scheme.onSurface.withValues(alpha: 0.38)
               : states.contains(WidgetState.selected)

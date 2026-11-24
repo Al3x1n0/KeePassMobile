@@ -39,7 +39,7 @@ Future<T?> showListSheet<T>({
   required List<Widget> Function(BuildContext) buildItems,
   ValueChanged<Route<T>>? onRoute,
 }) {
-  final navigator = Navigator.of(context);
+  final navigator = Navigator.of(context, rootNavigator: true);
   final localizations = MaterialLocalizations.of(context);
   final route = ModalBottomSheetRoute<T>(
     capturedThemes: InheritedTheme.capture(
