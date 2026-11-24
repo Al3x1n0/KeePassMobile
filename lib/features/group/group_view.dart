@@ -17,7 +17,8 @@ import '../../shared/security/biometric_key_store.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/remote_storage.dart';
-import '../../shared/ui/app_bar_action_row.dart';
+import '../../shared/ui/action_popup_menu.dart';
+import '../../shared/ui/selection_app_bar_builder.dart';
 import '../../shared/ui/cross_database_copy_sheet.dart';
 import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/entry_tile.dart';
@@ -34,6 +35,16 @@ import 'group_edit_dialog.dart';
 import 'group_view_model.dart';
 
 enum _HomeAction { favorites, sort, databases, synchronize, recycleBin, lock }
+
+enum _ItemAction {
+  edit,
+  move,
+  duplicate,
+  delete,
+  restore,
+  copyDatabase,
+  moveDatabase,
+}
 
 /// Elenco di sottogruppi e voci di un gruppo (GroupActivity di
 /// Keepass2Android).
@@ -67,11 +78,21 @@ class _GroupViewState extends ConsumerState<GroupView> {
               .where((g) => itemIdOf(g) == _selected.single)
               .firstOrNull
         : null;
-    final selectedGroupId = selectedGroup == null
-        ? null
-        : itemIdOf(selectedGroup);
+    final selectedItemId = _selected.length == 1 ? _selected.single : null;
+    final selectedEntries = content.entries
+        .where((entry) => _selected.contains(itemIdOf(entry)))
+        .toList();
+    final entriesOnly =
+        !inBin &&
+        _selected.isNotEmpty &&
+        selectedEntries.length == _selected.length;
+    final allFavorites = entriesOnly && selectedEntries.every(isEntryFavorite);
+    final selectedEntry =
+        !inBin && selectedEntries.length == 1 && _selected.length == 1
+        ? selectedEntries.single
+        : null;
     var busy = _synchronizing;
-    for (final actionId in [id, ?selectedGroupId]) {
+    for (final actionId in {id, ?selectedItemId}) {
       final actions = itemActionsProvider(actionId);
       final actionBusy = ref.watch(actions).isLoading;
       busy = busy || actionBusy;
@@ -113,92 +134,139 @@ class _GroupViewState extends ConsumerState<GroupView> {
         visibleGroups.any((group) => !_selected.contains(itemIdOf(group))) ||
         content.entries.any((entry) => !_selected.contains(itemIdOf(entry)));
 
-    final appBarActions = _selected.isNotEmpty
-        ? [
-            if (ref.read(databaseSessionProvider.notifier).openSessions.length >
-                    1 &&
-                !inBin)
-              IconButton(
-                tooltip: l10n.databasesCopy,
-                icon: const Icon(Icons.file_copy_outlined),
-                onPressed: busy
-                    ? null
-                    : () async {
-                        if (await copyToAnotherDatabase(
-                              context,
-                              ref,
-                              _selected.toList(),
-                            ) &&
-                            mounted) {
-                          _updateSelection(_selected.clear);
-                        }
-                      },
-              ),
-            if (ref.read(databaseSessionProvider.notifier).openSessions.length >
-                    1 &&
-                !inBin)
-              IconButton(
-                tooltip: l10n.databasesMove,
-                icon: const Icon(Icons.drive_file_move_outline),
-                onPressed: busy
-                    ? null
-                    : () async {
-                        if (await copyToAnotherDatabase(
-                              context,
-                              ref,
-                              _selected.toList(),
-                              move: true,
-                            ) &&
-                            mounted) {
-                          _updateSelection(_selected.clear);
-                        }
-                      },
-              ),
-            if (selectedGroup != null && selectedGroupId != null)
-              IconButton(
-                tooltip: l10n.groupEdit,
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: busy
-                    ? null
-                    : () async {
-                        await _editGroup(
-                          context,
-                          ref,
-                          selectedGroupId,
-                          initial: GroupDraft(
-                            name: selectedGroup.name,
-                            icon: selectedGroup.icon,
-                          ),
-                        );
-                        if (mounted) _updateSelection(_selected.clear);
-                      },
-              ),
-            if (inBin)
-              IconButton(
-                tooltip: l10n.itemRestore,
-                icon: const Icon(Icons.restore),
-                onPressed: busy ? null : () => _restoreSelection(ref, id),
-              ),
-            if (!inBin)
-              IconButton(
-                tooltip: l10n.itemMoveTitle,
-                icon: const Icon(Icons.drive_file_move_outline),
-                onPressed: busy ? null : () => _moveSelection(context, ref, id),
-              ),
-            IconButton(
-              tooltip: l10n.entryDelete,
-              icon: const Icon(Icons.delete_outline),
-              onPressed: busy
-                  ? null
-                  : () => _deleteSelection(
-                      context,
-                      ref,
-                      id,
-                      inBin || !session.database.meta.recycleBinEnabled,
-                    ),
-            ),
-          ]
-        : <Widget>[];
+    final hasOtherDatabases =
+        ref.read(databaseSessionProvider.notifier).openSessions.length > 1;
+    final itemMenu = <ActionPopupItem<_ItemAction>>[
+      if (!inBin) ...[
+        if (_selected.isEmpty || selectedGroup != null || selectedEntry != null)
+          ActionPopupItem(
+            value: _ItemAction.edit,
+            icon: Icons.edit_outlined,
+            label: l10n.entryEdit,
+          ),
+        ActionPopupItem(
+          value: _ItemAction.move,
+          icon: Icons.drive_file_move_outline,
+          label: l10n.itemMoveTitle,
+        ),
+        if (selectedEntry != null)
+          ActionPopupItem(
+            value: _ItemAction.duplicate,
+            icon: Icons.content_copy_outlined,
+            label: l10n.itemDuplicate,
+          ),
+      ] else
+        ActionPopupItem(
+          value: _ItemAction.restore,
+          icon: Icons.restore,
+          label: l10n.itemRestore,
+        ),
+      ActionPopupItem(
+        value: _ItemAction.delete,
+        icon: Icons.delete_outline,
+        label: l10n.entryDelete,
+      ),
+      if (_selected.isNotEmpty && !inBin && hasOtherDatabases) ...[
+        ActionPopupItem(
+          value: _ItemAction.copyDatabase,
+          icon: Icons.file_copy_outlined,
+          label: l10n.databasesCopy,
+        ),
+        ActionPopupItem(
+          value: _ItemAction.moveDatabase,
+          icon: Icons.drive_file_move_outline,
+          label: l10n.databasesMove,
+        ),
+      ],
+    ];
+    final itemActions = <Widget>[
+      if (entriesOnly)
+        IconButton(
+          tooltip: allFavorites
+              ? l10n.entryFavoriteRemove
+              : l10n.entryFavoriteAdd,
+          isSelected: allFavorites,
+          color: allFavorites ? Theme.of(context).colorScheme.primary : null,
+          icon: const Icon(Icons.star_border),
+          selectedIcon: const Icon(Icons.star),
+          onPressed: busy
+              ? null
+              : () => ref
+                    .read(itemActionsProvider(id).notifier)
+                    .setFavorites(_selected.toList(), !allFavorites),
+        ),
+      ActionPopupMenu<_ItemAction>(
+        enabled: !busy,
+        items: itemMenu,
+        onSelected: (action) async {
+          switch (action) {
+            case _ItemAction.edit:
+              if (selectedEntry != null) {
+                final entryId = itemIdOf(selectedEntry);
+                _updateSelection(_selected.clear);
+                context.push(AppRoutes.entryEdit(entryId));
+              } else {
+                final group = selectedGroup ?? content.group;
+                await _editGroup(
+                  context,
+                  ref,
+                  itemIdOf(group),
+                  initial: GroupDraft(name: group.name, icon: group.icon),
+                );
+                if (mounted && _selected.isNotEmpty) {
+                  _updateSelection(_selected.clear);
+                }
+              }
+            case _ItemAction.move:
+              if (_selected.isNotEmpty) {
+                await _moveSelection(context, ref, id);
+              } else {
+                final target = await showGroupDestinationSheet(context, [id]);
+                if (target != null && mounted) {
+                  await ref.read(itemActionsProvider(id).notifier).move(target);
+                }
+              }
+            case _ItemAction.duplicate:
+              if (selectedItemId == null) return;
+              final copy = await ref
+                  .read(itemActionsProvider(selectedItemId).notifier)
+                  .duplicate(l10n.itemDuplicateSuffix);
+              if (copy != null && mounted) _updateSelection(_selected.clear);
+            case _ItemAction.delete:
+              if (_selected.isNotEmpty) {
+                await _deleteSelection(
+                  context,
+                  ref,
+                  id,
+                  inBin || !session.database.meta.recycleBinEnabled,
+                );
+              } else {
+                await _deleteCurrentGroup(
+                  content.group,
+                  inBin || !session.database.meta.recycleBinEnabled,
+                );
+              }
+            case _ItemAction.restore:
+              if (_selected.isNotEmpty) {
+                await _restoreSelection(ref, id);
+              } else {
+                await ref.read(itemActionsProvider(id).notifier).restore();
+              }
+            case _ItemAction.copyDatabase:
+            case _ItemAction.moveDatabase:
+              if (await copyToAnotherDatabase(
+                    context,
+                    ref,
+                    _selected.toList(),
+                    move: action == _ItemAction.moveDatabase,
+                  ) &&
+                  mounted) {
+                _updateSelection(_selected.clear);
+              }
+          }
+        },
+      ),
+    ];
 
     return _BiometricOfferHost(
       enabled: widget.groupId == null,
@@ -209,202 +277,196 @@ class _GroupViewState extends ConsumerState<GroupView> {
             _updateSelection(_selected.clear);
           }
         },
-        child: Scaffold(
-          extendBody: _selected.isEmpty,
-          appBar: AppBar(
-            title: Text(
-              _selected.isEmpty
-                  ? content.group == recycleBin
-                        ? l10n.dbSettingsRecycleBin
-                        : content.group.name
-                  : l10n.itemsSelected(_selected.length),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+        child: SelectionAppBarBuilder(
+          showSelectAll: _selected.isNotEmpty && hasUnselectedItems,
+          onSelectAll: busy ? null : selectAll,
+          builder: (context, bottom) => Scaffold(
+            extendBody: _selected.isEmpty,
+            appBar: AppBar(
+              title: Text(
+                _selected.isEmpty
+                    ? content.group == recycleBin
+                          ? l10n.dbSettingsRecycleBin
+                          : content.group.name
+                    : l10n.itemsSelected(_selected.length),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              leading: _selected.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: l10n.cancel,
+                      icon: const Icon(Icons.close),
+                      onPressed: busy
+                          ? null
+                          : () => _updateSelection(_selected.clear),
+                    ),
+              actions: _selected.isNotEmpty
+                  ? itemActions
+                  : widget.groupId == null
+                  ? [
+                      IconButton(
+                        tooltip: l10n.searchTitle,
+                        icon: const Icon(Icons.search),
+                        onPressed: () => context.push(AppRoutes.search),
+                      ),
+                      ActionPopupMenu<_HomeAction>(
+                        items: [
+                          if (hasFavorites)
+                            _homeMenuItem(
+                              _HomeAction.favorites,
+                              Icons.star_border,
+                              l10n.favoritesTitle,
+                            ),
+                          _homeMenuItem(
+                            _HomeAction.sort,
+                            Icons.sort,
+                            l10n.groupSort,
+                          ),
+                          _homeMenuItem(
+                            _HomeAction.databases,
+                            Icons.folder_copy_outlined,
+                            l10n.databasesTitle,
+                            enabled: !busy,
+                          ),
+                          _homeMenuItem(
+                            _HomeAction.synchronize,
+                            Icons.sync,
+                            l10n.syncNow,
+                            enabled: !busy,
+                          ),
+                          if (recycleBin != null &&
+                              (recycleBin.groups.isNotEmpty ||
+                                  recycleBin.entries.isNotEmpty))
+                            _homeMenuItem(
+                              _HomeAction.recycleBin,
+                              Icons.delete_outline,
+                              l10n.dbSettingsRecycleBin,
+                            ),
+                          _homeMenuItem(
+                            _HomeAction.lock,
+                            Icons.lock_outline,
+                            l10n.groupLock,
+                          ),
+                        ],
+                        onSelected: (action) {
+                          switch (action) {
+                            case _HomeAction.favorites:
+                              context.push(AppRoutes.favorites);
+                            case _HomeAction.sort:
+                              _chooseSortOrder(context, ref);
+                            case _HomeAction.databases:
+                              _chooseDatabase(context, ref);
+                            case _HomeAction.synchronize:
+                              _synchronize(context, ref);
+                            case _HomeAction.recycleBin:
+                              if (recycleBin != null) {
+                                context.push(
+                                  AppRoutes.group(itemIdOf(recycleBin)),
+                                );
+                              }
+                            case _HomeAction.lock:
+                              ref.read(relockProvider.notifier).lockAndReturn();
+                          }
+                        },
+                      ),
+                    ]
+                  : content.group == recycleBin
+                  ? null
+                  : itemActions,
+              bottom: bottom,
             ),
-            leading: _selected.isEmpty
+            bottomNavigationBar: _selected.isEmpty
+                ? DatabaseNavigationShell.bottomBar(context)
+                : null,
+            floatingActionButton: inBin || _selected.isNotEmpty
                 ? null
-                : IconButton(
-                    tooltip: l10n.cancel,
-                    icon: const Icon(Icons.close),
+                : FloatingActionButton(
+                    tooltip: l10n.groupAddEntry,
                     onPressed: busy
                         ? null
-                        : () => _updateSelection(_selected.clear),
+                        : () => _addItem(context, session.database, id),
+                    child: const Icon(Icons.add),
                   ),
-            actions: widget.groupId == null && _selected.isEmpty
-                ? [
-                    IconButton(
-                      tooltip: l10n.searchTitle,
-                      icon: const Icon(Icons.search),
-                      onPressed: () => context.push(AppRoutes.search),
-                    ),
-                    PopupMenuButton<_HomeAction>(
-                      useRootNavigator: true,
-                      tooltip: l10n.groupMore,
-                      icon: const Icon(Icons.more_vert),
-                      position: PopupMenuPosition.under,
-                      itemBuilder: (context) => [
-                        if (hasFavorites)
-                          _homeMenuItem(
-                            _HomeAction.favorites,
-                            Icons.star_border,
-                            l10n.favoritesTitle,
-                          ),
-                        _homeMenuItem(
-                          _HomeAction.sort,
-                          Icons.sort,
-                          l10n.groupSort,
-                        ),
-                        _homeMenuItem(
-                          _HomeAction.databases,
-                          Icons.folder_copy_outlined,
-                          l10n.databasesTitle,
-                          enabled: !busy,
-                        ),
-                        _homeMenuItem(
-                          _HomeAction.synchronize,
-                          Icons.sync,
-                          l10n.syncNow,
-                          enabled: !busy,
-                        ),
-                        if (recycleBin != null &&
-                            (recycleBin.groups.isNotEmpty ||
-                                recycleBin.entries.isNotEmpty))
-                          _homeMenuItem(
-                            _HomeAction.recycleBin,
-                            Icons.delete_outline,
-                            l10n.dbSettingsRecycleBin,
-                          ),
-                        _homeMenuItem(
-                          _HomeAction.lock,
-                          Icons.lock_outline,
-                          l10n.groupLock,
-                        ),
-                      ],
-                      onSelected: (action) {
-                        switch (action) {
-                          case _HomeAction.favorites:
-                            context.push(AppRoutes.favorites);
-                          case _HomeAction.sort:
-                            _chooseSortOrder(context, ref);
-                          case _HomeAction.databases:
-                            _chooseDatabase(context, ref);
-                          case _HomeAction.synchronize:
-                            _synchronize(context, ref);
-                          case _HomeAction.recycleBin:
-                            if (recycleBin != null) {
-                              context.push(
-                                AppRoutes.group(itemIdOf(recycleBin)),
-                              );
-                            }
-                          case _HomeAction.lock:
-                            ref.read(relockProvider.notifier).lockAndReturn();
-                        }
-                      },
-                    ),
-                  ]
-                : null,
-            bottom: _selected.isEmpty
-                ? null
-                : AppBarActionRow(
-                    leading: _selected.isNotEmpty && hasUnselectedItems
-                        ? TextButton(
-                            onPressed: busy ? null : selectAll,
-                            child: Text(l10n.itemsSelectAllShort),
+            body: Builder(
+              builder: (context) => Column(
+                children: [
+                  const RemoteCacheBanner(),
+                  Expanded(
+                    child: listIsEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppSpacing.l),
+                              child: Text(l10n.groupEmpty),
+                            ),
                           )
-                        : null,
-                    actions: appBarActions,
-                  ),
-          ),
-          bottomNavigationBar: _selected.isEmpty
-              ? DatabaseNavigationShell.bottomBar(context)
-              : null,
-          floatingActionButton: inBin || _selected.isNotEmpty
-              ? null
-              : FloatingActionButton(
-                  tooltip: l10n.groupAddEntry,
-                  onPressed: busy
-                      ? null
-                      : () => _addItem(context, session.database, id),
-                  child: const Icon(Icons.add),
-                ),
-          body: Builder(
-            builder: (context) => Column(
-              children: [
-                const RemoteCacheBanner(),
-                Expanded(
-                  child: listIsEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(AppSpacing.l),
-                            child: Text(l10n.groupEmpty),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: _selected.isEmpty
-                              ? EdgeInsets.only(
-                                  bottom:
-                                      MediaQuery.paddingOf(context).bottom +
-                                      (inBin
-                                          ? AppSpacing.m
-                                          : AppNavigationLayout.fabClearance),
-                                )
-                              : null,
-                          itemCount:
-                              recentSectionCount +
-                              visibleGroups.length +
-                              content.entries.length,
-                          itemBuilder: (context, index) {
-                            if (index < recentSectionCount) {
-                              return _RecentPasswordsSection(
-                                entries: recentEntries,
-                              );
-                            }
-                            final groupIndex = index - recentSectionCount;
-                            if (groupIndex < visibleGroups.length) {
-                              final group = visibleGroups[groupIndex];
-                              final groupId = itemIdOf(group);
-                              return ListTile(
-                                leading: DatabaseItemIcon(
-                                  item: group,
-                                  database: session.database,
-                                ),
-                                title: Text(
-                                  group.name,
-                                  style: TextStyle(
-                                    fontSize: ref
-                                        .watch(
-                                          appSettingsProvider.select(
-                                            (s) => s.listTextSize,
-                                          ),
-                                        )
-                                        .toDouble(),
+                        : ListView.builder(
+                            padding: _selected.isEmpty
+                                ? EdgeInsets.only(
+                                    bottom:
+                                        MediaQuery.paddingOf(context).bottom +
+                                        (inBin
+                                            ? AppSpacing.m
+                                            : AppNavigationLayout.fabClearance),
+                                  )
+                                : null,
+                            itemCount:
+                                recentSectionCount +
+                                visibleGroups.length +
+                                content.entries.length,
+                            itemBuilder: (context, index) {
+                              if (index < recentSectionCount) {
+                                return _RecentPasswordsSection(
+                                  entries: recentEntries,
+                                );
+                              }
+                              final groupIndex = index - recentSectionCount;
+                              if (groupIndex < visibleGroups.length) {
+                                final group = visibleGroups[groupIndex];
+                                final groupId = itemIdOf(group);
+                                return ListTile(
+                                  leading: DatabaseItemIcon(
+                                    item: group,
+                                    database: session.database,
                                   ),
-                                ),
-                                selected: _selected.contains(groupId),
-                                onLongPress: () => toggleSelection(groupId),
-                                onTap: _selected.isNotEmpty
-                                    ? () => toggleSelection(groupId)
-                                    : () => context.push(
-                                        AppRoutes.group(groupId),
-                                      ),
+                                  title: Text(
+                                    group.name,
+                                    style: TextStyle(
+                                      fontSize: ref
+                                          .watch(
+                                            appSettingsProvider.select(
+                                              (s) => s.listTextSize,
+                                            ),
+                                          )
+                                          .toDouble(),
+                                    ),
+                                  ),
+                                  selected: _selected.contains(groupId),
+                                  onLongPress: () => toggleSelection(groupId),
+                                  onTap: _selected.isNotEmpty
+                                      ? () => toggleSelection(groupId)
+                                      : () => context.push(
+                                          AppRoutes.group(groupId),
+                                        ),
+                                );
+                              }
+                              final entry = content
+                                  .entries[groupIndex - visibleGroups.length];
+                              final entryId = itemIdOf(entry);
+                              return EntryTile(
+                                entry: entry,
+                                selected: _selected.contains(entryId),
+                                showChevron: _selected.isEmpty,
+                                onLongPress: () => toggleSelection(entryId),
+                                onTap: _selected.isEmpty
+                                    ? null
+                                    : () => toggleSelection(entryId),
                               );
-                            }
-                            final entry = content
-                                .entries[groupIndex - visibleGroups.length];
-                            final entryId = itemIdOf(entry);
-                            return EntryTile(
-                              entry: entry,
-                              selected: _selected.contains(entryId),
-                              showChevron: _selected.isEmpty,
-                              onLongPress: () => toggleSelection(entryId),
-                              onTap: _selected.isEmpty
-                                  ? null
-                                  : () => toggleSelection(entryId),
-                            );
-                          },
-                        ),
-                ),
-              ],
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -417,22 +479,55 @@ class _GroupViewState extends ConsumerState<GroupView> {
     DatabaseNavigationShell.selectionChanged(context, _selected.isNotEmpty);
   }
 
-  PopupMenuItem<_HomeAction> _homeMenuItem(
+  ActionPopupItem<_HomeAction> _homeMenuItem(
     _HomeAction action,
     IconData icon,
     String label, {
     bool enabled = true,
-  }) => PopupMenuItem(
+  }) => ActionPopupItem(
     value: action,
+    icon: icon,
+    label: label,
     enabled: enabled,
-    child: Row(
-      children: [
-        Icon(icon),
-        const SizedBox(width: AppSpacing.m),
-        Flexible(child: Text(label)),
-      ],
-    ),
   );
+
+  Future<void> _deleteCurrentGroup(KdbxGroup group, bool permanent) async {
+    final groupId = itemIdOf(group);
+    final parentId = group.parent == null ? null : itemIdOf(group.parent!);
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.entryDelete),
+        content: Text(
+          permanent ? l10n.itemsDeletePermanent : l10n.itemsDeleteRecycle,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.entryDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final success = await ref
+        .read(itemActionsProvider(groupId).notifier)
+        .deleteGroup();
+    if (!success || !mounted) return;
+    final database = ref.read(databaseSessionProvider)?.database;
+    if (database == null) return;
+    final parent = findGroup(database, parentId);
+    context.go(
+      parent == null || parent == database.root
+          ? AppRoutes.database
+          : AppRoutes.group(itemIdOf(parent)),
+    );
+  }
 
   Future<void> _deleteSelection(
     BuildContext context,

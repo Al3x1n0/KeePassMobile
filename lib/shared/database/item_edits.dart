@@ -48,6 +48,30 @@ class GroupDraft {
 KdbxItem? _item(KdbxDatabase database, String id) =>
     database.root.allItems.where((i) => itemIdOf(i) == id).firstOrNull;
 
+/// Imposta i preferiti di tutte le voci attive con un'unica modifica atomica.
+DatabaseEdit setEntriesFavoriteEdit(List<String> ids, bool favorite) {
+  final selectedIds = List<String>.unmodifiable(ids);
+  return (database) {
+    final entries = selectedIds.map((id) => findEntry(database, id)).toList();
+    if (selectedIds.isEmpty ||
+        selectedIds.toSet().length != selectedIds.length ||
+        entries.any(
+          (entry) => entry == null || isInRecycleBin(database, entry),
+        )) {
+      throw const InvalidItemEditException();
+    }
+    for (final entry in entries) {
+      final tags = entry!.tags ?? const <String>[];
+      final isFavorite = tags.any((tag) => tag.toLowerCase() == 'favorite');
+      if (isFavorite == favorite) continue;
+      entry.tags = favorite
+          ? [...tags, 'Favorite']
+          : tags.where((tag) => tag.toLowerCase() != 'favorite').toList();
+      entry.times.modification = KdbxTime.now();
+    }
+  };
+}
+
 /// Destinazione valida per MoveElements: niente radice/cestino come sorgente,
 /// cicli, gruppi nel cestino o spostamenti nella cartella corrente.
 bool canMoveItem(KdbxDatabase database, KdbxItem item, KdbxGroup target) {
@@ -368,6 +392,11 @@ class ItemActions extends AsyncNotifier<void> {
   Future<bool> restore() => _apply(restoreItemEdit(id));
   Future<bool> restoreItems(List<String> ids) =>
       _apply(restoreItemsEdit(ids, id));
+
+  /// Imposta insieme i preferiti delle voci selezionate, salvando una volta.
+  Future<bool> setFavorites(List<String> ids, bool favorite) =>
+      _apply(setEntriesFavoriteEdit(ids, favorite));
+
   Future<String?> duplicate(String suffix) async {
     final uuid = _newUuid();
     if (uuid == null) return null;

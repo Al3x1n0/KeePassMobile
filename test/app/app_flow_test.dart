@@ -153,7 +153,7 @@ void main() {
     expect(find.text('Conto'), findsOneWidget);
 
     // Il blocco è disponibile tornando alla Home.
-    expect(find.byTooltip(l10n.groupMore), findsNothing);
+    expect(find.byTooltip(l10n.groupMore), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
 

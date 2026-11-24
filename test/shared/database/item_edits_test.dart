@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/shared/database/database_session.dart';
 import 'package:keepass_mobile/features/entry/entry_view_model.dart';
+import 'package:keepass_mobile/features/favorites/favorites_view_model.dart';
 import 'package:keepass_mobile/shared/database/item_edits.dart';
 import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:kpasslib/kpasslib.dart';
@@ -21,11 +22,25 @@ class _FailingStorage extends FileStorage {
   }) async => throw const FileWriteException();
 }
 
+class _CountingStorage extends FileStorage {
+  int writes = 0;
+
+  @override
+  Future<void> write(
+    FileRef ref,
+    Uint8List bytes, {
+    String? expectedVersion,
+  }) async {
+    writes++;
+    await super.write(ref, bytes, expectedVersion: expectedVersion);
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late ProviderContainer container;
   late File file;
-  late String rootId, groupId, childId, otherId, entryId;
+  late String rootId, groupId, childId, otherId, entryId, otherEntryId;
   late KdbxUuid groupUuid, entryUuid;
 
   setUp(() async {
@@ -48,11 +63,15 @@ void main() {
       PlainBinary(data: Uint8List.fromList([7, 8]), compressed: false),
     );
     entry.pushHistory();
+    final otherEntry = addTestEntry(database, other, {
+      EntryFields.title: 'Seconda voce',
+    })..tags = ['favorite', 'altro tag'];
     rootId = itemIdOf(database.root);
     groupId = itemIdOf(group);
     childId = itemIdOf(child);
     otherId = itemIdOf(other);
     entryId = itemIdOf(entry);
+    otherEntryId = itemIdOf(otherEntry);
     groupUuid = group.uuid;
     entryUuid = entry.uuid;
     final saved = await saveToTempFile(database);
@@ -63,6 +82,105 @@ void main() {
 
   Future<void> apply(DatabaseEdit edit) =>
       container.read(databaseSessionProvider.notifier).apply(edit);
+
+  test(
+    'preferiti multipli salvano una volta e conservano gli altri tag',
+    () async {
+      final storage = _CountingStorage();
+      final counting = await newTestContainer(
+        file: file,
+        database: container.read(databaseSessionProvider)!.database,
+        overrides: [fileStorageProvider.overrideWithValue(storage)],
+      );
+      counting.listen(itemActionsProvider(rootId), (_, _) {});
+      final actions = counting.read(itemActionsProvider(rootId).notifier);
+      expect(await actions.setFavorites([entryId, otherEntryId], true), isTrue);
+      expect(storage.writes, 1);
+      var reopened = await reopenFile(file);
+      expect(isEntryFavorite(findEntry(reopened, entryId)!), isTrue);
+      expect(isEntryFavorite(findEntry(reopened, otherEntryId)!), isTrue);
+      expect(findEntry(reopened, entryId)!.tags, ['tag', 'Favorite']);
+      expect(findEntry(reopened, otherEntryId)!.tags, [
+        'favorite',
+        'altro tag',
+      ]);
+
+      expect(
+        await actions.setFavorites([entryId, otherEntryId], false),
+        isTrue,
+      );
+      expect(storage.writes, 2);
+      reopened = await reopenFile(file);
+      expect(isEntryFavorite(findEntry(reopened, entryId)!), isFalse);
+      expect(isEntryFavorite(findEntry(reopened, otherEntryId)!), isFalse);
+      expect(findEntry(reopened, entryId)!.tags, ['tag']);
+      expect(findEntry(reopened, otherEntryId)!.tags, ['altro tag']);
+    },
+  );
+
+  test(
+    'preferiti multipli rifiutano gruppi, duplicati e voci mancanti',
+    () async {
+      for (final ids in <List<String>>[
+        [],
+        [entryId, groupId],
+        [entryId, 'inesistente'],
+        [entryId, entryId],
+      ]) {
+        final before = file.readAsBytesSync();
+        final working = container.read(databaseSessionProvider)!.database;
+        await expectLater(
+          apply(setEntriesFavoriteEdit(ids, true)),
+          throwsA(isA<InvalidItemEditException>()),
+        );
+        expect(file.readAsBytesSync(), before);
+        expect(
+          container.read(databaseSessionProvider)!.database,
+          same(working),
+        );
+        expect(isEntryFavorite(findEntry(working, entryId)!), isFalse);
+      }
+    },
+  );
+
+  test(
+    'preferiti multipli nel cestino rifiutano tutto prima di modificare',
+    () async {
+      await apply(deleteEntryEdit(entryUuid));
+      final before = file.readAsBytesSync();
+      await expectLater(
+        apply(setEntriesFavoriteEdit([otherEntryId, entryId], false)),
+        throwsA(isA<InvalidItemEditException>()),
+      );
+      expect(file.readAsBytesSync(), before);
+      final reopened = await reopenFile(file);
+      expect(isEntryFavorite(findEntry(reopened, otherEntryId)!), isTrue);
+    },
+  );
+
+  test(
+    'salvataggio preferiti fallito conserva sessione e file originali',
+    () async {
+      final original = container.read(databaseSessionProvider)!.database;
+      final before = file.readAsBytesSync();
+      final failing = await newTestContainer(
+        file: file,
+        database: original,
+        overrides: [fileStorageProvider.overrideWithValue(_FailingStorage())],
+      );
+      failing.listen(itemActionsProvider(rootId), (_, _) {});
+      expect(
+        await failing.read(itemActionsProvider(rootId).notifier).setFavorites([
+          entryId,
+          otherEntryId,
+        ], true),
+        isFalse,
+      );
+      expect(failing.read(databaseSessionProvider)!.database, same(original));
+      expect(isEntryFavorite(findEntry(original, entryId)!), isFalse);
+      expect(file.readAsBytesSync(), before);
+    },
+  );
 
   test(
     'eliminazione multipla rifiuta selezione mista senza modifiche',

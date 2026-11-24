@@ -132,7 +132,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.longPress(find.text('Da copiare'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.databasesCopy));
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.databasesCopy));
     await tester.pumpAndSettle();
     final destination = find.descendant(
       of: find.byType(BottomSheet),
@@ -143,7 +145,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.longPress(find.text('Da spostare'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.databasesMove));
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.databasesMove));
     await tester.pumpAndSettle();
     await tester.tap(destination);
     await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Secondo'));

@@ -94,7 +94,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Servizio'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.entryEdit));
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.entryEdit));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(

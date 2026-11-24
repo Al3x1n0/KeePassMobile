@@ -15,18 +15,8 @@ bool isEntryFavorite(KdbxEntry entry) =>
     entry.tags?.any(_isFavoriteTag) ?? false;
 
 /// Imposta il tag dei preferiti preservando gli altri tag della voce.
-DatabaseEdit setEntryFavoriteEdit(KdbxUuid uuid, bool favorite) => (database) {
-  final entry = findEntryByUuid(database, uuid);
-  if (entry == null || isInRecycleBin(database, entry)) {
-    throw const InvalidItemEditException();
-  }
-  if (isEntryFavorite(entry) == favorite) return;
-  final tags = entry.tags ?? const <String>[];
-  entry.tags = favorite
-      ? [...tags, _favoriteTag]
-      : tags.where((tag) => !_isFavoriteTag(tag)).toList();
-  entry.times.modification = KdbxTime.now();
-};
+DatabaseEdit setEntryFavoriteEdit(KdbxUuid uuid, bool favorite) =>
+    setEntriesFavoriteEdit([idOfUuid(uuid)], favorite);
 
 /// Preferiti del database attivo, oppure `null` a database chiuso.
 final favoriteEntriesProvider = Provider.autoDispose<List<KdbxEntry>?>((ref) {

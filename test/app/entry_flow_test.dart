@@ -195,7 +195,9 @@ void main() {
     expect(entry.fields['PIN'], isA<ProtectedTextField>());
     expect(entry.fields['_etm_template_uuid'], isNotNull);
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.entryEdit));
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.entryEdit));
     await tester.pumpAndSettle();
     expect(find.text('_etm_template_uuid'), findsNothing);
     await tester.enterText(
@@ -254,7 +256,9 @@ void main() {
       await tester.tap(find.text('Conto'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip(l10n.entryEdit));
+      await tester.tap(find.byTooltip(l10n.groupMore));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.entryEdit));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.widgetWithText(TextFormField, l10n.entryTitle),
@@ -366,7 +370,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Ricerca multipla B'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.itemMoveTitle));
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.itemMoveTitle));
     await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
@@ -403,7 +409,9 @@ void main() {
     await tester.tap(find.text('Ricerca multipla B'));
     await tester.pumpAndSettle();
     expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
-    await tester.tap(find.byTooltip(l10n.entryDelete));
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.entryDelete));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, l10n.entryDelete));
     await pumpUntilFound(tester, find.text(l10n.searchNoResults));
@@ -475,7 +483,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Conto'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.entryEdit));
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.entryEdit));
     await tester.pumpAndSettle();
     final field = find.widgetWithText(TextFormField, l10n.entryOverrideUrl);
     await tester.ensureVisible(field);
@@ -545,7 +555,9 @@ void main() {
     await tester.tap(find.text('Conto'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip(l10n.entryDelete));
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.entryDelete));
     await tester.pumpAndSettle();
     expect(find.text(l10n.entryDeleteConfirmRecycle), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, l10n.entryDelete));
@@ -750,7 +762,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Conto'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.entryEdit));
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.entryEdit));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip(l10n.entryEditGenerate));

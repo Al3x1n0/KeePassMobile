@@ -2495,13 +2495,13 @@ abstract class AppLocalizations {
   /// No description provided for @itemRestore.
   ///
   /// In en, this message translates to:
-  /// **'Restore from recycle bin'**
+  /// **'Restore'**
   String get itemRestore;
 
   /// No description provided for @itemDuplicate.
   ///
   /// In en, this message translates to:
-  /// **'Duplicate entry'**
+  /// **'Duplicate'**
   String get itemDuplicate;
 
   /// No description provided for @itemDuplicateSuffix.

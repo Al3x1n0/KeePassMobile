@@ -95,7 +95,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Voce'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip(l10n.entryEdit));
+      await tester.tap(find.byTooltip(l10n.groupMore));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.entryEdit));
       await tester.pumpAndSettle();
 
       final add = find.text(l10n.entryEditAttachmentAdd);
@@ -120,8 +122,8 @@ void main() {
       expect(storage.released.map((r) => r.name), ['big.bin', 'nota.txt']);
 
       await tester.tap(find.byTooltip(l10n.entryEditSave));
-      // Il pulsante Modifica c'è solo nel dettaglio: il salvataggio è finito.
-      await pumpUntilFound(tester, find.byTooltip(l10n.entryEdit));
+      // Il menu Altre azioni compare al ritorno nel dettaglio.
+      await pumpUntilFound(tester, find.byTooltip(l10n.groupMore));
       await tester.pumpAndSettle();
       final db = (await tester.runAsync(() => reopenFile(file)))!;
       expect(db.root.allEntries.single.binaries.keys, [

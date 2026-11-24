@@ -1378,10 +1378,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get itemNoDestination => 'Nessun gruppo di destinazione disponibile.';
 
   @override
-  String get itemRestore => 'Ripristina dal cestino';
+  String get itemRestore => 'Ripristina';
 
   @override
-  String get itemDuplicate => 'Duplica voce';
+  String get itemDuplicate => 'Duplica';
 
   @override
   String get itemDuplicateSuffix => 'copia';

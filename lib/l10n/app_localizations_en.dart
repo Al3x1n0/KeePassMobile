@@ -1371,10 +1371,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get itemNoDestination => 'No destination group is available.';
 
   @override
-  String get itemRestore => 'Restore from recycle bin';
+  String get itemRestore => 'Restore';
 
   @override
-  String get itemDuplicate => 'Duplicate entry';
+  String get itemDuplicate => 'Duplicate';
 
   @override
   String get itemDuplicateSuffix => 'copy';

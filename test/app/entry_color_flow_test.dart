@@ -65,7 +65,9 @@ void main() {
       await tester.pumpAndSettle();
 
       Future<void> edit() async {
-        await tester.tap(find.byTooltip(l10n.entryEdit));
+        await tester.tap(find.byTooltip(l10n.groupMore));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(l10n.entryEdit));
         await tester.pumpAndSettle();
       }
 
@@ -76,7 +78,7 @@ void main() {
 
       Future<void> save() async {
         await tester.tap(find.byTooltip(l10n.entryEditSave));
-        await pumpUntilFound(tester, find.byTooltip(l10n.entryEdit));
+        await pumpUntilFound(tester, find.byTooltip(l10n.groupMore));
         await tester.pumpAndSettle();
       }
 

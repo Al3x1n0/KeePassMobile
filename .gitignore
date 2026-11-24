@@ -32,7 +32,6 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
-lib/generated_plugin_registrant.dart
 
 # Pacchetti locali: lockfile e build non si versionano
 packages/*/pubspec.lock

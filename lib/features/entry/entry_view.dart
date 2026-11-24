@@ -16,6 +16,7 @@ import '../../shared/database/field_references.dart';
 import '../../shared/database/kdbx_items.dart';
 import '../../shared/database/item_edits.dart';
 import '../../shared/settings/app_settings.dart';
+import '../../shared/ui/action_popup_menu.dart';
 import '../../shared/ui/date_format.dart';
 import '../../shared/ui/entry_color.dart';
 import '../../shared/ui/group_destination_sheet.dart';
@@ -27,6 +28,8 @@ import '../favorites/favorites_view_model.dart';
 import '../totp/totp.dart';
 import 'entry_view_model.dart';
 import 'totp_tile.dart';
+
+enum _EntryAction { edit, move, duplicate, restore, delete }
 
 /// Dettaglio di una voce (EntryActivity di Keepass2Android): campi con
 /// copia negli appunti, valori protetti nascosti, modifica ed eliminazione.
@@ -175,45 +178,51 @@ class _EntryViewState extends ConsumerState<EntryView> {
                               )
                               .setFavorite(!favorite),
                   ),
-                IconButton(
-                  tooltip: l10n.entryEdit,
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: busy || inBin
-                      ? null
-                      : () => context.push(AppRoutes.entryEdit(widget.entryId)),
-                ),
-                IconButton(
-                  tooltip: l10n.entryDelete,
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: busy ? null : _delete,
-                ),
-                IconButton(
-                  tooltip: l10n.groupMore,
-                  icon: const Icon(Icons.more_vert),
-                  onPressed: busy
-                      ? null
-                      : () async {
-                          final action = await showSelectionSheet<String>(
-                            context: context,
-                            title: l10n.groupMore,
-                            options: {
-                              if (!inBin) ...{
-                                'move': l10n.itemMoveTitle,
-                                'duplicate': l10n.itemDuplicate,
-                              },
-                              if (inBin) 'restore': l10n.itemRestore,
-                            },
-                          );
-                          if (!mounted || action == null) return;
-                          switch (action) {
-                            case 'move':
-                              _move();
-                            case 'duplicate':
-                              _duplicate();
-                            case 'restore':
-                              _restoreFromBin();
-                          }
-                        },
+                ActionPopupMenu<_EntryAction>(
+                  enabled: !busy,
+                  items: [
+                    if (!inBin) ...[
+                      ActionPopupItem(
+                        value: _EntryAction.edit,
+                        icon: Icons.edit_outlined,
+                        label: l10n.entryEdit,
+                      ),
+                      ActionPopupItem(
+                        value: _EntryAction.move,
+                        icon: Icons.drive_file_move_outline,
+                        label: l10n.itemMoveTitle,
+                      ),
+                      ActionPopupItem(
+                        value: _EntryAction.duplicate,
+                        icon: Icons.content_copy_outlined,
+                        label: l10n.itemDuplicate,
+                      ),
+                    ] else
+                      ActionPopupItem(
+                        value: _EntryAction.restore,
+                        icon: Icons.restore,
+                        label: l10n.itemRestore,
+                      ),
+                    ActionPopupItem(
+                      value: _EntryAction.delete,
+                      icon: Icons.delete_outline,
+                      label: l10n.entryDelete,
+                    ),
+                  ],
+                  onSelected: (action) {
+                    switch (action) {
+                      case _EntryAction.edit:
+                        context.push(AppRoutes.entryEdit(widget.entryId));
+                      case _EntryAction.move:
+                        _move();
+                      case _EntryAction.duplicate:
+                        _duplicate();
+                      case _EntryAction.restore:
+                        _restoreFromBin();
+                      case _EntryAction.delete:
+                        _delete();
+                    }
+                  },
                 ),
               ]
             : [

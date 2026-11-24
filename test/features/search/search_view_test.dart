@@ -1,4 +1,10 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:keepass_mobile/app/routes.dart';
+import 'package:keepass_mobile/features/favorites/favorites_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/theme.dart';
 import 'package:keepass_mobile/features/search/search_view.dart';
@@ -6,7 +12,7 @@ import 'package:keepass_mobile/l10n/app_localizations.dart';
 import 'package:keepass_mobile/shared/database/database_session.dart';
 import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
-import 'package:keepass_mobile/shared/ui/app_bar_action_row.dart';
+import 'package:keepass_mobile/shared/ui/action_popup_menu.dart';
 import 'package:keepass_mobile/shared/ui/entry_tile.dart';
 import 'package:kpasslib/kpasslib.dart';
 import 'package:material_ui/material_ui.dart';
@@ -20,25 +26,62 @@ Future<void> _pumpSearch(
   WidgetTester tester,
   ProviderContainer container, {
   Locale locale = const Locale('it'),
+  bool disableAnimations = false,
+  TextScaler textScaler = TextScaler.noScaling,
+  GoRouter? router,
 }) async {
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        locale: locale,
-        localizationsDelegates: [
-          ...GlobalMaterialLocalizations.delegates,
-          ...AppLocalizations.localizationsDelegates,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        theme: buildLightTheme(),
-        home: const SearchView(),
-      ),
+      child: router == null
+          ? MaterialApp(
+              locale: locale,
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  disableAnimations: disableAnimations,
+                  textScaler: textScaler,
+                ),
+                child: child!,
+              ),
+              localizationsDelegates: [
+                ...GlobalMaterialLocalizations.delegates,
+                ...AppLocalizations.localizationsDelegates,
+              ],
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: buildLightTheme(),
+              home: const SearchView(),
+            )
+          : MaterialApp.router(
+              routerConfig: router,
+              locale: locale,
+              localizationsDelegates: [
+                ...GlobalMaterialLocalizations.delegates,
+                ...AppLocalizations.localizationsDelegates,
+              ],
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: buildLightTheme(),
+            ),
     ),
   );
   await tester.pumpAndSettle();
   await tester.enterText(find.byType(TextField), 'Voce');
   await tester.pumpAndSettle();
+}
+
+class _CountingStorage extends FileStorage {
+  int writes = 0;
+  Completer<void>? writeGate;
+
+  @override
+  Future<void> write(
+    FileRef ref,
+    Uint8List bytes, {
+    String? expectedVersion,
+  }) async {
+    writes++;
+    await writeGate?.future;
+    await super.write(ref, bytes, expectedVersion: expectedVersion);
+  }
 }
 
 void main() {
@@ -79,13 +122,12 @@ void main() {
         );
         expect(selectAll, findsOneWidget);
         expect(tester.getSize(find.byType(AppBar)).height, kToolbarHeight + 48);
-        expect(find.byType(AppBarActionRow), findsOneWidget);
         expect(find.byIcon(Icons.select_all), findsNothing);
         expect(find.byType(Checkbox), findsNothing);
         expect(tester.getRect(selectAll).left, lessThan(24));
         expect(tester.getRect(selectAll).top, greaterThanOrEqualTo(56));
         expect(
-          tester.getRect(find.byTooltip(l10n.entryDelete)).right,
+          tester.getRect(find.byTooltip(l10n.groupMore)).right,
           greaterThan(336),
         );
         expect(
@@ -100,6 +142,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(selectAll, findsNothing);
         expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
+        expect(tester.getSize(find.byType(AppBar)).height, kToolbarHeight);
         expect(
           tester
               .widgetList<EntryTile>(find.byType(EntryTile))
@@ -111,7 +154,6 @@ void main() {
         await tester.pumpAndSettle();
         expect(selectAll, findsOneWidget);
         expect(tester.getSize(find.byType(AppBar)).height, kToolbarHeight + 48);
-        expect(find.byType(AppBarActionRow), findsOneWidget);
         expect(find.text(l10n.itemsSelected(1)), findsOneWidget);
 
         await tester.tap(find.byTooltip(l10n.cancel));
@@ -339,4 +381,335 @@ void main() {
       expect(find.text(l10n.itemsSelectAllShort), findsNothing);
     },
   );
+
+  testWidgets('ricerca: menu contestuale singolo e multiplo in riga 1', (
+    tester,
+  ) async {
+    final l10n = lookupAppLocalizations(const Locale('it'));
+    final db = newTestDatabase();
+    addTestEntry(db, db.root, {EntryFields.title: 'Voce A'});
+    addTestEntry(db, db.root, {EntryFields.title: 'Voce B'});
+    final container = await newTestContainer();
+    final sessions = container.read(databaseSessionProvider.notifier);
+    sessions.open(DatabaseSession(file: _firstFile, database: db));
+    sessions.openAdditional(
+      DatabaseSession(file: _secondFile, database: newTestDatabase()),
+      sessions.lockGeneration,
+    );
+    sessions.switchTo(_firstFile);
+    await _pumpSearch(tester, container);
+    await tester.longPress(find.text('Voce A'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byWidgetPredicate((widget) => widget is ActionPopupMenu),
+      findsOneWidget,
+    );
+    final favorite = find.byTooltip(l10n.entryFavoriteAdd);
+    final more = find.byTooltip(l10n.groupMore);
+    expect(tester.getRect(favorite).top, lessThan(kToolbarHeight));
+    expect(
+      tester.getRect(more).left - tester.getRect(favorite).right,
+      inInclusiveRange(0, AppSpacing.s),
+    );
+    expect(find.byTooltip(l10n.entryEdit), findsNothing);
+    expect(find.byTooltip(l10n.entryDelete), findsNothing);
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+    final labels = tester
+        .widgetList<PopupMenuItem>(
+          find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+        )
+        .map(
+          (item) =>
+              (item.child! as Row).children.whereType<Flexible>().single.child
+                  as Text,
+        )
+        .map((text) => text.data)
+        .toList();
+    expect(labels, [
+      l10n.entryEdit,
+      l10n.itemMoveTitle,
+      l10n.itemDuplicate,
+      l10n.entryDelete,
+      l10n.searchGoToGroup,
+      l10n.databasesCopy,
+      l10n.databasesMove,
+    ]);
+    expect(find.byIcon(Icons.content_copy_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.file_copy_outlined), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Voce B'));
+    await tester.pumpAndSettle();
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.entryEdit), findsNothing);
+    expect(find.text(l10n.itemDuplicate), findsNothing);
+    expect(find.text(l10n.searchGoToGroup), findsNothing);
+    expect(find.text(l10n.itemMoveTitle), findsOneWidget);
+    expect(find.text(l10n.entryDelete), findsOneWidget);
+    expect(find.text(l10n.databasesCopy), findsOneWidget);
+    expect(find.text(l10n.databasesMove), findsOneWidget);
+  });
+
+  testWidgets(
+    'ricerca: collasso ed espansione muovono il contenuto con AppBar',
+    (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('it'));
+      final db = newTestDatabase();
+      addTestEntry(db, db.root, {EntryFields.title: 'Voce A'});
+      addTestEntry(db, db.root, {EntryFields.title: 'Voce B'});
+      final container = await newTestContainer();
+      container
+          .read(databaseSessionProvider.notifier)
+          .open(DatabaseSession(file: _firstFile, database: db));
+      await _pumpSearch(tester, container);
+      await tester.longPress(find.text('Voce A'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(l10n.itemsSelectAllShort));
+      await tester.pump();
+      expect(tester.getSize(find.byType(AppBar)).height, 104);
+      await tester.pump(const Duration(milliseconds: 80));
+      final collapsing = tester.getSize(find.byType(AppBar)).height;
+      expect(collapsing, allOf(greaterThan(56), lessThan(104)));
+      expect(tester.getTopLeft(find.byType(ListView)).dy, collapsing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(AppBar)).height, 56);
+
+      await tester.tap(find.text('Voce B'));
+      await tester.pump();
+      expect(tester.getSize(find.byType(AppBar)).height, 56);
+      await tester.pump(const Duration(milliseconds: 80));
+      final expanding = tester.getSize(find.byType(AppBar)).height;
+      expect(expanding, allOf(greaterThan(56), lessThan(104)));
+      expect(tester.getTopLeft(find.byType(ListView)).dy, expanding);
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(AppBar)).height, 104);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'ricerca: unica voce e animazioni disabilitate senza seconda riga',
+    (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('it'));
+      final db = newTestDatabase();
+      addTestEntry(db, db.root, {EntryFields.title: 'Voce A'});
+      final container = await newTestContainer();
+      container
+          .read(databaseSessionProvider.notifier)
+          .open(DatabaseSession(file: _firstFile, database: db));
+      await _pumpSearch(tester, container, disableAnimations: true);
+      await tester.longPress(find.text('Voce A'));
+      await tester.pump();
+      expect(tester.getSize(find.byType(AppBar)).height, kToolbarHeight);
+      expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
+      expect(find.text(l10n.itemsSelectAllShort), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'ricerca: con animazioni disabilitate la riga cambia subito altezza',
+    (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('it'));
+      final db = newTestDatabase();
+      addTestEntry(db, db.root, {EntryFields.title: 'Voce A'});
+      addTestEntry(db, db.root, {EntryFields.title: 'Voce B'});
+      final container = await newTestContainer();
+      container
+          .read(databaseSessionProvider.notifier)
+          .open(DatabaseSession(file: _firstFile, database: db));
+      await _pumpSearch(tester, container, disableAnimations: true);
+      await tester.longPress(find.text('Voce A'));
+      await tester.pump();
+      expect(tester.getSize(find.byType(AppBar)).height, 104);
+      await tester.tap(find.text(l10n.itemsSelectAllShort));
+      await tester.pump();
+      expect(tester.getSize(find.byType(AppBar)).height, 56);
+      await tester.tap(find.text('Voce B'));
+      await tester.pump();
+      expect(tester.getSize(find.byType(AppBar)).height, 104);
+    },
+  );
+
+  testWidgets(
+    'ricerca: titolo ellittico su schermo stretto con testo al 200%',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final l10n = lookupAppLocalizations(const Locale('it'));
+      final db = newTestDatabase();
+      addTestEntry(db, db.root, {EntryFields.title: 'Voce A'});
+      final container = await newTestContainer();
+      container
+          .read(databaseSessionProvider.notifier)
+          .open(DatabaseSession(file: _firstFile, database: db));
+      await _pumpSearch(
+        tester,
+        container,
+        textScaler: const TextScaler.linear(2),
+      );
+      await tester.longPress(find.text('Voce A'));
+      await tester.pumpAndSettle();
+      final title = tester.widget<Text>(find.text(l10n.itemsSelected(1)));
+      expect(title.maxLines, 1);
+      expect(title.overflow, TextOverflow.ellipsis);
+      final favorite = tester.getRect(
+        find.ancestor(
+          of: find.byTooltip(l10n.entryFavoriteAdd),
+          matching: find.byType(IconButton),
+        ),
+      );
+      final popup = tester.getRect(
+        find.byWidgetPredicate((widget) => widget is PopupMenuButton),
+      );
+      expect(favorite.width, greaterThanOrEqualTo(48));
+      expect(popup.width, greaterThanOrEqualTo(48));
+      expect(popup.right, lessThanOrEqualTo(320));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('ricerca: duplica nel gruppo originale e termina la selezione', (
+    tester,
+  ) async {
+    final l10n = lookupAppLocalizations(const Locale('it'));
+    final db = newTestDatabase();
+    final group = db.createGroup(parent: db.root, name: 'Gruppo origine');
+    final original = addTestEntry(db, group, {EntryFields.title: 'Voce A'});
+    final (file, reopened) = await tester
+        .runAsync(() => saveToTempFile(db))
+        .then((value) => value!);
+    addTearDown(() => file.parent.deleteSync(recursive: true));
+    final container = await newTestContainer(file: file, database: reopened);
+    await _pumpSearch(tester, container);
+    await tester.longPress(find.text('Voce A'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.itemDuplicate));
+    await pumpUntilFound(tester, find.byType(TextField));
+    await tester.pumpAndSettle();
+    expect(find.text('Voce A - ${l10n.itemDuplicateSuffix}'), findsOneWidget);
+    final saved = await tester.runAsync(() => reopenFile(file));
+    final entries = findGroup(saved!, itemIdOf(group))!.entries;
+    expect(entries, hasLength(2));
+    expect(entries.map(itemIdOf), contains(itemIdOf(original)));
+    expect(entries.map((entry) => entryTitle(entry)), [
+      'Voce A',
+      'Voce A - ${l10n.itemDuplicateSuffix}',
+    ]);
+    expect(find.text(l10n.itemsSelected(1)), findsNothing);
+  });
+
+  testWidgets('ricerca: preferiti di tutte le voci in un salvataggio e busy', (
+    tester,
+  ) async {
+    final l10n = lookupAppLocalizations(const Locale('it'));
+    final db = newTestDatabase();
+    addTestEntry(db, db.root, {EntryFields.title: 'Voce A'}).tags = [
+      'Favorite',
+    ];
+    addTestEntry(db, db.root, {EntryFields.title: 'Voce B'});
+    final (file, reopened) = await tester
+        .runAsync(() => saveToTempFile(db))
+        .then((value) => value!);
+    addTearDown(() => file.parent.deleteSync(recursive: true));
+    final storage = _CountingStorage()..writeGate = Completer<void>();
+    final container = await newTestContainer(
+      file: file,
+      database: reopened,
+      overrides: [fileStorageProvider.overrideWithValue(storage)],
+    );
+    await _pumpSearch(tester, container);
+    await tester.longPress(find.text('Voce A'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip(l10n.entryFavoriteRemove), findsOneWidget);
+    await tester.tap(find.text(l10n.itemsSelectAllShort));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(l10n.entryFavoriteAdd));
+    await tester.pump();
+    expect(
+      tester
+          .widget<IconButton>(
+            find.ancestor(
+              of: find.byTooltip(l10n.entryFavoriteAdd),
+              matching: find.byType(IconButton),
+            ),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find.ancestor(
+              of: find.byTooltip(l10n.cancel),
+              matching: find.byType(IconButton),
+            ),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<PopupMenuButton>(
+            find.byWidgetPredicate((widget) => widget is PopupMenuButton),
+          )
+          .enabled,
+      isFalse,
+    );
+    await tester.tap(find.text('Voce B'));
+    await tester.pump();
+    expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
+    storage.writeGate!.complete();
+    await pumpUntilFound(tester, find.byTooltip(l10n.entryFavoriteRemove));
+    await tester.pumpAndSettle();
+    expect(storage.writes, 1);
+    final added = await tester.runAsync(() => reopenFile(file));
+    expect(added!.root.entries.every(isEntryFavorite), isTrue);
+    await tester.tap(find.byTooltip(l10n.entryFavoriteRemove));
+    await pumpUntilFound(tester, find.byTooltip(l10n.entryFavoriteAdd));
+    await tester.pumpAndSettle();
+    expect(storage.writes, 2);
+    final removed = await tester.runAsync(() => reopenFile(file));
+    expect(removed!.root.entries.any(isEntryFavorite), isFalse);
+  });
+
+  testWidgets('ricerca: modifica singola apre editor dal popup', (
+    tester,
+  ) async {
+    final l10n = lookupAppLocalizations(const Locale('it'));
+    final db = newTestDatabase();
+    final entry = addTestEntry(db, db.root, {EntryFields.title: 'Voce A'});
+    final container = await newTestContainer();
+    container
+        .read(databaseSessionProvider.notifier)
+        .open(DatabaseSession(file: _firstFile, database: db));
+    final router = GoRouter(
+      initialLocation: AppRoutes.search,
+      routes: [
+        GoRoute(path: AppRoutes.search, builder: (_, _) => const SearchView()),
+        GoRoute(
+          path: AppRoutes.entryEdit(itemIdOf(entry)),
+          builder: (_, _) => const Scaffold(body: Text('Editor voce')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await _pumpSearch(tester, container, router: router);
+    await tester.longPress(find.text('Voce A'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.entryEdit));
+    await tester.pumpAndSettle();
+    expect(find.text('Editor voce'), findsOneWidget);
+  });
 }

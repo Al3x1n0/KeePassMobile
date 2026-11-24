@@ -95,7 +95,7 @@ void main() {
     await tester.longPress(entry);
     await tester.pumpAndSettle();
     expect(chevron, findsNothing);
-    await tester.tap(find.byTooltip(l10n.searchGoToGroup));
+    await entryMenu(tester, l10n.searchGoToGroup);
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Origine'), findsOneWidget);
     expect(chevron, findsOneWidget);
@@ -191,7 +191,7 @@ void main() {
       of: sheet,
       matching: find.text('Prova / Destinazione'),
     );
-    await tester.tap(find.byTooltip(l10n.itemMoveTitle));
+    await entryMenu(tester, l10n.itemMoveTitle);
     await tester.pumpAndSettle();
     expect(tester.widget<BottomSheet>(sheet).showDragHandle, isTrue);
     expect(destination, findsOneWidget);
@@ -201,7 +201,7 @@ void main() {
     expect(sheet, findsNothing);
     expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
     expect(file.readAsBytesSync(), before);
-    await tester.tap(find.byTooltip(l10n.itemMoveTitle));
+    await entryMenu(tester, l10n.itemMoveTitle);
     await tester.pumpAndSettle();
     await tester.tap(destination);
     await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Origine'));
@@ -225,7 +225,7 @@ void main() {
       await tester.tap(find.text('Seconda voce'));
       await tester.pumpAndSettle();
       expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
-      await tester.tap(find.byTooltip(l10n.entryDelete));
+      await entryMenu(tester, l10n.entryDelete);
       await tester.pumpAndSettle();
       expect(find.text(l10n.itemsDeleteRecycle), findsOneWidget);
       await tester.tap(find.widgetWithText(FilledButton, l10n.entryDelete));
@@ -249,7 +249,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Seconda voce'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip(l10n.itemRestore));
+      await entryMenu(tester, l10n.itemRestore);
       await pumpUntilFound(
         tester,
         find.widgetWithText(AppBar, l10n.dbSettingsRecycleBin),
@@ -289,7 +289,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.longPress(find.text('Creato'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip(l10n.groupEdit));
+      await entryMenu(tester, l10n.entryEdit);
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField), 'Rinominato');
       await tester.tap(find.text(l10n.entryEditSave));
@@ -298,7 +298,7 @@ void main() {
       expect(find.widgetWithText(AppBar, 'Prova'), findsOneWidget);
       await tester.longPress(find.text('Rinominato'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip(l10n.entryDelete));
+      await entryMenu(tester, l10n.entryDelete);
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, l10n.entryDelete));
       await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Prova'));
@@ -319,7 +319,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.longPress(find.text('Rinominato'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip(l10n.itemRestore));
+      await entryMenu(tester, l10n.itemRestore);
       await pumpUntilFound(
         tester,
         find.widgetWithText(AppBar, l10n.dbSettingsRecycleBin),
@@ -457,13 +457,13 @@ void main() {
     await tester.tap(find.text(l10n.itemsSelectAllShort));
     await tester.pumpAndSettle();
     expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
-    await tester.tap(find.byTooltip(l10n.entryDelete));
+    await entryMenu(tester, l10n.entryDelete);
     await tester.pumpAndSettle();
     expect(find.text(l10n.itemsDeletePermanent), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, l10n.cancel));
     await tester.pumpAndSettle();
     expect(file.readAsBytesSync(), before);
-    await tester.tap(find.byTooltip(l10n.entryDelete));
+    await entryMenu(tester, l10n.entryDelete);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, l10n.entryDelete));
     await pumpUntilFound(tester, find.text(l10n.groupEmpty));
@@ -481,47 +481,43 @@ void main() {
     expect(find.text(l10n.dbSettingsRecycleBin), findsNothing);
   });
 
-  testWidgets('mostra Modifica gruppo solo per un gruppo fuori dal cestino', (
+  testWidgets('menu singolo, multiplo e Cestino per gruppi e voci', (
     tester,
   ) async {
-    // given
     final db = (await tester.runAsync(() => reopenFile(file)))!;
     db.createGroup(parent: db.recycleBin!, name: 'Gruppo eliminato');
     await tester.runAsync(() async => file.writeAsBytes(await db.save()));
     await open(tester);
-    final edit = find.byTooltip(l10n.groupEdit);
-
-    // when / then
     await tester.longPress(find.text('Origine'));
     await tester.pumpAndSettle();
-    expect(edit, findsOneWidget);
-    expect(
-      find.descendant(of: edit, matching: find.byIcon(Icons.edit_outlined)),
-      findsOneWidget,
-    );
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.entryEdit), findsOneWidget);
+    expect(find.text(l10n.itemDuplicate), findsNothing);
+    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Destinazione'));
     await tester.pumpAndSettle();
-    expect(find.text(l10n.itemsSelected(2)), findsOneWidget);
-    expect(edit, findsNothing);
-
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.entryEdit), findsNothing);
+    expect(find.text(l10n.itemDuplicate), findsNothing);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(l10n.cancel));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Origine'));
     await tester.pumpAndSettle();
     expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
-    for (final label in [
-      l10n.groupLock,
-      l10n.syncNow,
-      l10n.searchTitle,
-      l10n.groupSort,
-    ]) {
-      expect(find.byTooltip(label), findsNothing);
-    }
     await tester.longPress(find.text('Voce sintetica'));
     await tester.pumpAndSettle();
-    expect(find.text(l10n.itemsSelected(1)), findsOneWidget);
-    expect(edit, findsNothing);
-
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.entryEdit), findsOneWidget);
+    expect(find.text(l10n.itemDuplicate), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(l10n.cancel));
     await tester.pumpAndSettle();
     await tester.pageBack();
@@ -530,13 +526,110 @@ void main() {
     await tester.pumpAndSettle();
     await tester.longPress(find.text('Gruppo eliminato'));
     await tester.pumpAndSettle();
-    expect(find.text(l10n.itemsSelected(1)), findsOneWidget);
-    expect(edit, findsNothing);
-    expect(find.byTooltip(l10n.itemRestore), findsOneWidget);
-    expect(find.byIcon(Icons.delete_forever_outlined), findsNothing);
-    await tester.tap(find.byTooltip(l10n.entryDelete));
+    await tester.tap(find.byTooltip(l10n.groupMore));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.entryEdit), findsNothing);
+    expect(find.text(l10n.itemRestore), findsOneWidget);
+    expect(find.text(l10n.entryDelete), findsOneWidget);
+    await tester.tap(find.text(l10n.entryDelete));
     await tester.pumpAndSettle();
     expect(find.text(l10n.itemsDeletePermanent), findsOneWidget);
+  });
+
+  for (final permanent in [false, true]) {
+    testWidgets(
+      'elimina il gruppo corrente e torna al padre, permanente: $permanent',
+      (tester) async {
+        final db = (await tester.runAsync(() => reopenFile(file)))!;
+        db.meta.recycleBinEnabled = !permanent;
+        final parent = db.root.groups.singleWhere(
+          (group) => group.name == 'Origine',
+        );
+        final child = db.createGroup(parent: parent, name: 'Gruppo corrente');
+        final childId = itemIdOf(child);
+        addTestEntry(db, child, {
+          EntryFields.title: 'Voce nel gruppo corrente',
+        });
+        await tester.runAsync(() async => file.writeAsBytes(await db.save()));
+        await open(tester);
+        await tester.tap(find.text('Origine'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Gruppo corrente'));
+        await tester.pumpAndSettle();
+        await entryMenu(tester, l10n.entryDelete);
+        expect(
+          find.text(
+            permanent ? l10n.itemsDeletePermanent : l10n.itemsDeleteRecycle,
+          ),
+          findsOneWidget,
+        );
+        await tester.tap(find.widgetWithText(FilledButton, l10n.entryDelete));
+        await pumpUntilFound(tester, find.widgetWithText(AppBar, 'Origine'));
+        await tester.pumpAndSettle();
+        expect(find.text('Gruppo corrente'), findsNothing);
+        expect(find.text('Voce sintetica'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        final saved = (await tester.runAsync(() => reopenFile(file)))!;
+        final deleted = findGroup(saved, childId);
+        if (permanent) {
+          expect(deleted, isNull);
+        } else {
+          expect(deleted, isNotNull);
+          expect(isInRecycleBin(saved, deleted!), isTrue);
+        }
+      },
+    );
+  }
+
+  testWidgets(
+    'elimina un sottogruppo nel Cestino e torna alla radice Cestino',
+    (tester) async {
+      final db = (await tester.runAsync(() => reopenFile(file)))!;
+      final child = db.createGroup(
+        parent: db.recycleBin!,
+        name: 'Gruppo nel Cestino',
+      );
+      final childId = itemIdOf(child);
+      await tester.runAsync(() async => file.writeAsBytes(await db.save()));
+      await open(tester);
+      await selectHomeAction(tester, l10n, l10n.dbSettingsRecycleBin);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Gruppo nel Cestino'));
+      await tester.pumpAndSettle();
+      await entryMenu(tester, l10n.entryDelete);
+      expect(find.text(l10n.itemsDeletePermanent), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, l10n.entryDelete));
+      await pumpUntilFound(
+        tester,
+        find.widgetWithText(AppBar, l10n.dbSettingsRecycleBin),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.widget<AppBar>(find.byType(AppBar)).actions, isNull);
+      final saved = (await tester.runAsync(() => reopenFile(file)))!;
+      expect(findGroup(saved, childId), isNull);
+    },
+  );
+
+  testWidgets('duplica la singola voce dalla selezione nel gruppo corrente', (
+    tester,
+  ) async {
+    await open(tester);
+    await tester.tap(find.text('Origine'));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text('Voce sintetica'));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(AppBar)).height, kToolbarHeight);
+    await entryMenu(tester, l10n.itemDuplicate);
+    final copyTitle = 'Voce sintetica - ${l10n.itemDuplicateSuffix}';
+    await pumpUntilFound(tester, find.text(copyTitle));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'Origine'), findsOneWidget);
+    expect(find.text(l10n.itemsSelected(1)), findsNothing);
+    final saved = (await tester.runAsync(() => reopenFile(file)))!;
+    final parent = saved.root.groups.singleWhere(
+      (group) => group.name == 'Origine',
+    );
+    expect(parent.entries.map(entryTitle), ['Voce sintetica', copyTitle]);
   });
 
   testWidgets('annullare una bozza di gruppo non modifica il file', (
@@ -558,7 +651,7 @@ void main() {
     await open(tester);
     await tester.longPress(find.text('Origine'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(l10n.itemMoveTitle));
+    await entryMenu(tester, l10n.itemMoveTitle);
     await tester.pumpAndSettle();
     await tester.tap(
       find.descendant(
