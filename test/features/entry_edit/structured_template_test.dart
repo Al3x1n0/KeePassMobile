@@ -33,15 +33,26 @@ void main() {
       );
       expect(itemIdOf(card), '49dd48dbff149445b3392ce90ea75309');
       expect(card.fields['_etm_type_CVV']?.text, 'Protected Inline');
+      card
+        ..background = '#b4e7cD'
+        ..foreground = '#123aBc';
       final draft = draftFromStructuredTemplate(card);
+      expect(draft.background, '#b4e7cD');
       expect(
         draft.custom.singleWhere((field) => field.key == 'CVV').protected,
         isTrue,
+      );
+      final entryUuid = KdbxUuid.random();
+      createFromTemplateEdit(db.root.uuid, entryUuid, itemIdOf(card), draft)(
+        db,
       );
       addBuiltInTemplatesEdit(labels)(db);
       final reopened = (await saveToTempFile(db)).$2;
       expect(entryTemplates(reopened), hasLength(5));
       expect(reopened.meta.entryTemplatesGroup, db.meta.entryTemplatesGroup);
+      final created = findEntryByUuid(reopened, entryUuid)!;
+      expect(created.background, '#b4e7cD');
+      expect(created.foreground, '#123aBc');
     },
   );
   test(

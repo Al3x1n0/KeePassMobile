@@ -17,6 +17,7 @@ import '../../shared/database/kdbx_items.dart';
 import '../../shared/database/item_edits.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/ui/date_format.dart';
+import '../../shared/ui/entry_color.dart';
 import '../../shared/ui/group_destination_sheet.dart';
 import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/size_format.dart';
@@ -102,6 +103,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
       }
     });
     final title = visibleEntryTitle(database, entry);
+    final color = adaptEntryColor(entry.background);
     final fields = visibleFields(entry, database: database);
     final totp = historyIndex == null
         ? ref.watch(entryTotpProvider(widget.entryId))
@@ -126,6 +128,24 @@ class _EntryViewState extends ConsumerState<EntryView> {
           children: [
             DatabaseItemIcon(item: entry, database: database, expired: expired),
             const SizedBox(width: AppSpacing.s),
+            if (color != null) ...[
+              Tooltip(
+                message: l10n.entryColorIndicator(color.label(l10n)),
+                excludeFromSemantics: true,
+                child: Semantics(
+                  container: true,
+                  label: l10n.entryColorIndicator(color.label(l10n)),
+                  child: ExcludeSemantics(
+                    child: Icon(
+                      Icons.circle,
+                      size: AppSpacing.m,
+                      color: color.color,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s),
+            ],
             Expanded(
               child: Text(
                 title.isEmpty ? l10n.entryUntitled : title,

@@ -1523,4 +1523,45 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get entryEditTotpScanError =>
       'Camera unavailable. Check permissions and try again.';
+
+  @override
+  String get entryColor => 'Color';
+
+  @override
+  String get entryColorNone => 'None';
+
+  @override
+  String entryColorIndicator(String color) {
+    return 'Color: $color';
+  }
+
+  @override
+  String get entryColorRed => 'Red';
+
+  @override
+  String get entryColorOrange => 'Orange';
+
+  @override
+  String get entryColorYellow => 'Yellow';
+
+  @override
+  String get entryColorGreen => 'Green';
+
+  @override
+  String get entryColorTeal => 'Teal';
+
+  @override
+  String get entryColorBlue => 'Blue';
+
+  @override
+  String get entryColorPurple => 'Purple';
+
+  @override
+  String get entryColorPink => 'Pink';
+
+  @override
+  String get entryColorBrown => 'Brown';
+
+  @override
+  String get entryColorGray => 'Gray';
 }

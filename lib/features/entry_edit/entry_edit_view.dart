@@ -18,10 +18,12 @@ import '../../shared/database/kdbx_items.dart';
 import '../../shared/database/item_edits.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/ui/date_format.dart';
+import '../../shared/ui/entry_color.dart';
 import '../../shared/ui/entry_icon.dart';
 import '../../shared/ui/database_item_icon.dart';
 import '../../shared/ui/icon_picker_sheet.dart';
 import '../../shared/ui/sensitive_text_editing.dart';
+import '../../shared/ui/selection_sheet.dart';
 import '../../shared/ui/size_format.dart';
 import '../totp/totp.dart';
 import 'entry_edit_view_model.dart';
@@ -119,6 +121,8 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
   late final _tags = TextEditingController(text: tagsText(widget.initial.tags));
   late KdbxIcon _icon = widget.initial.icon;
   IconChoice? _iconChoice;
+  late String? _background = widget.initial.background;
+  late bool _backgroundChanged = widget.initial.backgroundChanged;
   late bool _expires = widget.initial.expires;
   late DateTime? _expiry = widget.initial.expiry;
   late final _attachments = [...widget.initial.attachments];
@@ -158,6 +162,8 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
     custom: List.unmodifiable(_custom.map((c) => c.toDraft())),
     icon: _icon,
     iconChoice: _iconChoice,
+    background: _background,
+    backgroundChanged: _backgroundChanged,
     expires: _expires,
     expiry: _expiry,
     tags: parseTags(_tags.text),
@@ -256,6 +262,34 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
         _iconChoice = icon;
       });
     }
+  }
+
+  Future<void> _chooseColor() async {
+    final l10n = AppLocalizations.of(context);
+    final selected = adaptEntryColor(_background);
+    // La stringa vuota distingue "Nessuno" dalla chiusura senza scelta.
+    final choice = await showListSheet<String>(
+      context: context,
+      title: l10n.entryColor,
+      buildItems: (context) => [
+        for (final color in <EntryColor?>[null, ...EntryColor.values])
+          ListTile(
+            leading: Icon(
+              color == null ? Icons.format_color_reset : Icons.circle,
+              color: color?.color,
+            ),
+            title: Text(color?.label(l10n) ?? l10n.entryColorNone),
+            selected: color == selected,
+            trailing: color == selected ? const Icon(Icons.check) : null,
+            onTap: () => Navigator.of(context).pop(color?.hex ?? ''),
+          ),
+      ],
+    );
+    if (!mounted || choice == null) return;
+    setState(() {
+      _background = choice.isEmpty ? null : choice;
+      _backgroundChanged = true;
+    });
   }
 
   /// "Scade" attivato con una data passata o assente: parte da adesso, come
@@ -383,6 +417,7 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
     final state = ref.watch(entryEditViewModelProvider(widget.target));
     final busy = state.isLoading;
     final isNew = widget.target.entryId == null;
+    final color = adaptEntryColor(_background);
     final template = _template(ref);
     final database = ref.watch(databaseSessionProvider)?.database;
     final sourceId = widget.target.entryId ?? widget.target.templateId;
@@ -448,6 +483,17 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
                   onPressed: busy ? null : _chooseIcon,
                   child: Text(l10n.entryEditChooseIcon),
                 ),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  color == null ? Icons.format_color_reset : Icons.circle,
+                  color: color?.color,
+                ),
+                title: Text(l10n.entryColor),
+                subtitle: Text(color?.label(l10n) ?? l10n.entryColorNone),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: busy ? null : _chooseColor,
               ),
               _textField(
                 _title,

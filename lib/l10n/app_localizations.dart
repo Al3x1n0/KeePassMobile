@@ -2785,6 +2785,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Camera unavailable. Check permissions and try again.'**
   String get entryEditTotpScanError;
+
+  /// No description provided for @entryColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get entryColor;
+
+  /// No description provided for @entryColorNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get entryColorNone;
+
+  /// No description provided for @entryColorIndicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Color: {color}'**
+  String entryColorIndicator(String color);
+
+  /// No description provided for @entryColorRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get entryColorRed;
+
+  /// No description provided for @entryColorOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get entryColorOrange;
+
+  /// No description provided for @entryColorYellow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get entryColorYellow;
+
+  /// No description provided for @entryColorGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get entryColorGreen;
+
+  /// No description provided for @entryColorTeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Teal'**
+  String get entryColorTeal;
+
+  /// No description provided for @entryColorBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get entryColorBlue;
+
+  /// No description provided for @entryColorPurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get entryColorPurple;
+
+  /// No description provided for @entryColorPink.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get entryColorPink;
+
+  /// No description provided for @entryColorBrown.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown'**
+  String get entryColorBrown;
+
+  /// No description provided for @entryColorGray.
+  ///
+  /// In en, this message translates to:
+  /// **'Gray'**
+  String get entryColorGray;
 }
 
 class _AppLocalizationsDelegate

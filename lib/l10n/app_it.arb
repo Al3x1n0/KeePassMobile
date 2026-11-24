@@ -478,5 +478,18 @@
   "settingsExpireTan": "Segna i TAN come scaduti",
   "settingsExpireTanHint": "Segna un TAN come utilizzato quando ne apri il dettaglio.",
   "entryEditTotpScan": "Scansiona codice QR",
-  "entryEditTotpScanError": "Fotocamera non disponibile. Controlla i permessi e riprova."
+  "entryEditTotpScanError": "Fotocamera non disponibile. Controlla i permessi e riprova.",
+  "entryColor": "Colore",
+  "entryColorNone": "Nessuno",
+  "entryColorIndicator": "Colore: {color}",
+  "entryColorRed": "Rosso",
+  "entryColorOrange": "Arancione",
+  "entryColorYellow": "Giallo",
+  "entryColorGreen": "Verde",
+  "entryColorTeal": "Verde acqua",
+  "entryColorBlue": "Blu",
+  "entryColorPurple": "Viola",
+  "entryColorPink": "Rosa",
+  "entryColorBrown": "Marrone",
+  "entryColorGray": "Grigio"
 }

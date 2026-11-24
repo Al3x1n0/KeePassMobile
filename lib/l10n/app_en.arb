@@ -704,5 +704,25 @@
   "settingsExpireTan": "Expire TAN entries when opened",
   "settingsExpireTanHint": "Mark a TAN as used when its details are opened.",
   "entryEditTotpScan": "Scan QR code",
-  "entryEditTotpScanError": "Camera unavailable. Check permissions and try again."
+  "entryEditTotpScanError": "Camera unavailable. Check permissions and try again.",
+  "entryColor": "Color",
+  "entryColorNone": "None",
+  "entryColorIndicator": "Color: {color}",
+  "entryColorRed": "Red",
+  "entryColorOrange": "Orange",
+  "entryColorYellow": "Yellow",
+  "entryColorGreen": "Green",
+  "entryColorTeal": "Teal",
+  "entryColorBlue": "Blue",
+  "entryColorPurple": "Purple",
+  "entryColorPink": "Pink",
+  "entryColorBrown": "Brown",
+  "entryColorGray": "Gray",
+  "@entryColorIndicator": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      }
+    }
+  }
 }

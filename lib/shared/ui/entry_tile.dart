@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kpasslib/kpasslib.dart';
 
+import '../../app/theme.dart';
 import '../../app/routes.dart';
 import '../../l10n/app_localizations.dart';
 import '../database/kdbx_items.dart';
@@ -10,13 +11,7 @@ import '../database/database_session.dart';
 import '../database/field_references.dart';
 import '../settings/app_settings.dart';
 import 'database_item_icon.dart';
-
-Color? _entryColor(String? value) {
-  if (value == null || !RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(value)) {
-    return null;
-  }
-  return Color(0xff000000 | int.parse(value.substring(1), radix: 16));
-}
+import 'entry_color.dart';
 
 /// Riga di una voce negli elenchi (gruppo e ricerca). Il nome utente compare
 /// solo con l'impostazione "Nome utente negli elenchi".
@@ -76,9 +71,7 @@ class EntryTile extends ConsumerWidget {
       if (userName.isNotEmpty) userName,
       if (groupName case final g? when g.isNotEmpty) g,
     ];
-    return ListTile(
-      tileColor: _entryColor(entry.background),
-      textColor: _entryColor(entry.foreground),
+    final tile = ListTile(
       leading: DatabaseItemIcon(
         item: entry,
         database: database,
@@ -100,6 +93,25 @@ class EntryTile extends ConsumerWidget {
       onTap: onTap ?? () => context.push(AppRoutes.entry(itemIdOf(entry))),
       onLongPress: onLongPress,
       selected: selected,
+    );
+    final color = adaptEntryColor(entry.background);
+    if (color == null) return tile;
+    return Stack(
+      children: [
+        tile,
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: AppEntryColorLayout.stripeWidth,
+          child: IgnorePointer(
+            child: Semantics(
+              label: l10n.entryColorIndicator(color.label(l10n)),
+              child: ColoredBox(color: color.color),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

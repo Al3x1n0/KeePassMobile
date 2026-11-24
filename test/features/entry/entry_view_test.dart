@@ -8,6 +8,7 @@ import 'package:keepass_mobile/shared/database/database_session.dart';
 import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:keepass_mobile/shared/settings/app_settings.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
+import 'package:keepass_mobile/shared/ui/entry_color.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/test_database.dart';
@@ -15,6 +16,109 @@ import '../../helpers/test_database.dart';
 void main() {
   const locale = Locale('it');
   final l10n = lookupAppLocalizations(locale);
+
+  for (final dark in [false, true]) {
+    for (final history in [false, true]) {
+      testWidgets(
+        'colore adattato accessibile nel dettaglio ($dark, cronologia $history)',
+        (tester) async {
+          final semantics = tester.ensureSemantics();
+          try {
+            final db = newTestDatabase();
+            final entry = addTestEntry(db, db.root, {
+              EntryFields.title: 'Voce di prova',
+            })..background = '#FFCDD2';
+            entry.pushHistory();
+            entry.background = '#D0EAD0';
+            final container = await newTestContainer();
+            container
+                .read(databaseSessionProvider.notifier)
+                .open(
+                  DatabaseSession(
+                    file: const FileRef(
+                      uri: 'file:///prova.kdbx',
+                      name: 'prova.kdbx',
+                    ),
+                    database: db,
+                  ),
+                );
+            await tester.pumpWidget(
+              UncontrolledProviderScope(
+                container: container,
+                child: MaterialApp(
+                  locale: locale,
+                  localizationsDelegates: [
+                    ...GlobalMaterialLocalizations.delegates,
+                    ...AppLocalizations.localizationsDelegates,
+                  ],
+                  supportedLocales: AppLocalizations.supportedLocales,
+                  theme: dark ? buildDarkTheme() : buildLightTheme(),
+                  home: EntryView(
+                    entryId: itemIdOf(entry),
+                    historyIndex: history ? 0 : null,
+                  ),
+                ),
+              ),
+            );
+            await tester.pumpAndSettle();
+            final color = history ? EntryColor.red : EntryColor.green;
+            final label = l10n.entryColorIndicator(color.label(l10n));
+            expect(
+              find.byWidgetPredicate(
+                (widget) => widget is Tooltip && widget.message == label,
+              ),
+              findsOneWidget,
+            );
+            expect(find.bySemanticsLabel(label), findsOneWidget);
+            expect(
+              tester.widget<Icon>(find.byIcon(Icons.circle)).color,
+              color.color,
+            );
+            expect(tester.takeException(), isNull);
+          } finally {
+            semantics.dispose();
+          }
+        },
+      );
+    }
+  }
+
+  for (final background in [null, '', '#12345g']) {
+    testWidgets('dettaglio senza indicatore per colore $background', (
+      tester,
+    ) async {
+      final db = newTestDatabase();
+      final entry = addTestEntry(db, db.root, {EntryFields.title: 'Voce'})
+        ..background = background;
+      final container = await newTestContainer();
+      container
+          .read(databaseSessionProvider.notifier)
+          .open(
+            DatabaseSession(
+              file: const FileRef(
+                uri: 'file:///prova.kdbx',
+                name: 'prova.kdbx',
+              ),
+              database: db,
+            ),
+          );
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            localizationsDelegates: [
+              ...GlobalMaterialLocalizations.delegates,
+              ...AppLocalizations.localizationsDelegates,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: EntryView(entryId: itemIdOf(entry)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.circle), findsNothing);
+    });
+  }
 
   testWidgets(
     'copia ogni campo toccando la riga e conserva la pulizia scelta',

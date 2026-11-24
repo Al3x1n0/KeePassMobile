@@ -91,6 +91,8 @@ class EntryDraft {
     this.url = '',
     this.overrideUrl = '',
     this.notes = '',
+    this.background,
+    this.backgroundChanged = false,
     this.custom = const [],
     this.icon = KdbxIcon.key,
     this.iconChoice,
@@ -115,6 +117,7 @@ class EntryDraft {
       url: entryField(entry, EntryFields.url),
       overrideUrl: entry.overrideUrl ?? '',
       notes: entryField(entry, EntryFields.notes),
+      background: entry.background,
       icon: entry.icon,
       expires: entry.times.expires,
       expiry: entry.times.expiry.time?.toLocal(),
@@ -141,6 +144,12 @@ class EntryDraft {
   final String url;
   final String overrideUrl;
   final String notes;
+
+  /// Valore KDBX originale, oppure il colore scelto esplicitamente.
+  final String? background;
+
+  /// Solo una scelta esplicita sostituisce o rimuove il colore originale.
+  final bool backgroundChanged;
   final List<CustomFieldDraft> custom;
 
   /// Icona standard (le icone personalizzate restano finché non si cambia).
@@ -166,6 +175,8 @@ class EntryDraft {
       other.url == url &&
       other.overrideUrl == overrideUrl &&
       other.notes == notes &&
+      other.background == background &&
+      other.backgroundChanged == backgroundChanged &&
       listEquals(other.custom, custom) &&
       other.icon == icon &&
       other.iconChoice == iconChoice &&
@@ -182,6 +193,8 @@ class EntryDraft {
     url,
     overrideUrl,
     notes,
+    background,
+    backgroundChanged,
     Object.hashAll(custom),
     icon,
     iconChoice,
@@ -232,6 +245,7 @@ void applyDraft(KdbxDatabase database, KdbxEntry entry, EntryDraft draft) {
   setStandard(EntryFields.url, draft.url, protection.url ?? false);
   entry.overrideUrl = draft.overrideUrl;
   setStandard(EntryFields.notes, draft.notes, protection.notes ?? false);
+  if (draft.backgroundChanged) entry.background = draft.background;
 
   // Come KeePass: scegliere un'icona standard toglie quella personalizzata.
   if (draft.iconChoice case final choice?) {
@@ -379,7 +393,9 @@ DatabaseEdit createEntryEdit(
   final group = database.getGroup(uuid: groupUuid);
   if (group == null) throw StateError('gruppo non trovato');
   final entry = database.createEntry(parent: group, icon: KdbxIcon.key);
-  entry.uuid = uuid;
+  entry
+    ..uuid = uuid
+    ..background = draft.background;
   applyDraft(database, entry, draft);
 };
 
@@ -447,6 +463,7 @@ EntryDraft draftFromStructuredTemplate(KdbxEntry template) {
     url: standard(EntryFields.url),
     overrideUrl: names.contains('@override') ? template.overrideUrl ?? '' : '',
     notes: standard(EntryFields.notes),
+    background: template.background,
     custom: fields,
     icon: template.icon,
     expires: hasExpiry,

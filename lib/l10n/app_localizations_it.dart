@@ -1533,4 +1533,45 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get entryEditTotpScanError =>
       'Fotocamera non disponibile. Controlla i permessi e riprova.';
+
+  @override
+  String get entryColor => 'Colore';
+
+  @override
+  String get entryColorNone => 'Nessuno';
+
+  @override
+  String entryColorIndicator(String color) {
+    return 'Colore: $color';
+  }
+
+  @override
+  String get entryColorRed => 'Rosso';
+
+  @override
+  String get entryColorOrange => 'Arancione';
+
+  @override
+  String get entryColorYellow => 'Giallo';
+
+  @override
+  String get entryColorGreen => 'Verde';
+
+  @override
+  String get entryColorTeal => 'Verde acqua';
+
+  @override
+  String get entryColorBlue => 'Blu';
+
+  @override
+  String get entryColorPurple => 'Viola';
+
+  @override
+  String get entryColorPink => 'Rosa';
+
+  @override
+  String get entryColorBrown => 'Marrone';
+
+  @override
+  String get entryColorGray => 'Grigio';
 }

@@ -8,6 +8,11 @@ abstract final class AppSpacing {
   static const double l = 24;
 }
 
+/// Dimensioni degli indicatori cromatici delle voci.
+abstract final class AppEntryColorLayout {
+  static const double stripeWidth = 4;
+}
+
 /// Dimensioni della pila di azioni per l'apertura dei database.
 abstract final class AppFileSelectLayout {
   static const double fabMinHeight = 56;

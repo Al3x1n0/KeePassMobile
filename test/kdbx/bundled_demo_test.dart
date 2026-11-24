@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/features/totp/totp.dart';
 import 'package:keepass_mobile/shared/database/field_references.dart';
 import 'package:keepass_mobile/shared/database/kdbx_items.dart';
+import 'package:keepass_mobile/shared/ui/entry_color.dart';
 import 'package:kpasslib/kpasslib.dart';
 
 void main() {
@@ -40,6 +41,7 @@ void main() {
     addTearDown(frame.image.dispose);
     expect(frame.image.width, 32);
     final keys = named('Consegna chiavi');
+    expect(adaptEntryColor(keys.background), EntryColor.green);
     final attachment = db.binaries.getByRef(keys.binaries['inventario.txt']!)!;
     expect(utf8.decode(attachment.data), contains('2 chiavi blu'));
     expect(keys.fields['PIN'], isA<ProtectedTextField>());
