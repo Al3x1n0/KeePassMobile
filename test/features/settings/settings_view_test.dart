@@ -7,6 +7,8 @@ import 'package:keepass_mobile/features/settings/settings_view.dart';
 import 'package:keepass_mobile/features/settings/settings_view_model.dart';
 import 'package:keepass_mobile/l10n/app_localizations.dart';
 import 'package:keepass_mobile/shared/database/database_session.dart';
+import 'package:keepass_mobile/shared/settings/app_settings.dart';
+import 'package:keepass_mobile/shared/storage/preferences.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
 import 'package:keepass_mobile/shared/ui/expandable_section.dart';
 import 'package:material_ui/material_ui.dart';
@@ -171,6 +173,42 @@ void main() {
         },
       );
     }
+  }
+
+  for (final locale in [const Locale('it'), const Locale('en')]) {
+    testWidgets(
+      'blocco in background ${locale.languageCode}: toggle localizzato e persistito con testo doppio',
+      (tester) async {
+        viewport(tester, const Size(320, 640));
+        final scope = await container();
+        final l10n = lookupAppLocalizations(locale);
+        await tester.pumpWidget(app(scope, locale: locale, textScale: 2));
+        await tester.pumpAndSettle();
+        final toggle = find.widgetWithText(
+          SwitchListTile,
+          l10n.settingsLockInBackground,
+        );
+        await tester.scrollUntilVisible(toggle, 150);
+        await tester.ensureVisible(toggle);
+        await tester.pumpAndSettle();
+        expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+        expect(find.text(l10n.settingsLockInBackgroundHint), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(toggle);
+        await tester.pumpAndSettle();
+
+        expect(scope.read(appSettingsProvider).lockInBackground, isTrue);
+        expect(
+          scope
+              .read(sharedPreferencesProvider)
+              .getBool('settings.lock_in_background'),
+          isTrue,
+        );
+        expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   testWidgets(

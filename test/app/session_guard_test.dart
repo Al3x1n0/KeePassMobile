@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/screen_protection.dart';
@@ -6,6 +9,7 @@ import 'package:keepass_mobile/features/file_select/recent_files.dart';
 import 'package:keepass_mobile/features/unlock/relock.dart';
 import 'package:keepass_mobile/shared/database/database_session.dart';
 import 'package:keepass_mobile/shared/security/device_security.dart';
+import 'package:keepass_mobile/shared/security/external_activity.dart';
 import 'package:keepass_mobile/shared/settings/app_settings.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
 import 'package:keepass_mobile/shared/storage/preferences.dart';
@@ -171,6 +175,105 @@ void main() {
     container.read(sessionGuardProvider).appResumed();
 
     expect(isOpen(container), isTrue);
+  });
+
+  for (final lifecycle in [
+    AppLifecycleState.hidden,
+    AppLifecycleState.paused,
+  ]) {
+    guardTest('background $lifecycle: blocca solo quando attivato', (
+      tester,
+    ) async {
+      final container = await start(tester);
+      open(container);
+      final guard = container.read(sessionGuardProvider);
+      guard.appLifecycleChanged(lifecycle);
+      expect(isOpen(container), isTrue);
+      guard.appResumed();
+      await container
+          .read(appSettingsProvider.notifier)
+          .update(const AppSettings(lockInBackground: true));
+
+      guard.appLifecycleChanged(lifecycle);
+
+      expect(isOpen(container), isFalse);
+      // Gli eventi sintetici hidden/paused dello stesso passaggio non
+      // aprono una seconda sessione né riavviano lo sblocco.
+      guard.appLifecycleChanged(AppLifecycleState.paused);
+      guard.appResumed();
+      expect(isOpen(container), isFalse);
+    });
+  }
+
+  guardTest('inactive e resumed: biometria e permessi non bloccano', (
+    tester,
+  ) async {
+    final container = await start(
+      tester,
+      settings: const AppSettings(lockInBackground: true),
+    );
+    open(container);
+    final guard = container.read(sessionGuardProvider);
+
+    guard.appLifecycleChanged(AppLifecycleState.inactive);
+    guard.appLifecycleChanged(AppLifecycleState.resumed);
+
+    expect(isOpen(container), isTrue);
+  });
+
+  guardTest('picker intenzionale: esente fino al resumed, poi blocco normale', (
+    tester,
+  ) async {
+    final container = await start(
+      tester,
+      settings: const AppSettings(lockInBackground: true),
+    );
+    open(container);
+    final guard = container.read(sessionGuardProvider);
+    guard.appResumed();
+    final result = Completer<void>();
+    final operation = container
+        .read(externalActivityProvider)
+        .run(() => result.future);
+
+    guard.appLifecycleChanged(AppLifecycleState.inactive);
+    guard.appLifecycleChanged(AppLifecycleState.hidden);
+    guard.appLifecycleChanged(AppLifecycleState.paused);
+    expect(isOpen(container), isTrue);
+    result.complete();
+    await operation;
+    // Il risultato del canale può precedere gli eventi del rientro.
+    guard.appLifecycleChanged(AppLifecycleState.hidden);
+    guard.appLifecycleChanged(AppLifecycleState.inactive);
+    expect(isOpen(container), isTrue);
+    guard.appResumed();
+    expect(container.read(externalActivityProvider).isActive, isFalse);
+
+    guard.appLifecycleChanged(AppLifecycleState.hidden);
+    expect(isOpen(container), isFalse);
+  });
+
+  guardTest('il picker non disattiva il timeout di inattività', (tester) async {
+    final container = await start(
+      tester,
+      settings: const AppSettings(lockInBackground: true),
+    );
+    open(container);
+    final result = Completer<void>();
+    final operation = container
+        .read(externalActivityProvider)
+        .run(() => result.future);
+    container
+        .read(sessionGuardProvider)
+        .appLifecycleChanged(AppLifecycleState.hidden);
+    expect(isOpen(container), isTrue);
+
+    await wait(tester, const Duration(minutes: 5));
+
+    expect(isOpen(container), isFalse);
+    result.complete();
+    await operation;
+    container.read(sessionGuardProvider).appResumed();
   });
 
   guardTest('tempo di blocco cambiato: vale subito', (tester) async {

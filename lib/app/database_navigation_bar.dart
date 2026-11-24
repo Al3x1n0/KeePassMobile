@@ -10,9 +10,14 @@ import 'theme.dart';
 
 /// Destinazioni principali durante la consultazione del database.
 class DatabaseNavigationBar extends StatelessWidget {
-  const DatabaseNavigationBar({super.key, this.settingsSelected = false});
+  const DatabaseNavigationBar({
+    super.key,
+    this.settingsSelected = false,
+    this.generatorSelected = false,
+  });
 
   final bool settingsSelected;
+  final bool generatorSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -23,23 +28,37 @@ class DatabaseNavigationBar extends StatelessWidget {
     void selectDestination(int index) {
       switch (index) {
         case 0:
-          if (settingsSelected && context.canPop()) {
+          if ((settingsSelected || generatorSelected) && context.canPop()) {
             context.pop();
           } else {
             context.go(AppRoutes.database);
           }
+        case 1 when !generatorSelected:
+          if (settingsSelected) {
+            context.pushReplacement(AppRoutes.generate);
+          } else {
+            context.push(AppRoutes.generate);
+          }
         case 3 when !settingsSelected:
-          context.push(AppRoutes.appSettingsInDatabase);
+          if (generatorSelected) {
+            context.pushReplacement(AppRoutes.appSettingsInDatabase);
+          } else {
+            context.push(AppRoutes.appSettingsInDatabase);
+          }
       }
     }
 
     final destinations = [
       (Icons.home_outlined, l10n.navigationHome, true),
-      (Icons.casino_outlined, l10n.navigationGenerate, false),
+      (Icons.casino_outlined, l10n.navigationGenerate, true),
       (Icons.shield_outlined, l10n.navigationCheck, false),
       (Icons.settings_outlined, l10n.settingsTitle, true),
     ];
-    final selectedIndex = settingsSelected ? 3 : 0;
+    final selectedIndex = settingsSelected
+        ? 3
+        : generatorSelected
+        ? 1
+        : 0;
 
     return SafeArea(
       top: false,

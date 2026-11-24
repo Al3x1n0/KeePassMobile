@@ -162,6 +162,13 @@ class SettingsView extends ConsumerWidget {
                   },
                 ),
                 SwitchListTile(
+                  title: Text(l10n.settingsLockInBackground),
+                  subtitle: Text(l10n.settingsLockInBackgroundHint),
+                  value: settings.lockInBackground,
+                  onChanged: (v) =>
+                      update(settings.copyWith(lockInBackground: v)),
+                ),
+                SwitchListTile(
                   title: Text(l10n.settingsLockOnScreenOff),
                   subtitle: Text(l10n.settingsLockOnScreenOffHint),
                   value: settings.lockOnScreenOff,

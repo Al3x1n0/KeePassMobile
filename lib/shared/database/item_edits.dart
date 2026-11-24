@@ -325,6 +325,24 @@ class GroupDestination {
   final String label;
 }
 
+/// Gruppi validi per una nuova voce, inclusa la radice ed escluso il cestino.
+List<GroupDestination> entryCreationDestinations(KdbxDatabase database) {
+  final result = <GroupDestination>[];
+  void visit(KdbxGroup group, String parentPath) {
+    if (isInRecycleBin(database, group)) return;
+    final path = parentPath.isEmpty
+        ? group.name
+        : '$parentPath / ${group.name}';
+    result.add(GroupDestination(itemIdOf(group), path));
+    for (final child in group.groups) {
+      visit(child, path);
+    }
+  }
+
+  visit(database.root, '');
+  return List.unmodifiable(result);
+}
+
 List<GroupDestination> moveDestinations(
   KdbxDatabase database,
   List<String> ids,

@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kpasslib/kpasslib.dart';
 
+import '../security/external_activity.dart';
 import 'remote_storage.dart';
 import 'sftp_client.dart';
 import 'webdav_client.dart';
@@ -88,10 +89,15 @@ final class FileWriteException implements Exception {
 /// ([RemoteAuthException], [RemoteUnreachableException], …); un file che non
 /// c'è più è [FileUnavailableException].
 class FileStorage {
-  const FileStorage([this._documents = const DocumentAccess(), this._remote]);
+  const FileStorage([
+    this._documents = const DocumentAccess(),
+    this._remote,
+    this._externalActivity,
+  ]);
 
   final DocumentAccess _documents;
   final RemoteStorage? _remote;
+  final ExternalActivity? _externalActivity;
 
   Future<StoredFile> read(FileRef ref) async {
     if (RemoteStorage.handles(ref)) {
@@ -214,10 +220,9 @@ class FileStorage {
     required Uint8List bytes,
   }) async {
     try {
-      final created = await _documents.create(
-        suggestedName: suggestedName,
-        bytes: bytes,
-      );
+      Future<CreatedDocument?> create() =>
+          _documents.create(suggestedName: suggestedName, bytes: bytes);
+      final created = await (_externalActivity?.run(create) ?? create());
       if (created == null) return null;
       return FileRef(uri: created.uri, name: created.name);
     } on DocumentUnavailableException {
@@ -323,8 +328,11 @@ class FileStorage {
 }
 
 final fileStorageProvider = Provider<FileStorage>(
-  (ref) =>
-      FileStorage(const DocumentAccess(), ref.watch(remoteStorageProvider)),
+  (ref) => FileStorage(
+    const DocumentAccess(),
+    ref.watch(remoteStorageProvider),
+    ref.watch(externalActivityProvider),
+  ),
 );
 
 /// Lettura annullabile che usa solo credenziali e chiavi server già autorizzate.
@@ -429,15 +437,20 @@ Future<void> _restrictedReadWorker(
 
 /// Selettore di documenti del sistema, con accesso persistente al file scelto.
 class FilePickerService {
-  const FilePickerService([this._documents = const DocumentAccess()]);
+  const FilePickerService([
+    this._documents = const DocumentAccess(),
+    this._externalActivity,
+  ]);
 
   final DocumentAccess _documents;
+  final ExternalActivity? _externalActivity;
 
   /// `null` se l'utente annulla.
   Future<PickedFile?> pick() async {
     final PickedDocument? picked;
     try {
-      picked = await _documents.pick();
+      picked =
+          await (_externalActivity?.run(_documents.pick) ?? _documents.pick());
     } on DocumentAccessException catch (error) {
       if (error.code == 'too_large') {
         throw const KdbxResourceLimitError(KdbxResourceLimit.fileSize);
@@ -454,5 +467,8 @@ class FilePickerService {
 }
 
 final filePickerServiceProvider = Provider<FilePickerService>(
-  (ref) => const FilePickerService(),
+  (ref) => FilePickerService(
+    const DocumentAccess(),
+    ref.watch(externalActivityProvider),
+  ),
 );

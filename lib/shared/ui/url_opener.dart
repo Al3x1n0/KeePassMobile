@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../security/external_activity.dart';
+
 /// Indirizzo da aprire per il campo URL di una voce, come `GotoUrl` di
 /// Keepass2Android: `https://` se manca lo schema o se inizia con `www.`.
 ///
@@ -24,17 +26,23 @@ bool _isWebUrl(Uri uri) =>
 
 /// Apertura nel browser esterno (sovrascritta nei test).
 class UrlOpener {
-  const UrlOpener();
+  const UrlOpener([this._externalActivity]);
+
+  final ExternalActivity? _externalActivity;
 
   /// `false` se l'indirizzo non è ammesso o nessuna app può aprirlo.
   Future<bool> open(Uri uri) async {
     if (!_isWebUrl(uri)) return false;
     try {
-      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+      Future<bool> launch() =>
+          launchUrl(uri, mode: LaunchMode.externalApplication);
+      return await (_externalActivity?.launch(launch) ?? launch());
     } on Exception {
       return false;
     }
   }
 }
 
-final urlOpenerProvider = Provider<UrlOpener>((_) => const UrlOpener());
+final urlOpenerProvider = Provider<UrlOpener>(
+  (ref) => UrlOpener(ref.watch(externalActivityProvider)),
+);

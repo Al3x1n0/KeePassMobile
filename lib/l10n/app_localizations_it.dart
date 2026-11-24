@@ -441,6 +441,9 @@ class AppLocalizationsIt extends AppLocalizations {
       'Scegli almeno un tipo di carattere o un numero di parole.';
 
   @override
+  String get generatorNoValue => 'Genera una nuova password';
+
+  @override
   String get generatorProfile => 'Profilo';
 
   @override
@@ -1574,4 +1577,17 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get entryColorGray => 'Grigio';
+
+  @override
+  String get settingsLockInBackground => 'Blocca in background';
+
+  @override
+  String get settingsLockInBackgroundHint =>
+      'Blocca il database quando passi a un’altra app, escluse le attività di sistema aperte dall’app.';
+
+  @override
+  String get generatorSaveAsEntry => 'Salva come nuova voce';
+
+  @override
+  String get generatorChooseGroup => 'Scegli il gruppo di destinazione';
 }

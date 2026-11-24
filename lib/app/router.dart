@@ -12,6 +12,7 @@ import '../features/favorites/favorites_view.dart';
 import '../features/file_select/file_select_view.dart';
 import '../features/group/group_view.dart';
 import '../features/password_generator/generator_view.dart';
+import '../features/password_generator/pending_generated_password.dart';
 import '../features/remote_open/remote_open_view.dart';
 import '../features/search/search_view.dart';
 import '../features/settings/settings_view.dart';
@@ -37,11 +38,18 @@ final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     refreshListenable: refresh,
     redirect: (context, state) {
-      final isOpen = ref.read(databaseSessionProvider) != null;
+      final session = ref.read(databaseSessionProvider);
+      final isOpen = session != null;
       final location = state.matchedLocation;
       final inDatabase = location.startsWith(AppRoutes.database);
       if (!isOpen && inDatabase) return AppRoutes.fileSelect;
-      if (isOpen && !inDatabase) return AppRoutes.database;
+      if (isOpen && !inDatabase) {
+        return ref
+                .read(pendingGeneratedPasswordProvider.notifier)
+                .takeRestoreDestination(session.file)
+            ? AppRoutes.generate
+            : AppRoutes.database;
+      }
       if (location == AppRoutes.unlock && state.extra is! UnlockArgs) {
         return AppRoutes.fileSelect;
       }
@@ -100,6 +108,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                         templateId: state.extra is String
                             ? state.extra as String
                             : null,
+                        fromGenerator:
+                            state.extra == EntryCreationSource.generator,
                       ),
                     ),
                   ),
@@ -153,6 +163,18 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'generator',
                 builder: (_, _) => const GeneratorView(),
+              ),
+              GoRoute(
+                path: 'generate',
+                pageBuilder: (_, state) => CustomTransitionPage<void>(
+                  key: state.pageKey,
+                  transitionDuration: AppNavigationLayout.transitionDuration,
+                  reverseTransitionDuration:
+                      AppNavigationLayout.transitionDuration,
+                  child: const GeneratorView(showDatabaseNavigation: true),
+                  transitionsBuilder: (_, animation, _, child) =>
+                      FadeTransition(opacity: animation, child: child),
+                ),
               ),
               GoRoute(
                 path: 'settings',

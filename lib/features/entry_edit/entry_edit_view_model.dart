@@ -9,6 +9,8 @@ import '../../shared/database/entry_templates.dart';
 import '../../shared/database/kdbx_items.dart';
 import '../../shared/database/item_edits.dart';
 import '../totp/totp.dart';
+import '../password_generator/generator_view_model.dart';
+import '../password_generator/pending_generated_password.dart';
 
 /// Campo personalizzato in modifica.
 @immutable
@@ -537,28 +539,37 @@ DatabaseEdit createFromTemplateEdit(
   group.entries.add(entry);
 };
 
+/// Provenienza della creazione, senza valori sensibili nella navigazione.
+enum EntryCreationSource { generator }
+
 /// Voce da modificare ([entryId]) o gruppo in cui crearne una ([groupId]).
 @immutable
 class EntryEditTarget {
   const EntryEditTarget.edit(String this.entryId)
     : groupId = null,
-      templateId = null;
-  const EntryEditTarget.create(String this.groupId, {this.templateId})
-    : entryId = null;
+      templateId = null,
+      fromGenerator = false;
+  const EntryEditTarget.create(
+    String this.groupId, {
+    this.templateId,
+    this.fromGenerator = false,
+  }) : entryId = null;
 
   final String? entryId;
   final String? groupId;
   final String? templateId;
+  final bool fromGenerator;
 
   @override
   bool operator ==(Object other) =>
       other is EntryEditTarget &&
       other.entryId == entryId &&
       other.groupId == groupId &&
-      other.templateId == templateId;
+      other.templateId == templateId &&
+      other.fromGenerator == fromGenerator;
 
   @override
-  int get hashCode => Object.hash(entryId, groupId, templateId);
+  int get hashCode => Object.hash(entryId, groupId, templateId, fromGenerator);
 }
 
 /// Contenuto iniziale del form; `null` se voce o gruppo non esistono più.
@@ -571,7 +582,18 @@ final entryInitialDraftProvider = Provider.autoDispose
         final entry = findEntry(db, id);
         return entry == null ? null : EntryDraft.fromEntry(entry, database: db);
       }
-      if (findGroup(db, target.groupId) == null) return null;
+      final group = findGroup(db, target.groupId);
+      if (group == null || isInRecycleBin(db, group)) return null;
+      if (target.fromGenerator) {
+        final password = ref
+            .read(pendingGeneratedPasswordProvider.notifier)
+            .valueFor(session.file);
+        if (password == null) return null;
+        return EntryDraft(
+          userName: db.meta.defaultUser ?? '',
+          password: password.text,
+        );
+      }
       if (target.templateId case final id?) {
         final template = entryTemplates(db)
             .where((e) => itemIdOf(e) == id)
@@ -620,7 +642,7 @@ class EntryEditViewModel extends AsyncNotifier<String?> {
       edit = updateEntryEdit(entry.uuid, draft);
     } else {
       final group = findGroup(db, target.groupId);
-      if (group == null) return null;
+      if (group == null || isInRecycleBin(db, group)) return null;
       final uuid = KdbxUuid.random(
         prohibited: db.root.allItems.map((i) => i.uuid).toSet(),
       );
@@ -635,7 +657,12 @@ class EntryEditViewModel extends AsyncNotifier<String?> {
       await ref.read(databaseSessionProvider.notifier).apply(edit);
       return entryId;
     });
-    if (ref.mounted) state = result;
+    if (!ref.mounted) return result.value;
+    state = result;
+    if (result.hasValue && result.value != null && target.fromGenerator) {
+      ref.read(pendingGeneratedPasswordProvider.notifier).clear();
+      ref.read(tabGeneratorViewModelProvider.notifier).clearGeneratedValue();
+    }
     return result.value;
   }
 }

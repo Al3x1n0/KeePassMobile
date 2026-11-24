@@ -1,7 +1,39 @@
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:keepass_mobile/shared/security/external_activity.dart';
 import 'package:keepass_mobile/shared/ui/url_opener.dart';
 
 void main() {
+  testWidgets(
+    'browser aperto dall’app: esenzione fino al rientro, non permanente',
+    (tester) async {
+      const channel = MethodChannel('plugins.flutter.io/url_launcher');
+      final messenger = tester.binding.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(channel, (_) async => true);
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+      final activity = ExternalActivity();
+      addTearDown(activity.dispose);
+
+      expect(
+        await UrlOpener(activity).open(Uri.parse('https://example.org')),
+        isTrue,
+      );
+      expect(activity.isActive, isTrue);
+      activity.appLifecycleChanged(AppLifecycleState.hidden);
+      activity.appLifecycleChanged(AppLifecycleState.paused);
+      expect(activity.isActive, isTrue);
+      activity.appLifecycleChanged(AppLifecycleState.resumed);
+      expect(activity.isActive, isFalse);
+
+      expect(
+        await UrlOpener(activity).open(Uri.parse('file:///test')),
+        isFalse,
+      );
+      expect(activity.isActive, isFalse);
+    },
+  );
+
   group('entryUrl (GotoUrl di Keepass2Android, D14)', () {
     test('senza schema o con www.: https://', () {
       expect(

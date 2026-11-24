@@ -157,6 +157,7 @@
   "generatorRegenerate": "Generate again",
   "generatorEntropy": "{bits} bits of entropy",
   "generatorInvalid": "Choose at least one character type or a number of words.",
+  "generatorNoValue": "Generate a new password",
   "generatorProfile": "Profile",
   "generatorProfileCustom": "Custom",
   "generatorCharacters": "Characters",
@@ -724,5 +725,9 @@
         "type": "String"
       }
     }
-  }
+  },
+  "settingsLockInBackground": "Lock in background",
+  "settingsLockInBackgroundHint": "Lock the database when you switch to another app, except for system activities opened by the app.",
+  "generatorSaveAsEntry": "Save as new entry",
+  "generatorChooseGroup": "Choose destination group"
 }

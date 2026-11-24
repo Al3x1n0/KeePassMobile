@@ -11,6 +11,7 @@ import '../features/unlock/relock.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/database/database_session.dart';
 import '../shared/security/device_security.dart';
+import '../shared/security/external_activity.dart';
 import '../shared/settings/app_settings.dart';
 import '../shared/storage/remote_storage.dart';
 import 'device_integrity.dart';
@@ -47,6 +48,8 @@ final openNotificationAllowedProvider = Provider<bool>((_) => true);
 ///   scattare), con ritorno allo sblocco dello stesso database
 ///   ([RelockNotifier.lockAndReturn]);
 /// - blocco a schermo spento se [AppSettings.lockOnScreenOff];
+/// - blocco al passaggio in background se [AppSettings.lockInBackground],
+///   esclusi gli stati transitori e le attività di sistema avviate dall'app;
 /// - schermo protetto secondo [AppSettings.secureScreen];
 /// - notifica del database aperto con "Blocca" se
 ///   [AppSettings.openNotification] (Android, ADR-012); il permesso per le
@@ -102,15 +105,35 @@ class SessionGuard {
 
   /// App tornata in primo piano: blocca se il tempo è già scaduto.
   void appResumed() {
+    _ref
+        .read(externalActivityProvider)
+        .appLifecycleChanged(AppLifecycleState.resumed);
     final timeout = _settings.lockTimeout;
     final last = _lastActivity;
     if (timeout != null &&
         last != null &&
         _isOpen &&
         _now().difference(last) >= timeout) {
-      _lock();
+      _lock(automatic: true);
     }
     unawaited(_resumeWork());
+  }
+
+  /// Solo `hidden` e `paused` rappresentano un'uscita reale dall'app.
+  /// `inactive` comprende anche biometria, permessi e pannelli di sistema.
+  void appLifecycleChanged(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      appResumed();
+      return;
+    }
+    final external = _ref.read(externalActivityProvider);
+    external.appLifecycleChanged(state);
+    if ((state == AppLifecycleState.hidden ||
+            state == AppLifecycleState.paused) &&
+        _settings.lockInBackground &&
+        !external.isActive) {
+      _lock(automatic: true);
+    }
   }
 
   Future<void> _resumeWork() async {
@@ -189,7 +212,10 @@ class SessionGuard {
     final last = _lastActivity;
     if (timeout == null || last == null || !_isOpen) return;
     final remaining = timeout - _now().difference(last);
-    _timer = Timer(remaining.isNegative ? Duration.zero : remaining, _lock);
+    _timer = Timer(
+      remaining.isNegative ? Duration.zero : remaining,
+      () => _lock(automatic: true),
+    );
   }
 
   void _updateScreenOff() {
@@ -264,8 +290,10 @@ class SessionGuard {
     return request.whenComplete(() => _permissionRequest = null);
   }
 
-  void _lock() {
-    if (_isOpen) _ref.read(relockProvider.notifier).lockAndReturn();
+  void _lock({bool automatic = false}) {
+    if (_isOpen) {
+      _ref.read(relockProvider.notifier).lockAndReturn(automatic: automatic);
+    }
   }
 
   void _cancelTimer() {
@@ -301,8 +329,8 @@ class _SessionActivityState extends ConsumerState<SessionActivity> {
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(
-      onResume: () {
-        ref.read(sessionGuardProvider).appResumed();
+      onStateChange: (state) {
+        ref.read(sessionGuardProvider).appLifecycleChanged(state);
       },
     );
   }

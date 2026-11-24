@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../storage/file_storage.dart';
 import '../storage/preferences.dart';
+import 'external_activity.dart';
 
 /// Perché la chiave salvata non è stata letta o scritta.
 enum BiometricKeyError {
@@ -67,8 +68,11 @@ class BiometricPromptTexts {
 /// nell'archivio o nei log (SEC-01). Le preferenze ricordano per quali file la
 /// biometria è attiva e con quale impronta della KDF, senza la chiave.
 class BiometricKeyStore {
-  BiometricKeyStore(this._prefs, {FlutterSecureStorage? storage})
-    : _storage = storage ?? const FlutterSecureStorage();
+  BiometricKeyStore(
+    this._prefs, {
+    FlutterSecureStorage? storage,
+    this._externalActivity,
+  }) : _storage = storage ?? const FlutterSecureStorage();
 
   static const _prefsKey = 'biometric_unlock';
   static const _declinedKey = 'biometric_unlock_declined';
@@ -76,6 +80,7 @@ class BiometricKeyStore {
 
   final SharedPreferences _prefs;
   final FlutterSecureStorage _storage;
+  final ExternalActivity? _externalActivity;
 
   /// `true` se la biometria è attiva per [file].
   bool isEnabled(FileRef file) => _markers().containsKey(keyIdOf(file));
@@ -241,9 +246,9 @@ class BiometricKeyStore {
     return null;
   }
 
-  static Future<T> _guard<T>(Future<T> Function() operation) async {
+  Future<T> _guard<T>(Future<T> Function() operation) async {
     try {
-      return await operation();
+      return await (_externalActivity?.run(operation) ?? operation());
     } on PlatformException catch (e) {
       throw BiometricKeyException(errorOf(e));
     } on MissingPluginException {
@@ -289,7 +294,10 @@ class BiometricKeyStore {
 }
 
 final biometricKeyStoreProvider = Provider<BiometricKeyStore>(
-  (ref) => BiometricKeyStore(ref.watch(sharedPreferencesProvider)),
+  (ref) => BiometricKeyStore(
+    ref.watch(sharedPreferencesProvider),
+    externalActivity: ref.watch(externalActivityProvider),
+  ),
 );
 
 /// Database per cui proporre lo sblocco biometrico, dopo uno sblocco con

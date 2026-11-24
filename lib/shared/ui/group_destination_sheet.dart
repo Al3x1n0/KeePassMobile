@@ -9,12 +9,13 @@ import 'selection_sheet.dart';
 /// Mostra i gruppi in cui è possibile spostare tutti gli elementi indicati.
 Future<String?> showGroupDestinationSheet(
   BuildContext context,
-  List<String> itemIds,
-) {
+  List<String> itemIds, {
+  bool creatingEntry = false,
+}) {
   final l10n = AppLocalizations.of(context);
   return showListSheet<String>(
     context: context,
-    title: l10n.itemMoveTitle,
+    title: creatingEntry ? l10n.generatorChooseGroup : l10n.itemMoveTitle,
     buildItems: (_) => [
       Consumer(
         builder: (context, ref, _) {
@@ -23,6 +24,8 @@ Future<String?> showGroupDestinationSheet(
           );
           final destinations = database == null
               ? const <GroupDestination>[]
+              : creatingEntry
+              ? entryCreationDestinations(database)
               : moveDestinations(database, itemIds);
           if (destinations.isEmpty) {
             return ListTile(title: Text(l10n.itemNoDestination));

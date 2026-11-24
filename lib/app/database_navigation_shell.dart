@@ -20,11 +20,15 @@ class DatabaseNavigationShell extends ConsumerStatefulWidget {
   static Widget bottomBar(
     BuildContext context, {
     bool settingsSelected = false,
+    bool generatorSelected = false,
   }) {
     final scope = context
         .dependOnInheritedWidgetOfExactType<_DatabaseNavigationScope>();
     if (scope == null) {
-      return DatabaseNavigationBar(settingsSelected: settingsSelected);
+      return DatabaseNavigationBar(
+        settingsSelected: settingsSelected,
+        generatorSelected: generatorSelected,
+      );
     }
     return SizedBox(height: MediaQuery.paddingOf(context).bottom);
   }
@@ -76,17 +80,24 @@ class _DatabaseNavigationShellState
   Widget build(BuildContext context) {
     if (_closed) return const SizedBox.shrink();
     final settingsSelected = widget.location == AppRoutes.appSettingsInDatabase;
+    final generatorSelected = widget.location == AppRoutes.generate;
     final groupLocation = Uri.parse(widget.location).pathSegments;
     final inGroup = groupLocation.length == 3 && groupLocation[1] == 'group';
     final showNavigation =
         !_selectionActive &&
-        (widget.location == AppRoutes.database || settingsSelected || inGroup);
+        (widget.location == AppRoutes.database ||
+            settingsSelected ||
+            generatorSelected ||
+            inGroup);
     return _DatabaseNavigationScope(
       onSelectionChanged: _selectionChanged,
       child: Scaffold(
         extendBody: showNavigation,
         bottomNavigationBar: showNavigation
-            ? DatabaseNavigationBar(settingsSelected: settingsSelected)
+            ? DatabaseNavigationBar(
+                settingsSelected: settingsSelected,
+                generatorSelected: generatorSelected,
+              )
             : null,
         body: ScaffoldMessenger(child: widget.child),
       ),

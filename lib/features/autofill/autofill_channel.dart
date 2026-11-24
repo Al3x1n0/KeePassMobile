@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../shared/security/external_activity.dart';
+
 /// Schema delle app Android nei campi delle voci (`androidapp://`, come
 /// Keepass2Android).
 const androidAppScheme = 'androidapp://';
@@ -156,7 +158,9 @@ class AutofillServiceStatus {
 
 /// Impostazione "Compilazione automatica" (canale di `MainActivity`).
 class AutofillSettings {
-  const AutofillSettings();
+  const AutofillSettings([this._externalActivity]);
+
+  final ExternalActivity? _externalActivity;
 
   @visibleForTesting
   static const channel = MethodChannel(
@@ -184,7 +188,9 @@ class AutofillSettings {
   /// è stato possibile.
   Future<bool> openSystemSettings() async {
     try {
-      return await channel.invokeMethod<bool>('openSettings') ?? false;
+      Future<bool> launch() async =>
+          await channel.invokeMethod<bool>('openSettings') ?? false;
+      return await (_externalActivity?.launch(launch) ?? launch());
     } on PlatformException {
       return false;
     } on MissingPluginException {
@@ -194,7 +200,7 @@ class AutofillSettings {
 }
 
 final autofillSettingsProvider = Provider<AutofillSettings>(
-  (_) => const AutofillSettings(),
+  (ref) => AutofillSettings(ref.watch(externalActivityProvider)),
 );
 
 final autofillServiceStatusProvider =

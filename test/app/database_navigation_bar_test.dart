@@ -125,7 +125,7 @@ void main() {
           final l10n = lookupAppLocalizations(const Locale('it'));
           final destinations = [
             (l10n.navigationHome, Icons.home_outlined, true),
-            (l10n.navigationGenerate, Icons.casino_outlined, false),
+            (l10n.navigationGenerate, Icons.casino_outlined, true),
             (l10n.navigationCheck, Icons.shield_outlined, false),
             (l10n.settingsTitle, Icons.settings_outlined, true),
           ];

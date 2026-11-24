@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/database/database_session.dart';
 import '../../shared/storage/file_storage.dart';
 import '../file_select/recent_files.dart';
+import '../password_generator/pending_generated_password.dart';
 import 'unlock_view_model.dart';
 
 /// Sblocco da mostrare dopo un blocco ("Blocca database", inattività, schermo
@@ -10,8 +11,8 @@ import 'unlock_view_model.dart';
 /// (decisione D22, ADR-011, al posto di QuickUnlock). La schermata di scelta
 /// del file lo apre subito; con la biometria attiva la richiesta parte da sola.
 ///
-/// Il blocco è completo: in memoria non resta nessuna chiave, solo il
-/// riferimento al file già presente tra i recenti.
+/// Il blocco elimina tutte le chiavi. Solo nel blocco automatico può restare
+/// la password della tab Genera, separata dalle credenziali del database.
 final relockProvider = NotifierProvider<RelockNotifier, UnlockArgs?>(
   RelockNotifier.new,
 );
@@ -23,9 +24,15 @@ class RelockNotifier extends Notifier<UnlockArgs?> {
   /// Blocca il database aperto. Se è tra i file recenti, dopo il blocco si
   /// torna al suo sblocco; altrimenti alla scelta del file (il permesso sul
   /// file non ricordato viene rilasciato).
-  void lockAndReturn() {
+  void lockAndReturn({bool automatic = false}) {
     final session = ref.read(databaseSessionProvider);
     if (session == null) return;
+    final pending = ref.read(pendingGeneratedPasswordProvider.notifier);
+    if (automatic) {
+      pending.prepareAutomaticLock(session.file);
+    } else {
+      pending.clear();
+    }
     final recent = ref
         .read(recentFilesRepositoryProvider)
         .load()
@@ -42,7 +49,12 @@ class RelockNotifier extends Notifier<UnlockArgs?> {
       ),
       null => null,
     };
-    ref.read(databaseSessionProvider.notifier).lock();
+    ref
+        .read(databaseSessionProvider.notifier)
+        .lock(
+          preserveGeneratedClipboard:
+              automatic && pending.valueFor(session.file) != null,
+        );
   }
 
   /// Sblocco da mostrare, una volta sola.

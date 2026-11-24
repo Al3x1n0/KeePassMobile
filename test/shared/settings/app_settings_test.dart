@@ -20,6 +20,7 @@ void main() {
       expect(settings.clipboardTimeout, const Duration(seconds: 30));
       expect(settings.lockTimeout, const Duration(minutes: 5));
       expect(settings.lockOnScreenOff, isFalse);
+      expect(settings.lockInBackground, isFalse);
       expect(settings.secureScreen, isTrue);
       expect(settings.openNotification, isTrue);
       expect(settings.maskPassword, isTrue);
@@ -60,6 +61,7 @@ void main() {
         clipboardTimeout: Duration(seconds: 240),
         lockTimeout: null,
         lockOnScreenOff: true,
+        lockInBackground: true,
         secureScreen: false,
         openNotification: false,
         maskPassword: false,
@@ -81,6 +83,19 @@ void main() {
       expect(repo.load(), changed);
     },
   );
+
+  test('blocco in background: persistenza e copyWith indipendenti', () async {
+    final repo = await repository();
+    final enabled = repo.load().copyWith(lockInBackground: true);
+
+    await repo.save(enabled);
+
+    expect(repo.load().lockInBackground, isTrue);
+    expect(repo.load().lockOnScreenOff, isFalse);
+    expect(enabled, isNot(const AppSettings()));
+    await repo.save(enabled.copyWith(lockInBackground: false));
+    expect(repo.load().lockInBackground, isFalse);
+  });
 
   test('valori non ammessi: si usano i predefiniti', () async {
     // given: 5 minuti e "mai" (valori di Keepass2Android) per gli appunti,

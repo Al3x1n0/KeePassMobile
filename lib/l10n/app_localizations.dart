@@ -872,6 +872,12 @@ abstract class AppLocalizations {
   /// **'Choose at least one character type or a number of words.'**
   String get generatorInvalid;
 
+  /// No description provided for @generatorNoValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate a new password'**
+  String get generatorNoValue;
+
   /// No description provided for @generatorProfile.
   ///
   /// In en, this message translates to:
@@ -2863,6 +2869,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Gray'**
   String get entryColorGray;
+
+  /// No description provided for @settingsLockInBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock in background'**
+  String get settingsLockInBackground;
+
+  /// No description provided for @settingsLockInBackgroundHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock the database when you switch to another app, except for system activities opened by the app.'**
+  String get settingsLockInBackgroundHint;
+
+  /// No description provided for @generatorSaveAsEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as new entry'**
+  String get generatorSaveAsEntry;
+
+  /// No description provided for @generatorChooseGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose destination group'**
+  String get generatorChooseGroup;
 }
 
 class _AppLocalizationsDelegate

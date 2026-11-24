@@ -439,6 +439,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Choose at least one character type or a number of words.';
 
   @override
+  String get generatorNoValue => 'Generate a new password';
+
+  @override
   String get generatorProfile => 'Profile';
 
   @override
@@ -1564,4 +1567,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get entryColorGray => 'Gray';
+
+  @override
+  String get settingsLockInBackground => 'Lock in background';
+
+  @override
+  String get settingsLockInBackgroundHint =>
+      'Lock the database when you switch to another app, except for system activities opened by the app.';
+
+  @override
+  String get generatorSaveAsEntry => 'Save as new entry';
+
+  @override
+  String get generatorChooseGroup => 'Choose destination group';
 }

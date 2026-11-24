@@ -136,6 +136,7 @@
   "generatorRegenerate": "Genera di nuovo",
   "generatorEntropy": "{bits} bit di entropia",
   "generatorInvalid": "Scegli almeno un tipo di carattere o un numero di parole.",
+  "generatorNoValue": "Genera una nuova password",
   "generatorProfile": "Profilo",
   "generatorProfileCustom": "Personalizzato",
   "generatorCharacters": "Caratteri",
@@ -491,5 +492,9 @@
   "entryColorPurple": "Viola",
   "entryColorPink": "Rosa",
   "entryColorBrown": "Marrone",
-  "entryColorGray": "Grigio"
+  "entryColorGray": "Grigio",
+  "settingsLockInBackground": "Blocca in background",
+  "settingsLockInBackgroundHint": "Blocca il database quando passi a un’altra app, escluse le attività di sistema aperte dall’app.",
+  "generatorSaveAsEntry": "Salva come nuova voce",
+  "generatorChooseGroup": "Scegli il gruppo di destinazione"
 }

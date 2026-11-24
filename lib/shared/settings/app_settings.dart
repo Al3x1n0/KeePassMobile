@@ -13,6 +13,7 @@ class AppSettings {
     this.clipboardTimeout = defaultClipboardTimeout,
     this.lockTimeout = defaultLockTimeout,
     this.lockOnScreenOff = false,
+    this.lockInBackground = false,
     this.secureScreen = true,
     this.openNotification = true,
     this.maskPassword = true,
@@ -71,6 +72,10 @@ class AppSettings {
   /// blocco del dispositivo.
   final bool lockOnScreenOff;
 
+  /// Blocco al passaggio reale in background, escluse le attività di sistema
+  /// aperte esplicitamente dall’app.
+  final bool lockInBackground;
+
   /// Niente screenshot, registrazioni e anteprima tra le app recenti
   /// (`ViewDatabaseSecure`).
   final bool secureScreen;
@@ -125,6 +130,7 @@ class AppSettings {
     Duration? clipboardTimeout,
     Object? lockTimeout = _keep,
     bool? lockOnScreenOff,
+    bool? lockInBackground,
     bool? secureScreen,
     bool? openNotification,
     bool? maskPassword,
@@ -146,6 +152,7 @@ class AppSettings {
         ? this.lockTimeout
         : lockTimeout as Duration?,
     lockOnScreenOff: lockOnScreenOff ?? this.lockOnScreenOff,
+    lockInBackground: lockInBackground ?? this.lockInBackground,
     secureScreen: secureScreen ?? this.secureScreen,
     openNotification: openNotification ?? this.openNotification,
     maskPassword: maskPassword ?? this.maskPassword,
@@ -169,6 +176,7 @@ class AppSettings {
       other.clipboardTimeout == clipboardTimeout &&
       other.lockTimeout == lockTimeout &&
       other.lockOnScreenOff == lockOnScreenOff &&
+      other.lockInBackground == lockInBackground &&
       other.secureScreen == secureScreen &&
       other.openNotification == openNotification &&
       other.maskPassword == maskPassword &&
@@ -190,6 +198,7 @@ class AppSettings {
     clipboardTimeout,
     lockTimeout,
     lockOnScreenOff,
+    lockInBackground,
     secureScreen,
     openNotification,
     maskPassword,
@@ -217,6 +226,7 @@ class AppSettingsRepository {
   static const _clipboardTimeout = 'settings.clipboard_timeout_ms';
   static const _lockTimeout = 'settings.lock_timeout_ms';
   static const _lockOnScreenOff = 'settings.lock_on_screen_off';
+  static const _lockInBackground = 'settings.lock_in_background';
   static const _secureScreen = 'settings.secure_screen';
   static const _openNotification = 'settings.open_notification';
   static const _maskPassword = 'settings.mask_password';
@@ -265,6 +275,7 @@ class AppSettingsRepository {
           _allowed(ms, AppSettings.lockTimeouts) ?? defaults.lockTimeout,
       },
       lockOnScreenOff: flag(_lockOnScreenOff, defaults.lockOnScreenOff),
+      lockInBackground: flag(_lockInBackground, defaults.lockInBackground),
       secureScreen: flag(_secureScreen, defaults.secureScreen),
       openNotification: flag(_openNotification, defaults.openNotification),
       maskPassword: flag(_maskPassword, defaults.maskPassword),
@@ -312,6 +323,7 @@ class AppSettingsRepository {
       settings.lockTimeout?.inMilliseconds ?? _never,
     );
     await _prefs.setBool(_lockOnScreenOff, settings.lockOnScreenOff);
+    await _prefs.setBool(_lockInBackground, settings.lockInBackground);
     await _prefs.setBool(_secureScreen, settings.secureScreen);
     await _prefs.setBool(_openNotification, settings.openNotification);
     await _prefs.setBool(_maskPassword, settings.maskPassword);

@@ -17,6 +17,7 @@ import '../../shared/database/entry_templates.dart';
 import '../../shared/database/kdbx_items.dart';
 import '../../shared/database/item_edits.dart';
 import '../../shared/storage/file_storage.dart';
+import '../../shared/security/external_activity.dart';
 import '../../shared/ui/date_format.dart';
 import '../../shared/ui/entry_color.dart';
 import '../../shared/ui/entry_icon.dart';
@@ -812,8 +813,13 @@ class _TotpSetupDialogState extends State<_TotpSetupDialog> {
   }
 
   Future<void> _scan() async {
-    final value = await Navigator.of(context)
-        .push<String>(MaterialPageRoute(builder: (_) => const _TotpScanner()));
+    final value = await ProviderScope.containerOf(context)
+        .read(externalActivityProvider)
+        .run(
+          () => Navigator.of(context).push<String>(
+            MaterialPageRoute(builder: (_) => const _TotpScanner()),
+          ),
+        );
     if (!mounted || value == null) return;
     if (value.length > AppLimits.fieldValue) {
       setState(() => _invalid = true);

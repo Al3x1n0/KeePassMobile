@@ -10,6 +10,7 @@ import 'package:keepass_mobile/app/database_navigation_bar.dart';
 import 'package:keepass_mobile/app/theme.dart';
 import 'package:keepass_mobile/features/entry/totp_tile.dart';
 import 'package:keepass_mobile/features/file_select/recent_files.dart';
+import 'package:keepass_mobile/features/password_generator/generator_view.dart';
 import 'package:keepass_mobile/l10n/app_localizations.dart';
 import 'package:keepass_mobile/shared/database/database_session.dart';
 import 'package:keepass_mobile/shared/database/external_change.dart';
@@ -420,7 +421,7 @@ void main() {
       }
       for (final (label, enabled) in [
         ('Home', true),
-        ('Genera', false),
+        ('Genera', true),
         ('Controllo', false),
         (localizations.settingsTitle, true),
       ]) {
@@ -432,8 +433,16 @@ void main() {
       }
       expect(navigation().settingsSelected, isFalse);
       await tester.tap(tab('Genera'));
+      await tester.pumpAndSettle();
+      expect(navigation().generatorSelected, isTrue);
+      expect(find.byType(GeneratorView), findsOneWidget);
       await tester.tap(tab('Controllo'));
       await tester.pumpAndSettle();
+      expect(navigation().generatorSelected, isTrue);
+      expect(find.byType(GeneratorView), findsOneWidget);
+      await tester.tap(tab('Home'));
+      await tester.pumpAndSettle();
+      expect(navigation().generatorSelected, isFalse);
       expect(navigation().settingsSelected, isFalse);
       expect(find.text('Banca'), findsOneWidget);
       expect(

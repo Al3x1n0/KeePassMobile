@@ -269,7 +269,7 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
   /// Chiude il database: il router torna alla scelta del file e i provider
   /// derivati (gruppi, voci) vengono ricalcolati senza dati. Svuota anche gli
   /// appunti, se contengono ancora un valore copiato dall'app.
-  void lock() {
+  void lock({bool preserveGeneratedClipboard = false}) {
     _lockGeneration++;
     _saveWorker?.cancel();
     _stagedDatabase?.clearSensitiveData();
@@ -283,7 +283,11 @@ class DatabaseSessionNotifier extends Notifier<DatabaseSession?> {
     _otherSessions.clear();
     state = null;
     ref.read(biometricOfferProvider.notifier).clear();
-    unawaited(ref.read(clipboardServiceProvider).clear());
+    unawaited(
+      ref
+          .read(clipboardServiceProvider)
+          .clear(preserveGenerated: preserveGeneratedClipboard),
+    );
   }
 
   /// Applica [edit], salva e scrive il file; solo se tutto riesce il

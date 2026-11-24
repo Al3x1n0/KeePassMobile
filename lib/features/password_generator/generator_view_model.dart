@@ -2,18 +2,24 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kpasslib/kpasslib.dart';
 
+import '../../shared/clipboard/clipboard_service.dart';
+import '../../shared/database/database_session.dart';
 import '../../shared/storage/preferences.dart';
+import '../../shared/storage/file_storage.dart';
+import 'pending_generated_password.dart';
 import 'password_generator.dart';
 
 /// Stato del generatore: opzioni correnti e valore generato.
 @immutable
 class GeneratorState {
-  const GeneratorState({
+  GeneratorState({
     required this.options,
-    required this.value,
+    required String value,
     this.customProfiles = const {},
-  });
+  }) : _protectedValue = ProtectedData.fromString(value),
+       _hasValue = value.isNotEmpty;
 
   final GeneratorOptions options;
 
@@ -21,9 +27,12 @@ class GeneratorState {
   final Map<String, GeneratorOptions> customProfiles;
 
   /// Valore generato; vuoto se le opzioni non sono valide.
-  final String value;
+  final ProtectedData _protectedValue;
+  final bool _hasValue;
 
-  bool get isValid => options.isValid;
+  String get value => _hasValue ? _protectedValue.text : '';
+
+  bool get isValid => options.isValid && _hasValue;
 
   double get entropyBits => generationEntropyBits(options);
 }
@@ -36,7 +45,18 @@ final generatorViewModelProvider =
       GeneratorViewModel.new,
     );
 
+/// Generatore della tab, distinto dal selettore aperto durante la modifica.
+final tabGeneratorViewModelProvider =
+    NotifierProvider.autoDispose<GeneratorViewModel, GeneratorState>(
+      () => GeneratorViewModel(dedicatedTab: true),
+    );
+
 class GeneratorViewModel extends Notifier<GeneratorState> {
+  GeneratorViewModel({this.dedicatedTab = false});
+
+  final bool dedicatedTab;
+  FileRef? _file;
+
   /// Chiave delle preferenze con le ultime opzioni usate.
   static const storageKey = 'generator_last_options';
 
@@ -44,11 +64,78 @@ class GeneratorViewModel extends Notifier<GeneratorState> {
   static const profilesKey = 'generator_profiles';
 
   @override
-  GeneratorState build() => _generate(_load(), _loadProfiles());
+  GeneratorState build() {
+    final file = dedicatedTab
+        ? ref.watch(databaseSessionProvider.select((session) => session?.file))
+        : null;
+    _file = file;
+    final pending = dedicatedTab
+        ? ref.read(pendingGeneratedPasswordProvider)
+        : null;
+    final initial = dedicatedTab && file == null
+        ? GeneratorState(options: _load(), value: '')
+        : pending != null && pending.file == file
+        ? GeneratorState(
+            options: pending.options,
+            value: pending.protectedValue.text,
+            customProfiles: _loadProfiles(),
+          )
+        : _generate(_load(), _loadProfiles());
+    var current = initial;
+    listenSelf((_, next) => current = next);
+    ref.onDispose(() => current._protectedValue.clear());
+    if (dedicatedTab && file != null && pending == null) {
+      // La prima generazione viene custodita dopo l'inizializzazione dei provider.
+      Future.microtask(() {
+        if (ref.mounted &&
+            ref.read(databaseSessionProvider)?.file == file &&
+            identical(state, initial)) {
+          _remember();
+        }
+      });
+    }
+    return initial;
+  }
+
+  void _remember() {
+    if (!dedicatedTab) return;
+    final file = ref.read(databaseSessionProvider)?.file;
+    if (file == null || file != _file) return;
+    ref
+        .read(pendingGeneratedPasswordProvider.notifier)
+        .replace(file, state.options, state.value);
+  }
+
+  void _replace(GeneratorState next) {
+    final previous = state;
+    state = next;
+    previous._protectedValue.clear();
+    _remember();
+  }
+
+  /// Rilascia il valore salvato senza generarne subito un altro in sospeso.
+  void clearGeneratedValue() {
+    final previous = state;
+    state = GeneratorState(
+      options: previous.options,
+      value: '',
+      customProfiles: previous.customProfiles,
+    );
+    previous._protectedValue.clear();
+  }
+
+  /// Copia con il timeout configurato e restituisce la durata per il feedback.
+  Future<Duration?> copy() async {
+    if (!state.isValid) return null;
+    final clipboard = ref.read(clipboardServiceProvider);
+    final timeout = clipboard.clearAfter;
+    await clipboard.copy(state.value, generated: dedicatedTab);
+    return timeout;
+  }
 
   /// Applica nuove opzioni, genera un nuovo valore e le ricorda.
   void update(GeneratorOptions options) {
-    state = _generate(options, state.customProfiles);
+    _replace(_generate(options, state.customProfiles));
     ref
         .read(sharedPreferencesProvider)
         .setString(storageKey, jsonEncode(options.toJson()));
@@ -61,7 +148,7 @@ class GeneratorViewModel extends Notifier<GeneratorState> {
   }
 
   /// Genera un nuovo valore con le stesse opzioni.
-  void regenerate() => state = _generate(state.options, state.customProfiles);
+  void regenerate() => _replace(_generate(state.options, state.customProfiles));
 
   /// Salva le opzioni correnti come profilo [name]; un profilo dell'utente con
   /// lo stesso nome viene sostituito. `false` se il nome è vuoto o è quello di
@@ -80,11 +167,13 @@ class GeneratorViewModel extends Notifier<GeneratorState> {
       _setProfiles({...state.customProfiles}..remove(name));
 
   void _setProfiles(Map<String, GeneratorOptions> profiles) {
+    final previous = state;
     state = GeneratorState(
       options: state.options,
       value: state.value,
       customProfiles: Map.unmodifiable(profiles),
     );
+    previous._protectedValue.clear();
     ref
         .read(sharedPreferencesProvider)
         .setString(
