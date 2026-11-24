@@ -46,7 +46,10 @@ class _SpikeApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'KeePassMobile',
-    theme: ThemeData(colorSchemeSeed: const Color(0xFF2E7D32)),
+    theme: ThemeData(
+      colorSchemeSeed: const Color(0xFF2E7D32),
+      appBarTheme: const AppBarTheme(centerTitle: false),
+    ),
     home: const _SpikeView(),
   );
 }

@@ -286,7 +286,6 @@ class _SearchViewState extends ConsumerState<SearchView> {
       },
       child: Scaffold(
         appBar: AppBar(
-          centerTitle: false,
           leading: _selected.isEmpty
               ? null
               : IconButton(

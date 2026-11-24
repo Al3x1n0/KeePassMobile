@@ -126,7 +126,7 @@ ThemeData _buildTheme(Brightness brightness) {
     appBarTheme: AppBarTheme(
       backgroundColor: barColor,
       foregroundColor: scheme.onSurface,
-      centerTitle: true,
+      centerTitle: false,
       scrolledUnderElevation: 0,
     ),
     popupMenuTheme: PopupMenuThemeData(

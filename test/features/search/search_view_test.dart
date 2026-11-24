@@ -62,12 +62,17 @@ void main() {
         await _pumpSearch(tester, container, locale: locale);
         expect(tester.getSize(find.byType(AppBar)).height, kToolbarHeight);
         expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNull);
+        expect(tester.getTopLeft(find.byType(TextField)).dx, AppSpacing.m);
 
         // when
         await tester.longPress(find.text('Voce A'));
         await tester.pumpAndSettle();
 
         // then
+        expect(
+          tester.getTopLeft(find.text(l10n.itemsSelected(1))).dx,
+          kToolbarHeight + AppSpacing.m,
+        );
         final selectAll = find.widgetWithText(
           TextButton,
           l10n.itemsSelectAllShort,

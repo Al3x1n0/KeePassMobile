@@ -212,8 +212,6 @@ class _GroupViewState extends ConsumerState<GroupView> {
         child: Scaffold(
           extendBody: _selected.isEmpty,
           appBar: AppBar(
-            centerTitle: false,
-            titleSpacing: AppSpacing.m,
             title: Text(
               _selected.isEmpty
                   ? content.group == recycleBin

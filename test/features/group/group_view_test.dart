@@ -233,6 +233,7 @@ void main() {
           );
           await tester.pumpAndSettle();
           expect(find.widgetWithText(AppBar, group.name), findsOneWidget);
+          expect(tester.getTopLeft(find.text(group.name)).dx, AppSpacing.m);
           final normalBar = tester.widget<AppBar>(find.byType(AppBar));
           expect(normalBar.bottom, isNull);
           expect(tester.getSize(find.byType(AppBar)).height, kToolbarHeight);
@@ -247,6 +248,10 @@ void main() {
           await tester.pumpAndSettle();
 
           // then
+          expect(
+            tester.getTopLeft(find.text(strings.itemsSelected(1))).dx,
+            kToolbarHeight + AppSpacing.m,
+          );
           final selectAll = find.widgetWithText(
             TextButton,
             strings.itemsSelectAllShort,
@@ -355,7 +360,12 @@ void main() {
           final bar = tester.widget<AppBar>(appBar);
           expect(bar.bottom, isNull);
           expect(bar.toolbarHeight, isNull);
-          expect(bar.centerTitle, isFalse);
+          expect(
+            tester
+                .widget<NavigationToolbar>(find.byType(NavigationToolbar))
+                .centerMiddle,
+            isFalse,
+          );
           expect(tester.getSize(appBar).height, kToolbarHeight);
           final title = find.text(db.root.name);
           final text = tester.widget<Text>(title);
