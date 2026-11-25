@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show LicenseEntry, LicenseRegistry;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -128,6 +129,80 @@ void main() {
       );
     },
   );
+
+  Future<void> backGesture(
+    WidgetTester tester,
+    String method, {
+    double progress = 0,
+  }) async {
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      SystemChannels.backGesture.name,
+      SystemChannels.backGesture.codec.encodeMethodCall(
+        MethodCall(
+          method,
+          method == 'startBackGesture' || method == 'updateBackGestureProgress'
+              ? {
+                  'touchOffset': [5.0, 300.0],
+                  'progress': progress,
+                  'swipeEdge': 0,
+                }
+              : null,
+        ),
+      ),
+      (_) {},
+    );
+  }
+
+  for (final overlay in ['popup', 'sheet']) {
+    testWidgets('Predictive Back chiude $overlay senza lasciare Banca', (
+      tester,
+    ) async {
+      await pumpApp(tester);
+      await unlock(tester);
+      await tester.tap(find.text('Banca'));
+      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.text('Conto')),
+      );
+      final router = container.read(routerProvider);
+      final location = router.state.uri;
+      if (overlay == 'popup') {
+        await tester.tap(find.byIcon(Icons.more_vert));
+      } else {
+        showModalBottomSheet<void>(
+          context: tester.element(find.text('Conto')),
+          useRootNavigator: true,
+          builder: (_) =>
+              const SizedBox(height: 100, child: Text('Predictive sheet')),
+        );
+      }
+      await tester.pumpAndSettle();
+      final observer = container.read(rootOverlayObserverProvider);
+      expect(observer.hasOverlay, isTrue);
+      // Un gesto annullato lascia intatti overlay e pagina.
+      await backGesture(tester, 'startBackGesture');
+      await backGesture(tester, 'updateBackGestureProgress', progress: 0.4);
+      await backGesture(tester, 'cancelBackGesture');
+      await tester.pumpAndSettle();
+      expect(observer.hasOverlay, isTrue);
+      expect(router.state.uri, location);
+      // Il commit chiude solo l'overlay, anche se la pagina può fare pop.
+      await backGesture(tester, 'startBackGesture');
+      await backGesture(tester, 'updateBackGestureProgress', progress: 0.6);
+      await backGesture(tester, 'commitBackGesture');
+      await tester.pumpAndSettle();
+      expect(observer.hasOverlay, isFalse);
+      expect(router.state.uri, location);
+      expect(find.text('Conto'), findsOneWidget);
+      expect(find.text('Predictive sheet'), findsNothing);
+      // Senza overlay il successivo gesto conserva la navigazione nativa.
+      await backGesture(tester, 'startBackGesture');
+      await backGesture(tester, 'commitBackGesture');
+      await tester.pumpAndSettle();
+      expect(router.state.uri.path, AppRoutes.database);
+      expect(find.text('Banca'), findsOneWidget);
+    });
+  }
 
   testWidgets('Back chiude overlay prima della pagina e la selezione in Home', (
     tester,
