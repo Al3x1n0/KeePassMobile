@@ -7,6 +7,25 @@ import 'package:kpasslib/src/utils/parameters_map.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final version in [(3, 1), (4, 0), (4, 1)]) {
+    test('verifica credenziali senza modificare la chiave KDBX $version',
+        () async {
+      KdbxCredentials credentials(String password) =>
+          KdbxCredentials(password: ProtectedData.fromString(password));
+      final db =
+          KdbxDatabase.create(credentials: credentials('test'), name: 'Test');
+      db.header.version = version;
+      db.header.kdfSettings = const AesKdfSettings(rounds: 1000);
+      await db.save();
+      final original = db.header.transformedKey!;
+      expect(
+          await db.header.matchesTransformedKey(credentials('wrong')), isFalse);
+      expect(
+          await db.header.matchesTransformedKey(credentials('test')), isTrue);
+      expect(db.header.transformedKey, same(original));
+      expect(db.header.credentials.hasRawKey, isTrue);
+    });
+  }
   group('Header unit tests', () {
     test('writes and reads header v3', () {
       final credentials = KdbxCredentials();

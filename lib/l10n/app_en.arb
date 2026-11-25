@@ -771,5 +771,8 @@
         "example": "{REF:...} / {S:...}"
       }
     }
-  }
+  },
+  "changeKeyCurrentPassword": "Current master password",
+  "changeKeyCurrentRequired": "Enter the current password.",
+  "changeKeyWrongCurrentPassword": "Current password is incorrect."
 }

@@ -106,7 +106,10 @@ void main() {
     await enable(container);
 
     final viewModel = container.read(changeMasterKeyViewModelProvider.notifier);
-    expect(await viewModel.change(password: 'nuova'), isTrue);
+    expect(
+      await viewModel.change(currentPassword: testMasterKey, password: 'nuova'),
+      isTrue,
+    );
 
     expect(viewModel.biometricDisabled, isTrue);
     expect(enabledFor(container), isFalse);

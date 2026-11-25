@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/features/database_settings/change_master_key_view_model.dart';
@@ -13,6 +14,92 @@ import '../../helpers/test_database.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  for (final password in [testMasterKey, '', null]) {
+    test('verifica file chiave con password $password', () async {
+      final db = newTestDatabase();
+      db.header.kdfSettings = const AesKdfSettings(rounds: 1000);
+      final key = Uint8List.fromList(List.generate(32, (i) => i));
+      db.header.credentials = KdbxCredentials(
+        password: password == null ? null : ProtectedData.fromString(password),
+        keyData: key,
+      );
+      final dir = Directory.systemTemp.createTempSync('kpm_key_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final keyFile = File('${dir.path}/test.key')..writeAsBytesSync(key);
+      final file = File('${dir.path}/test.kdbx')
+        ..writeAsBytesSync(await db.save());
+      final reopened = await openDatabase(
+        data: bytesOf(file),
+        password: password ?? '',
+        keyFile: key,
+      );
+      final container = await newTestContainer();
+      container
+          .read(databaseSessionProvider.notifier)
+          .open(
+            DatabaseSession(
+              file: fileRefOf(file),
+              database: reopened,
+              keyFile: fileRefOf(keyFile),
+            ),
+          );
+      container.listen(changeMasterKeyViewModelProvider, (_, _) {});
+      final model = container.read(changeMasterKeyViewModelProvider.notifier);
+      final before = bytesOf(file);
+      expect(
+        await model.change(currentPassword: 'errata', password: 'nuova'),
+        isFalse,
+      );
+      expect(bytesOf(file), before);
+      expect(
+        await model.change(currentPassword: password ?? '', password: 'nuova'),
+        isTrue,
+      );
+      await openDatabase(data: bytesOf(file), password: 'nuova');
+    });
+  }
+
+  for (final derivedOnly in [false, true]) {
+    test(
+      'password attuale verificata con sola derivata: $derivedOnly',
+      () async {
+        final db = newTestDatabase();
+        db.header.kdfSettings = const AesKdfSettings(rounds: 1000);
+        final (file, reopened) = await saveToTempFile(db);
+        if (derivedOnly) {
+          final transformed = reopened.header.transformedKey!;
+          reopened.header.credentials.clearRawKey();
+          reopened.header.credentials = KdbxCredentials.fromTransformedKey(
+            transformed,
+          );
+        }
+        final container = await newTestContainer(
+          file: file,
+          database: reopened,
+        );
+        container.listen(changeMasterKeyViewModelProvider, (_, _) {});
+        final model = container.read(changeMasterKeyViewModelProvider.notifier);
+        final before = bytesOf(file);
+        final credentials = reopened.header.credentials;
+        expect(
+          await model.change(currentPassword: 'errata', password: 'nuova'),
+          isFalse,
+        );
+        expect(
+          container.read(changeMasterKeyViewModelProvider).error,
+          isA<InvalidCurrentMasterKeyException>(),
+        );
+        expect(bytesOf(file), before);
+        expect(reopened.header.credentials, same(credentials));
+        expect(
+          await model.change(currentPassword: testMasterKey, password: 'nuova'),
+          isTrue,
+        );
+        await openDatabase(data: bytesOf(file), password: 'nuova');
+      },
+    );
+  }
 
   test(
     'nuova password: il file si apre con la nuova, la vecchia è rifiutata',
@@ -30,7 +117,7 @@ void main() {
       // when
       final changed = await container
           .read(changeMasterKeyViewModelProvider.notifier)
-          .change(password: 'nuova');
+          .change(currentPassword: testMasterKey, password: 'nuova');
 
       // then
       expect(changed, isTrue);
@@ -59,7 +146,7 @@ void main() {
     container.listen(changeMasterKeyViewModelProvider, (_, _) {});
     await container
         .read(changeMasterKeyViewModelProvider.notifier)
-        .change(password: 'nuova');
+        .change(currentPassword: testMasterKey, password: 'nuova');
 
     await container
         .read(databaseSessionProvider.notifier)
@@ -86,6 +173,7 @@ void main() {
     await container
         .read(changeMasterKeyViewModelProvider.notifier)
         .change(
+          currentPassword: testMasterKey,
           password: '',
           keyFile: PickedFile(ref: keyRef, bytes: key),
         );

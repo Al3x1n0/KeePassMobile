@@ -6,6 +6,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/app/app.dart';
+import 'package:keepass_mobile/app/router.dart';
+import 'package:keepass_mobile/app/routes.dart';
 import 'package:keepass_mobile/app/database_navigation_bar.dart';
 import 'package:keepass_mobile/app/theme.dart';
 import 'package:keepass_mobile/features/entry/totp_tile.dart';
@@ -91,6 +93,99 @@ void main() {
       expect(field.enableIMEPersonalizedLearning, isFalse);
     }
   }
+
+  testWidgets(
+    'cambio chiave richiede password attuale e rifiuta quella errata',
+    (tester) async {
+      await pumpApp(tester);
+      await unlock(tester);
+      final container = ProviderScope.containerOf(
+        tester.element(find.text('Banca')),
+      );
+      container.read(routerProvider).push(AppRoutes.changeMasterKey);
+      await tester.pumpAndSettle();
+      final fields = find.byType(TextField);
+      expect(fields, findsNWidgets(3));
+      await tester.enterText(fields.at(1), 'nuova');
+      await tester.enterText(fields.at(2), 'nuova');
+      await tester.ensureVisible(find.text(l10n.changeKeyButton));
+      await tester.tap(find.text(l10n.changeKeyButton));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.changeKeyCurrentRequired), findsOneWidget);
+      await tester.enterText(fields.first, 'errata');
+      await tester.ensureVisible(find.text(l10n.changeKeyButton));
+      await tester.tap(find.text(l10n.changeKeyButton));
+      await pumpUntilFound(
+        tester,
+        find.text(l10n.changeKeyWrongCurrentPassword),
+      );
+      await tester.enterText(fields.first, testMasterKey);
+      await tester.ensureVisible(find.text(l10n.changeKeyButton));
+      await tester.tap(find.text(l10n.changeKeyButton));
+      await pumpUntilFound(tester, find.text('Banca'));
+      await tester.runAsync(
+        () => openDatabase(data: bytesOf(file), password: 'nuova'),
+      );
+    },
+  );
+
+  testWidgets('Back chiude overlay prima della pagina e la selezione in Home', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await tester.tap(find.byTooltip(l10n.settingsTitle));
+    await tester.pumpAndSettle();
+    expect(find.byType(BackButton), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await unlock(tester);
+    await tester.longPress(find.text('Banca'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.check_circle), findsNothing);
+    expect(find.text('Banca'), findsOneWidget);
+    await tester.tap(find.text('Banca'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Conto'), findsOneWidget);
+    await tester.tap(find.text('Conto'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.more_vert), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    final context = tester.element(find.text('Conto'));
+    showDialog<void>(
+      context: context,
+      builder: (_) => const AlertDialog(title: Text('Dialog test')),
+    );
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Dialog test'), findsNothing);
+    expect(find.text('Conto'), findsOneWidget);
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      builder: (_) => const SizedBox(height: 100, child: Text('Sheet test')),
+    );
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Sheet test'), findsNothing);
+    expect(find.text('Conto'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Banca'), findsOneWidget);
+  });
 
   testWidgets('apre la pagina delle licenze dalle impostazioni', (
     tester,
@@ -463,6 +558,7 @@ void main() {
       // then: impostazioni esistenti, con la destinazione selezionata
       expect(find.text(localizations.settingsSecurity), findsOneWidget);
       expect(navigation().settingsSelected, isTrue);
+      expect(find.byType(BackButton), findsNothing);
 
       // when: torna alla consultazione con Home o con Indietro di sistema
       await tester.tap(tab('Home'));

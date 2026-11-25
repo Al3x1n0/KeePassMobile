@@ -138,7 +138,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
         }
       });
     }
-    final recentEntries = isHome && _selected.isEmpty
+    final recentEntries = isHome
         ? ref.watch(recentPasswordEntriesProvider)
         : const <KdbxEntry>[];
     final hasFavorites =
@@ -466,6 +466,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
                               if (index < recentSectionCount) {
                                 return _RecentPasswordsSection(
                                   entries: recentEntries,
+                                  enabled: _selected.isEmpty,
                                 );
                               }
                               final groupIndex = index - recentSectionCount;
@@ -490,6 +491,14 @@ class _GroupViewState extends ConsumerState<GroupView> {
                                     ),
                                   ),
                                   selected: _selected.contains(groupId),
+                                  trailing: _selected.contains(groupId)
+                                      ? Icon(
+                                          Icons.check_circle,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                        )
+                                      : null,
                                   onLongPress: () => toggleSelection(groupId),
                                   onTap: _selected.isNotEmpty
                                       ? () => toggleSelection(groupId)
@@ -800,14 +809,20 @@ class _GroupViewState extends ConsumerState<GroupView> {
 }
 
 class _RecentPasswordsSection extends StatelessWidget {
-  const _RecentPasswordsSection({required this.entries});
+  const _RecentPasswordsSection({required this.entries, required this.enabled});
+
+  final bool enabled;
 
   final List<KdbxEntry> entries;
 
   @override
   Widget build(BuildContext context) => ExpandableSection(
+    enabled: enabled,
     title: AppLocalizations.of(context).recentPasswordsTitle,
-    children: [for (final entry in entries) EntryTile(entry: entry)],
+    children: [
+      for (final entry in entries)
+        EntryTile(entry: entry, enabled: enabled, showChevron: enabled),
+    ],
   );
 }
 

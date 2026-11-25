@@ -7,6 +7,7 @@ Il progetto upstream dichiara di derivare da KdbxWeb: la relativa licenza MIT
 
 | Modifica | File | Motivo |
 |---|---|---|
+| Verifica credenziali contro la KDF corrente (`matchesTransformedKey`) senza modificare header o cache | `lib/src/kdbx/kdbx_header.dart` | Verifica della password attuale anche dopo sblocco biometrico |
 | Cifrario Twofish-CBC (`CipherId.twofish`) | `lib/src/crypto/twofish.dart`, `lib/src/kdbx/constants.dart`, `lib/src/kdbx/kdbx_database.dart` | Supportato da Keepass2Android, assente upstream |
 | Cifrario sconosciuto segnalato con `UnsupportedValueError` | `lib/src/kdbx/kdbx_database.dart` | Upstream lo segnalava come password errata |
 | Chiave già derivata (`KdbxTransformedKey`, `KdbxCredentials.fromTransformedKey`, `KdbxHeader.transformedKey`, `kdfFingerprint`, `TransformedKeyStaleError`) | `lib/src/kdbx/kdbx_credentials.dart`, `lib/src/kdbx/kdbx_header.dart`, `lib/src/kdbx/kdbx_error.dart` | Sblocco biometrico e autofill iOS senza ripetere la KDF. Idea ripresa da `kdbx` 2.5.0 (`TransformedKeyCredentials`) |

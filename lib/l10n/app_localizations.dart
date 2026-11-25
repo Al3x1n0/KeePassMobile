@@ -3013,6 +3013,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reused value'**
   String get checkReused;
+
+  /// No description provided for @changeKeyCurrentPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Current master password'**
+  String get changeKeyCurrentPassword;
+
+  /// No description provided for @changeKeyCurrentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the current password.'**
+  String get changeKeyCurrentRequired;
+
+  /// No description provided for @changeKeyWrongCurrentPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password is incorrect.'**
+  String get changeKeyWrongCurrentPassword;
 }
 
 class _AppLocalizationsDelegate

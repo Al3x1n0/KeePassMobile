@@ -18,10 +18,23 @@ class MasterKeyForm extends ConsumerStatefulWidget {
     required this.submitLabel,
     required this.onSubmit,
     this.passwordLabel,
+    this.requireCurrentPassword = false,
+    this.allowEmptyCurrentPassword = false,
+    this.currentPasswordLabel,
+    this.onSubmitWithCurrent,
     this.info,
   });
 
   final bool enabled;
+  final bool requireCurrentPassword;
+  final bool allowEmptyCurrentPassword;
+  final String? currentPasswordLabel;
+  final void Function(
+    String currentPassword,
+    String password,
+    PickedFile? keyFile,
+  )?
+  onSubmitWithCurrent;
   final String submitLabel;
 
   /// Etichetta del primo campo (predefinita: password principale).
@@ -39,6 +52,7 @@ class MasterKeyForm extends ConsumerStatefulWidget {
 
 class _MasterKeyFormState extends ConsumerState<MasterKeyForm> {
   final _form = GlobalKey<FormState>();
+  final _currentPassword = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   bool _choosing = false;
@@ -47,6 +61,9 @@ class _MasterKeyFormState extends ConsumerState<MasterKeyForm> {
 
   @override
   void dispose() {
+    _currentPassword
+      ..clear()
+      ..dispose();
     _password
       ..clear()
       ..dispose();
@@ -58,7 +75,11 @@ class _MasterKeyFormState extends ConsumerState<MasterKeyForm> {
 
   void _submit() {
     if (!(_form.currentState?.validate() ?? false)) return;
-    widget.onSubmit(_password.text, _keyFile);
+    if (widget.onSubmitWithCurrent case final submit?) {
+      submit(_currentPassword.text, _password.text, _keyFile);
+    } else {
+      widget.onSubmit(_password.text, _keyFile);
+    }
   }
 
   Future<void> _chooseKeyFile({bool generate = false}) async {
@@ -130,6 +151,17 @@ class _MasterKeyFormState extends ConsumerState<MasterKeyForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (widget.requireCurrentPassword) ...[
+            _secretField(
+              _currentPassword,
+              widget.currentPasswordLabel ?? l10n.changeKeyCurrentPassword,
+              (value) =>
+                  !widget.allowEmptyCurrentPassword && (value ?? "").isEmpty
+                  ? l10n.changeKeyCurrentRequired
+                  : null,
+            ),
+            const SizedBox(height: AppSpacing.m),
+          ],
           _secretField(
             _password,
             widget.passwordLabel ?? l10n.unlockPassword,

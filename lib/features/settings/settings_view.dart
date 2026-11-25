@@ -59,7 +59,10 @@ class SettingsView extends ConsumerWidget {
 
     return Scaffold(
       extendBody: showNavigation,
-      appBar: AppBar(title: Text(l10n.settingsTitle)),
+      appBar: AppBar(
+        automaticallyImplyLeading: !showNavigation,
+        title: Text(l10n.settingsTitle),
+      ),
       bottomNavigationBar: showNavigation
           ? DatabaseNavigationShell.bottomBar(context, settingsSelected: true)
           : null,

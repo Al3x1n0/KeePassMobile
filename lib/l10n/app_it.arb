@@ -538,5 +538,8 @@
         "example": "{REF:...} / {S:...}"
       }
     }
-  }
+  },
+  "changeKeyCurrentPassword": "Password principale attuale",
+  "changeKeyCurrentRequired": "Inserisci la password attuale.",
+  "changeKeyWrongCurrentPassword": "La password attuale non è corretta."
 }

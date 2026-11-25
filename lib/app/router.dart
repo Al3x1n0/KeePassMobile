@@ -24,6 +24,36 @@ import 'database_navigation_shell.dart';
 import 'routes.dart';
 import 'theme.dart';
 
+final rootNavigatorKeyProvider = Provider((ref) => GlobalKey<NavigatorState>());
+final shellNavigatorKeyProvider = Provider(
+  (ref) => GlobalKey<NavigatorState>(),
+);
+final rootOverlayObserverProvider = Provider((ref) => RootOverlayObserver());
+
+class RootOverlayObserver extends NavigatorObserver {
+  final List<Route<dynamic>> _routes = [];
+  bool get hasOverlay => _routes.isNotEmpty;
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (route.settings is! Page) _routes.add(route);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _routes.remove(route);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _routes.remove(route);
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    _routes.remove(oldRoute);
+    if (newRoute != null && newRoute.settings is! Page) _routes.add(newRoute);
+  }
+}
+
 /// Router dell'app. Le route del database sono raggiungibili solo con un
 /// database sbloccato; aprire o bloccare il database cambia la route.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -37,6 +67,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     ..onDispose(refresh.dispose);
 
   final router = GoRouter(
+    navigatorKey: ref.watch(rootNavigatorKeyProvider),
+    observers: [ref.watch(rootOverlayObserverProvider)],
     refreshListenable: refresh,
     redirect: (context, state) {
       final session = ref.read(databaseSessionProvider);
@@ -83,6 +115,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const SettingsView(),
       ),
       ShellRoute(
+        navigatorKey: ref.watch(shellNavigatorKeyProvider),
         pageBuilder: (_, state, child) => NoTransitionPage<void>(
           key: state.pageKey,
           child: DatabaseNavigationShell(

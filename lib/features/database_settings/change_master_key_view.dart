@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/database/database_errors.dart';
+import '../../shared/database/database_session.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/ui/master_key_form.dart';
 import 'change_master_key_view_model.dart';
@@ -19,10 +20,15 @@ class ChangeMasterKeyView extends ConsumerWidget {
     final state = ref.watch(changeMasterKeyViewModelProvider);
     final busy = state.isLoading;
 
-    Future<void> change(String password, PickedFile? keyFile) async {
+    Future<void> change(
+      String currentPassword,
+      String password,
+      PickedFile? keyFile,
+    ) async {
       final messenger = ScaffoldMessenger.of(context);
       final viewModel = ref.read(changeMasterKeyViewModelProvider.notifier);
       final changed = await viewModel.change(
+        currentPassword: currentPassword,
         password: password,
         keyFile: keyFile,
       );
@@ -55,13 +61,19 @@ class ChangeMasterKeyView extends ConsumerWidget {
                     passwordLabel: l10n.changeKeyNewPassword,
                     submitLabel: l10n.changeKeyButton,
                     info: l10n.changeKeyInfo,
-                    onSubmit: change,
+                    requireCurrentPassword: true,
+                    allowEmptyCurrentPassword:
+                        ref.watch(databaseSessionProvider)?.keyFile != null,
+                    onSubmit: (_, _) {},
+                    onSubmitWithCurrent: change,
                   ),
                   FormStatus(
                     busy: busy,
                     busyText: l10n.changeKeyInProgress,
                     error: switch (state) {
                       AsyncError(:final error) => switch (error) {
+                        InvalidCurrentMasterKeyException() =>
+                          l10n.changeKeyWrongCurrentPassword,
                         KeyFileUnavailableException() =>
                           l10n.errorKeyFileUnavailable,
                         _ => describeSaveError(l10n, error),

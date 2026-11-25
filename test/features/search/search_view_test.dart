@@ -112,6 +112,12 @@ void main() {
         await tester.pumpAndSettle();
 
         // then
+        expect(find.byIcon(Icons.check_circle), findsOneWidget);
+        final check = tester.widget<Icon>(find.byIcon(Icons.check_circle));
+        expect(
+          check.color,
+          Theme.of(tester.element(find.text('Voce A'))).colorScheme.primary,
+        );
         expect(
           tester.getTopLeft(find.text(l10n.itemsSelected(1))).dx,
           kToolbarHeight + AppSpacing.m,

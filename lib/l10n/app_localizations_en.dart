@@ -1654,4 +1654,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get checkReused => 'Reused value';
+
+  @override
+  String get changeKeyCurrentPassword => 'Current master password';
+
+  @override
+  String get changeKeyCurrentRequired => 'Enter the current password.';
+
+  @override
+  String get changeKeyWrongCurrentPassword => 'Current password is incorrect.';
 }

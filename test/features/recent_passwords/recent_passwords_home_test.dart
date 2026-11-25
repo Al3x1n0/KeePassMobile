@@ -7,6 +7,8 @@ import 'package:keepass_mobile/shared/database/database_session.dart';
 import 'package:keepass_mobile/shared/database/kdbx_items.dart';
 import 'package:keepass_mobile/shared/storage/file_storage.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:keepass_mobile/shared/ui/entry_tile.dart';
+import 'package:keepass_mobile/shared/ui/expandable_section.dart';
 
 import '../../helpers/fake_secure_storage.dart';
 import '../../helpers/test_database.dart';
@@ -65,6 +67,40 @@ void main() {
         expect(find.text(group.name).hitTestable(), findsOneWidget);
         expect(find.text('Voce ordinaria').hitTestable(), findsOneWidget);
         expect(platform.options, isEmpty);
+        final before = tester.getTopLeft(find.text('Voce recente'));
+        final gapBefore =
+            tester.getTopLeft(find.text('Voce ordinaria')).dy - before.dy;
+        await tester.longPress(find.text('Voce ordinaria'));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.recentPasswordsTitle), findsOneWidget);
+        expect(tester.getTopLeft(find.text('Voce recente')).dx, before.dx);
+        expect(
+          tester.getTopLeft(find.text('Voce ordinaria')).dy -
+              tester.getTopLeft(find.text('Voce recente')).dy,
+          gapBefore,
+        );
+        final recentTile = find.ancestor(
+          of: find.text('Voce recente'),
+          matching: find.byType(EntryTile),
+        );
+        expect(tester.widget<EntryTile>(recentTile).enabled, isFalse);
+        expect(
+          tester
+              .widget<ExpandableSection>(find.byType(ExpandableSection))
+              .enabled,
+          isFalse,
+        );
+        await tester.tap(find.text('Voce recente'));
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.check_circle), findsOneWidget);
+        final check = tester.widget<Icon>(find.byIcon(Icons.check_circle));
+        expect(
+          check.color,
+          Theme.of(tester.element(recentTile)).colorScheme.primary,
+        );
+        await tester.tap(find.text('Voce ordinaria'));
+        await tester.pumpAndSettle();
+        expect(tester.widget<EntryTile>(recentTile).enabled, isTrue);
       },
     );
   }

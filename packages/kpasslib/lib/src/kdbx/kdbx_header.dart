@@ -350,6 +350,39 @@ class KdbxHeader {
   /// Available after the database has been opened or saved.
   KdbxTransformedKey? get transformedKey => _transformedKey;
 
+  /// Checks candidate credentials against the current KDF output without
+  /// changing the header or its cached key.
+  Future<bool> matchesTransformedKey(KdbxCredentials candidate) async {
+    final expected = _transformedKey?.key.bytes;
+    if (expected == null) return false;
+    List<int>? hash;
+    List<int>? derived;
+    try {
+      if (version.$1 < 4) {
+        hash = candidate.hash;
+        derived = await KeyEncryptorAes.transform(
+          aes: Crypto.engine.createAes256(key: transformSeed!),
+          data: hash!,
+          rounds: keyEncryptionRounds!,
+        );
+      } else {
+        final parameters = kdfParameters!;
+        hash = candidate.getHash(challenge: parameters.get('S') as List<int>);
+        derived =
+            await KeyEncryptorKdf.encrypt(data: hash, parameters: parameters);
+      }
+      var difference = expected.length ^ derived.length;
+      for (var i = 0; i < expected.length && i < derived.length; i++) {
+        difference |= expected[i] ^ derived[i];
+      }
+      return difference == 0;
+    } finally {
+      CryptoUtils.wipeData(hash);
+      CryptoUtils.wipeData(derived);
+      CryptoUtils.wipeData(expected);
+    }
+  }
+
   /// Erases key material and releases the protected-stream generator.
   void clearSensitiveData() {
     credentials.clearRawKey();

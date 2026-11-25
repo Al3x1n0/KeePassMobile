@@ -8,11 +8,13 @@ class ExpandableSection extends StatefulWidget {
   const ExpandableSection({
     super.key,
     required this.title,
+    this.enabled = true,
     required this.children,
   });
 
   /// Titolo dell'intestazione accessibile.
   final String title;
+  final bool enabled;
 
   /// Contenuti mostrati quando il riquadro è aperto.
   final List<Widget> children;
@@ -70,9 +72,11 @@ class _ExpandableSectionState extends State<ExpandableSection>
     return Padding(
       padding: AppSectionLayout.margin,
       child: Material(
-        color: theme.colorScheme.primary.withValues(
-          alpha: AppSectionLayout.backgroundOpacity,
-        ),
+        color: !widget.enabled
+            ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
+            : theme.colorScheme.primary.withValues(
+                alpha: AppSectionLayout.backgroundOpacity,
+              ),
         shape: AppSectionLayout.shape,
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -83,7 +87,7 @@ class _ExpandableSectionState extends State<ExpandableSection>
               header: true,
               expanded: _expanded,
               child: InkWell(
-                onTap: _toggle,
+                onTap: widget.enabled ? _toggle : null,
                 child: Padding(
                   padding: AppSectionLayout.headerPadding,
                   child: ConstrainedBox(
@@ -95,12 +99,25 @@ class _ExpandableSectionState extends State<ExpandableSection>
                         Expanded(
                           child: Text(
                             widget.title,
-                            style: theme.textTheme.titleMedium,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: widget.enabled
+                                  ? null
+                                  : theme.colorScheme.onSurface.withValues(
+                                      alpha: 0.38,
+                                    ),
+                            ),
                           ),
                         ),
                         RotationTransition(
                           turns: _rotation,
-                          child: const Icon(Icons.expand_less),
+                          child: Icon(
+                            Icons.expand_less,
+                            color: widget.enabled
+                                ? null
+                                : theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.38,
+                                  ),
+                          ),
                         ),
                       ],
                     ),

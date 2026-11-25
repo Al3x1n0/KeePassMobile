@@ -1664,4 +1664,14 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get checkReused => 'Valore riutilizzato';
+
+  @override
+  String get changeKeyCurrentPassword => 'Password principale attuale';
+
+  @override
+  String get changeKeyCurrentRequired => 'Inserisci la password attuale.';
+
+  @override
+  String get changeKeyWrongCurrentPassword =>
+      'La password attuale non è corretta.';
 }

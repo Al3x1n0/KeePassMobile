@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kpasslib/kpasslib.dart';
 
 import '../../shared/database/database_errors.dart';
+import '../../shared/crypto/app_crypto_engine.dart';
 import '../../shared/database/database_session.dart';
 import '../../shared/security/biometric_key_store.dart';
 import '../../shared/settings/app_settings.dart';
@@ -42,23 +44,96 @@ class ChangeMasterKeyViewModel extends AsyncNotifier<void> {
   bool get biometricDisabled => _biometricDisabled;
 
   /// Cambia la chiave e salva. `true` se riuscito; l'errore resta nello stato.
-  Future<bool> change({required String password, PickedFile? keyFile}) async {
+  Future<bool> change({
+    required String currentPassword,
+    required String password,
+    PickedFile? keyFile,
+  }) async {
     if (state.isLoading) return false;
     _biometricDisabled = false;
     state = const AsyncLoading();
-    final result = await AsyncValue.guard(() => _change(password, keyFile));
+    final result = await AsyncValue.guard(
+      () => _change(currentPassword, password, keyFile),
+    );
     if (ref.mounted) state = result;
     return !result.hasError;
   }
 
-  Future<void> _change(String password, PickedFile? keyFile) async {
+  Future<void> _change(
+    String currentPassword,
+    String password,
+    PickedFile? keyFile,
+  ) async {
     final storage = ref.read(fileStorageProvider);
     final session = ref.read(databaseSessionProvider);
     if (session == null) throw const DatabaseLockedException();
+    Uint8List? currentKeyBytes;
+    try {
+      if (session.keyFile case final currentKeyFile?) {
+        try {
+          currentKeyBytes = Uint8List.fromList(
+            (await storage.read(currentKeyFile)).bytes,
+          );
+        } on FileUnavailableException {
+          throw const KeyFileUnavailableException();
+        }
+      }
+      final header = session.database.header;
+      final valid = await Isolate.run(() async {
+        AppCryptoEngine.install();
+        Future<bool> matches(String? password) async {
+          final protected = password == null
+              ? null
+              : ProtectedData.fromString(password);
+          final KdbxCredentials candidate;
+          try {
+            candidate = KdbxCredentials(
+              password: protected,
+              keyData: currentKeyBytes,
+            );
+          } finally {
+            protected?.clear();
+          }
+          try {
+            if (!header.credentials.hasRawKey) {
+              return await header.matchesTransformedKey(candidate);
+            }
+            final List<int> actual = candidate.hash;
+            final List<int> expected = header.credentials.hash;
+            try {
+              var difference = actual.length ^ expected.length;
+              for (var i = 0; i < actual.length && i < expected.length; i++) {
+                difference |= actual[i] ^ expected[i];
+              }
+              return difference == 0;
+            } finally {
+              actual.fillRange(0, actual.length, 0);
+              expected.fillRange(0, expected.length, 0);
+            }
+          } finally {
+            candidate.clearRawKey();
+          }
+        }
+
+        try {
+          if (await matches(currentPassword)) return true;
+          return currentPassword.isEmpty &&
+              currentKeyBytes != null &&
+              await matches(null);
+        } finally {
+          currentKeyBytes?.fillRange(0, currentKeyBytes.length, 0);
+        }
+      });
+      if (!valid) throw const InvalidCurrentMasterKeyException();
+    } finally {
+      currentKeyBytes?.fillRange(0, currentKeyBytes.length, 0);
+    }
     Uint8List? keyBytes;
     if (keyFile != null) {
       try {
-        keyBytes = keyFile.bytes ?? (await storage.read(keyFile.ref)).bytes;
+        keyBytes = Uint8List.fromList(
+          keyFile.bytes ?? (await storage.read(keyFile.ref)).bytes,
+        );
       } on FileUnavailableException {
         throw const KeyFileUnavailableException();
       }
@@ -66,12 +141,20 @@ class ChangeMasterKeyViewModel extends AsyncNotifier<void> {
     final recents = ref.read(recentFilesRepositoryProvider);
     final settings = ref.read(appSettingsProvider);
 
-    await ref
-        .read(databaseSessionProvider.notifier)
-        .apply(
-          changeMasterKeyEdit(password: password, keyFile: keyBytes),
-          keyFile: keyFile?.ref,
-        );
+    try {
+      if (!ref.mounted ||
+          !identical(ref.read(databaseSessionProvider), session)) {
+        throw const DatabaseLockedException();
+      }
+      await ref
+          .read(databaseSessionProvider.notifier)
+          .apply(
+            changeMasterKeyEdit(password: password, keyFile: keyBytes),
+            keyFile: keyFile?.ref,
+          );
+    } finally {
+      keyBytes?.fillRange(0, keyBytes.length, 0);
+    }
 
     final biometrics = ref.read(biometricKeyStoreProvider);
     if (biometrics.isEnabled(session.file)) {
@@ -90,4 +173,8 @@ class ChangeMasterKeyViewModel extends AsyncNotifier<void> {
       );
     }
   }
+}
+
+class InvalidCurrentMasterKeyException implements Exception {
+  const InvalidCurrentMasterKeyException();
 }

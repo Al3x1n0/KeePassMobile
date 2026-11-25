@@ -25,6 +25,7 @@ class EntryTile extends ConsumerWidget {
     this.onTap,
     this.onLongPress,
     this.selected = false,
+    this.enabled = true,
     this.showChevron = true,
   });
 
@@ -39,6 +40,7 @@ class EntryTile extends ConsumerWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final bool selected;
+  final bool enabled;
 
   /// Se mostrare la freccia verso il dettaglio della voce.
   final bool showChevron;
@@ -75,10 +77,14 @@ class EntryTile extends ConsumerWidget {
       if (additionalInfo case final info? when info.isNotEmpty) info,
     ];
     final tile = ListTile(
-      leading: DatabaseItemIcon(
-        item: entry,
-        database: database,
-        expired: expired,
+      enabled: enabled,
+      leading: Opacity(
+        opacity: enabled ? 1 : 0.38,
+        child: DatabaseItemIcon(
+          item: entry,
+          database: database,
+          expired: expired,
+        ),
       ),
       title: Text(
         title.isEmpty ? l10n.entryUntitled : title,
@@ -92,9 +98,18 @@ class EntryTile extends ConsumerWidget {
                 fontSize: (textSize * .75).roundToDouble(),
               ),
             ),
-      trailing: showChevron ? const Icon(Icons.chevron_right) : null,
-      onTap: onTap ?? () => context.push(AppRoutes.entry(itemIdOf(entry))),
-      onLongPress: onLongPress,
+      trailing: selected
+          ? Icon(
+              Icons.check_circle,
+              color: Theme.of(context).colorScheme.primary,
+            )
+          : showChevron
+          ? const Icon(Icons.chevron_right)
+          : null,
+      onTap: !enabled
+          ? null
+          : onTap ?? () => context.push(AppRoutes.entry(itemIdOf(entry))),
+      onLongPress: enabled ? onLongPress : null,
       selected: selected,
     );
     final color = adaptEntryColor(entry.background);
@@ -110,7 +125,10 @@ class EntryTile extends ConsumerWidget {
           child: IgnorePointer(
             child: Semantics(
               label: l10n.entryColorIndicator(color.label(l10n)),
-              child: ColoredBox(color: color.color),
+              child: Opacity(
+                opacity: enabled ? 1 : 0.38,
+                child: ColoredBox(color: color.color),
+              ),
             ),
           ),
         ),

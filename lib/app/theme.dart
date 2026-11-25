@@ -10,7 +10,7 @@ abstract final class AppSpacing {
 
 /// Dimensioni degli indicatori cromatici delle voci.
 abstract final class AppEntryColorLayout {
-  static const double stripeWidth = 4;
+  static const double stripeWidth = 8;
 }
 
 /// Dimensioni della pila di azioni per l'apertura dei database.

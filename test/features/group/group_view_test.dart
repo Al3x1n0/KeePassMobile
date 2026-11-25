@@ -800,7 +800,16 @@ void main() {
 
       await tester.longPress(groupTitle);
       await tester.pumpAndSettle();
-      expect(heading, findsNothing);
+      expect(heading, findsOneWidget);
+      expect(
+        tester.widgetList<EntryTile>(tiles).every((tile) => !tile.enabled),
+        isTrue,
+      );
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.check_circle)).color,
+        Theme.of(tester.element(groupTitle)).colorScheme.primary,
+      );
     });
   }
 
