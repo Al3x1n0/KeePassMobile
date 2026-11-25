@@ -11,6 +11,7 @@ Future<void> _pumpBar(
   required Brightness brightness,
   Locale locale = const Locale('it'),
   bool settingsSelected = false,
+  bool checkSelected = false,
   TextScaler textScaler = TextScaler.noScaling,
   double width = 320,
   bool settle = true,
@@ -46,6 +47,7 @@ Future<void> _pumpBar(
         body: const SizedBox.expand(),
         bottomNavigationBar: DatabaseNavigationBar(
           settingsSelected: settingsSelected,
+          checkSelected: checkSelected,
         ),
       ),
     ),
@@ -77,6 +79,11 @@ void _expectContains(Rect outer, Rect inner) {
 }
 
 void main() {
+  testWidgets('Controllo attiva la terza destinazione', (tester) async {
+    await _pumpBar(tester, brightness: Brightness.light, checkSelected: true);
+    final data = tester.getSemantics(_tab('Controllo')).getSemanticsData();
+    expect(data.flagsCollection.isSelected, Tristate.isTrue);
+  });
   for (final brightness in Brightness.values) {
     testWidgets(
       'capsula ${brightness.name}: vetro e margini oltre gli inset di sistema',
@@ -126,7 +133,7 @@ void main() {
           final destinations = [
             (l10n.navigationHome, Icons.home_outlined, true),
             (l10n.navigationGenerate, Icons.casino_outlined, true),
-            (l10n.navigationCheck, Icons.shield_outlined, false),
+            (l10n.navigationCheck, Icons.shield_outlined, true),
             (l10n.settingsTitle, Icons.settings_outlined, true),
           ];
           final activeIndex = settingsSelected ? 3 : 0;

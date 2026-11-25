@@ -14,10 +14,12 @@ class DatabaseNavigationBar extends StatelessWidget {
     super.key,
     this.settingsSelected = false,
     this.generatorSelected = false,
+    this.checkSelected = false,
   });
 
   final bool settingsSelected;
   final bool generatorSelected;
+  final bool checkSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -28,19 +30,26 @@ class DatabaseNavigationBar extends StatelessWidget {
     void selectDestination(int index) {
       switch (index) {
         case 0:
-          if ((settingsSelected || generatorSelected) && context.canPop()) {
+          if ((settingsSelected || generatorSelected || checkSelected) &&
+              context.canPop()) {
             context.pop();
           } else {
             context.go(AppRoutes.database);
           }
         case 1 when !generatorSelected:
-          if (settingsSelected) {
+          if (settingsSelected || checkSelected) {
             context.pushReplacement(AppRoutes.generate);
           } else {
             context.push(AppRoutes.generate);
           }
+        case 2 when !checkSelected:
+          if (generatorSelected || settingsSelected) {
+            context.pushReplacement(AppRoutes.check);
+          } else {
+            context.push(AppRoutes.check);
+          }
         case 3 when !settingsSelected:
-          if (generatorSelected) {
+          if (generatorSelected || checkSelected) {
             context.pushReplacement(AppRoutes.appSettingsInDatabase);
           } else {
             context.push(AppRoutes.appSettingsInDatabase);
@@ -51,10 +60,12 @@ class DatabaseNavigationBar extends StatelessWidget {
     final destinations = [
       (Icons.home_outlined, l10n.navigationHome, true),
       (Icons.casino_outlined, l10n.navigationGenerate, true),
-      (Icons.shield_outlined, l10n.navigationCheck, false),
+      (Icons.shield_outlined, l10n.navigationCheck, true),
       (Icons.settings_outlined, l10n.settingsTitle, true),
     ];
-    final selectedIndex = settingsSelected
+    final selectedIndex = checkSelected
+        ? 2
+        : settingsSelected
         ? 3
         : generatorSelected
         ? 1

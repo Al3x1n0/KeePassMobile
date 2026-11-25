@@ -20,6 +20,7 @@ class EntryTile extends ConsumerWidget {
     super.key,
     required this.entry,
     this.groupName,
+    this.additionalInfo,
     this.databaseOverride,
     this.onTap,
     this.onLongPress,
@@ -31,6 +32,7 @@ class EntryTile extends ConsumerWidget {
 
   /// Nome del gruppo, mostrato nei risultati di ricerca.
   final String? groupName;
+  final String? additionalInfo;
   final KdbxDatabase? databaseOverride;
 
   /// Tocco sulla riga; se manca apre la voce.
@@ -70,6 +72,7 @@ class EntryTile extends ConsumerWidget {
     final details = [
       if (userName.isNotEmpty) userName,
       if (groupName case final g? when g.isNotEmpty) g,
+      if (additionalInfo case final info? when info.isNotEmpty) info,
     ];
     final tile = ListTile(
       leading: DatabaseItemIcon(

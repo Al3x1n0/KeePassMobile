@@ -1590,4 +1590,74 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get generatorChooseGroup => 'Scegli il gruppo di destinazione';
+
+  @override
+  String get checkAllGood => 'Tutto in ordine';
+
+  @override
+  String get checkImprove => 'Da migliorare';
+
+  @override
+  String get checkAttention => 'Attenzione';
+
+  @override
+  String get checkEmpty => 'Nessuna password da analizzare';
+
+  @override
+  String checkSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count password analizzate',
+      one: '1 password analizzata',
+    );
+    return '$_temp0. Controllo locale, solo in memoria.';
+  }
+
+  @override
+  String get checkDuplicates => 'Duplicate';
+
+  @override
+  String get checkWeak => 'Deboli';
+
+  @override
+  String get checkOtherProtected => 'Altri campi protetti';
+
+  @override
+  String checkExclusions(String references) {
+    return 'Sono esclusi: voci nel Cestino, Modelli, campi vuoti, TOTP e riferimenti $references.';
+  }
+
+  @override
+  String checkSharedCount(int count) {
+    return 'Condivisa tra $count voci';
+  }
+
+  @override
+  String get checkVeryWeak => 'Molto debole';
+
+  @override
+  String get checkWeakLevel => 'Debole';
+
+  @override
+  String get checkTooShort => 'Troppo corta';
+
+  @override
+  String get checkDigitsOnly => 'Solo cifre';
+
+  @override
+  String get checkLowVariety => 'Poca varietà o ripetizioni';
+
+  @override
+  String get checkCommonPattern => 'Pattern o parola comune';
+
+  @override
+  String get checkLimitedComplexity => 'Complessità limitata';
+
+  @override
+  String get checkProtectedExplanation =>
+      'PIN, CVV e codici secondari hanno spesso lunghezza o formato numerico imposti dal servizio. Aggiornali solo dove è possibile usare valori più lunghi o non riutilizzati.';
+
+  @override
+  String get checkReused => 'Valore riutilizzato';
 }

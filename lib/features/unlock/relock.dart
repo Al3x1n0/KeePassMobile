@@ -38,10 +38,11 @@ class RelockNotifier extends Notifier<UnlockArgs?> {
     return null;
   }
 
-  /// Ricorda solo le tre tab principali, senza URL di voci o gruppi.
+  /// Ricorda solo le quattro tab principali, senza URL di voci o gruppi.
   void rememberTab(String location) {
     if (location == AppRoutes.database ||
         location == AppRoutes.generate ||
+        location == AppRoutes.check ||
         location == AppRoutes.appSettingsInDatabase) {
       _activeTab = location;
     }

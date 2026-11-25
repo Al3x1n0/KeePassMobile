@@ -13,6 +13,7 @@ abstract final class AppRoutes {
   static const additionalUnlock = '$additionalDatabase/unlock';
   static const additionalRemote = '$additionalDatabase/remote';
   static const generator = '$database/generator';
+  static const check = '$database/check';
   static const generate = '$database/generate';
 
   /// Impostazioni dell'app a database chiuso e aperto.

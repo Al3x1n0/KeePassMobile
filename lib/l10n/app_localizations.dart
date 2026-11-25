@@ -2893,6 +2893,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose destination group'**
   String get generatorChooseGroup;
+
+  /// No description provided for @checkAllGood.
+  ///
+  /// In en, this message translates to:
+  /// **'All clear'**
+  String get checkAllGood;
+
+  /// No description provided for @checkImprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Room for improvement'**
+  String get checkImprove;
+
+  /// No description provided for @checkAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'Attention needed'**
+  String get checkAttention;
+
+  /// No description provided for @checkEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No passwords to analyze'**
+  String get checkEmpty;
+
+  /// No description provided for @checkSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 password analyzed} other{{count} passwords analyzed}}. Checked locally, only in memory.'**
+  String checkSummary(int count);
+
+  /// No description provided for @checkDuplicates.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicates'**
+  String get checkDuplicates;
+
+  /// No description provided for @checkWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak'**
+  String get checkWeak;
+
+  /// No description provided for @checkOtherProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'Other protected fields'**
+  String get checkOtherProtected;
+
+  /// No description provided for @checkExclusions.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded: Recycle Bin entries, Templates, empty fields, TOTP and references {references}.'**
+  String checkExclusions(String references);
+
+  /// No description provided for @checkSharedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared by {count} entries'**
+  String checkSharedCount(int count);
+
+  /// No description provided for @checkVeryWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Very weak'**
+  String get checkVeryWeak;
+
+  /// No description provided for @checkWeakLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak'**
+  String get checkWeakLevel;
+
+  /// No description provided for @checkTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Too short'**
+  String get checkTooShort;
+
+  /// No description provided for @checkDigitsOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Digits only'**
+  String get checkDigitsOnly;
+
+  /// No description provided for @checkLowVariety.
+  ///
+  /// In en, this message translates to:
+  /// **'Low variety or repetition'**
+  String get checkLowVariety;
+
+  /// No description provided for @checkCommonPattern.
+  ///
+  /// In en, this message translates to:
+  /// **'Common pattern or word'**
+  String get checkCommonPattern;
+
+  /// No description provided for @checkLimitedComplexity.
+  ///
+  /// In en, this message translates to:
+  /// **'Limited complexity'**
+  String get checkLimitedComplexity;
+
+  /// No description provided for @checkProtectedExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'PINs, CVVs and secondary codes often have lengths or numeric formats required by the service. Update them only where longer or unique values are allowed.'**
+  String get checkProtectedExplanation;
+
+  /// No description provided for @checkReused.
+  ///
+  /// In en, this message translates to:
+  /// **'Reused value'**
+  String get checkReused;
 }
 
 class _AppLocalizationsDelegate

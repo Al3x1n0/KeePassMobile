@@ -422,7 +422,7 @@ void main() {
       for (final (label, enabled) in [
         ('Home', true),
         ('Genera', true),
-        ('Controllo', false),
+        ('Controllo', true),
         (localizations.settingsTitle, true),
       ]) {
         final target = find.ancestor(
@@ -438,8 +438,9 @@ void main() {
       expect(find.byType(GeneratorView), findsOneWidget);
       await tester.tap(tab('Controllo'));
       await tester.pumpAndSettle();
-      expect(navigation().generatorSelected, isTrue);
-      expect(find.byType(GeneratorView), findsOneWidget);
+      expect(navigation().checkSelected, isTrue);
+      expect(navigation().generatorSelected, isFalse);
+      expect(find.byType(GeneratorView), findsNothing);
       await tester.tap(tab('Home'));
       await tester.pumpAndSettle();
       expect(navigation().generatorSelected, isFalse);

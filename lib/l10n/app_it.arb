@@ -496,5 +496,46 @@
   "settingsLockInBackground": "Blocca in background",
   "settingsLockInBackgroundHint": "Blocca il database quando passi a un’altra app, escluse le attività di sistema aperte dall’app.",
   "generatorSaveAsEntry": "Salva come nuova voce",
-  "generatorChooseGroup": "Scegli il gruppo di destinazione"
+  "generatorChooseGroup": "Scegli il gruppo di destinazione",
+  "checkAllGood": "Tutto in ordine",
+  "checkImprove": "Da migliorare",
+  "checkAttention": "Attenzione",
+  "checkEmpty": "Nessuna password da analizzare",
+  "checkSummary": "{count, plural, =1{1 password analizzata} other{{count} password analizzate}}. Controllo locale, solo in memoria.",
+  "@checkSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkDuplicates": "Duplicate",
+  "checkWeak": "Deboli",
+  "checkOtherProtected": "Altri campi protetti",
+  "checkExclusions": "Sono esclusi: voci nel Cestino, Modelli, campi vuoti, TOTP e riferimenti {references}.",
+  "checkSharedCount": "Condivisa tra {count} voci",
+  "@checkSharedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkVeryWeak": "Molto debole",
+  "checkWeakLevel": "Debole",
+  "checkTooShort": "Troppo corta",
+  "checkDigitsOnly": "Solo cifre",
+  "checkLowVariety": "Poca varietà o ripetizioni",
+  "checkCommonPattern": "Pattern o parola comune",
+  "checkLimitedComplexity": "Complessità limitata",
+  "checkProtectedExplanation": "PIN, CVV e codici secondari hanno spesso lunghezza o formato numerico imposti dal servizio. Aggiornali solo dove è possibile usare valori più lunghi o non riutilizzati.",
+  "checkReused": "Valore riutilizzato",
+  "@checkExclusions": {
+    "placeholders": {
+      "references": {
+        "type": "String",
+        "example": "{REF:...} / {S:...}"
+      }
+    }
+  }
 }

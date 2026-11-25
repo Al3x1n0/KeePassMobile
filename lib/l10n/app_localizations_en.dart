@@ -1580,4 +1580,74 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generatorChooseGroup => 'Choose destination group';
+
+  @override
+  String get checkAllGood => 'All clear';
+
+  @override
+  String get checkImprove => 'Room for improvement';
+
+  @override
+  String get checkAttention => 'Attention needed';
+
+  @override
+  String get checkEmpty => 'No passwords to analyze';
+
+  @override
+  String checkSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count passwords analyzed',
+      one: '1 password analyzed',
+    );
+    return '$_temp0. Checked locally, only in memory.';
+  }
+
+  @override
+  String get checkDuplicates => 'Duplicates';
+
+  @override
+  String get checkWeak => 'Weak';
+
+  @override
+  String get checkOtherProtected => 'Other protected fields';
+
+  @override
+  String checkExclusions(String references) {
+    return 'Excluded: Recycle Bin entries, Templates, empty fields, TOTP and references $references.';
+  }
+
+  @override
+  String checkSharedCount(int count) {
+    return 'Shared by $count entries';
+  }
+
+  @override
+  String get checkVeryWeak => 'Very weak';
+
+  @override
+  String get checkWeakLevel => 'Weak';
+
+  @override
+  String get checkTooShort => 'Too short';
+
+  @override
+  String get checkDigitsOnly => 'Digits only';
+
+  @override
+  String get checkLowVariety => 'Low variety or repetition';
+
+  @override
+  String get checkCommonPattern => 'Common pattern or word';
+
+  @override
+  String get checkLimitedComplexity => 'Limited complexity';
+
+  @override
+  String get checkProtectedExplanation =>
+      'PINs, CVVs and secondary codes often have lengths or numeric formats required by the service. Update them only where longer or unique values are allowed.';
+
+  @override
+  String get checkReused => 'Reused value';
 }

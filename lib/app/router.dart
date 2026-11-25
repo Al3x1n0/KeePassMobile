@@ -11,6 +11,7 @@ import '../features/entry_edit/entry_edit_view_model.dart';
 import '../features/favorites/favorites_view.dart';
 import '../features/file_select/file_select_view.dart';
 import '../features/group/group_view.dart';
+import '../features/password_check/password_check_view.dart';
 import '../features/password_generator/generator_view.dart';
 import '../features/remote_open/remote_open_view.dart';
 import '../features/search/search_view.dart';
@@ -171,6 +172,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                   reverseTransitionDuration:
                       AppNavigationLayout.transitionDuration,
                   child: const GeneratorView(showDatabaseNavigation: true),
+                  transitionsBuilder: (_, animation, _, child) =>
+                      FadeTransition(opacity: animation, child: child),
+                ),
+              ),
+              GoRoute(
+                path: 'check',
+                pageBuilder: (_, state) => CustomTransitionPage<void>(
+                  key: state.pageKey,
+                  transitionDuration: AppNavigationLayout.transitionDuration,
+                  reverseTransitionDuration:
+                      AppNavigationLayout.transitionDuration,
+                  child: const PasswordCheckView(),
                   transitionsBuilder: (_, animation, _, child) =>
                       FadeTransition(opacity: animation, child: child),
                 ),

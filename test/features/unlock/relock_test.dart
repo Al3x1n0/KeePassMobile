@@ -16,6 +16,7 @@ void main() {
     AppRoutes.database,
     AppRoutes.appSettingsInDatabase,
     AppRoutes.generate,
+    AppRoutes.check,
   ]) {
     test(
       'blocco automatico: ripristina $tab una sola volta, senza password',

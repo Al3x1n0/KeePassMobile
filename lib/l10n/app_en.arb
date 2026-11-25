@@ -729,5 +729,46 @@
   "settingsLockInBackground": "Lock in background",
   "settingsLockInBackgroundHint": "Lock the database when you switch to another app, except for system activities opened by the app.",
   "generatorSaveAsEntry": "Save as new entry",
-  "generatorChooseGroup": "Choose destination group"
+  "generatorChooseGroup": "Choose destination group",
+  "checkAllGood": "All clear",
+  "checkImprove": "Room for improvement",
+  "checkAttention": "Attention needed",
+  "checkEmpty": "No passwords to analyze",
+  "checkSummary": "{count, plural, =1{1 password analyzed} other{{count} passwords analyzed}}. Checked locally, only in memory.",
+  "@checkSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkDuplicates": "Duplicates",
+  "checkWeak": "Weak",
+  "checkOtherProtected": "Other protected fields",
+  "checkExclusions": "Excluded: Recycle Bin entries, Templates, empty fields, TOTP and references {references}.",
+  "checkSharedCount": "Shared by {count} entries",
+  "@checkSharedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkVeryWeak": "Very weak",
+  "checkWeakLevel": "Weak",
+  "checkTooShort": "Too short",
+  "checkDigitsOnly": "Digits only",
+  "checkLowVariety": "Low variety or repetition",
+  "checkCommonPattern": "Common pattern or word",
+  "checkLimitedComplexity": "Limited complexity",
+  "checkProtectedExplanation": "PINs, CVVs and secondary codes often have lengths or numeric formats required by the service. Update them only where longer or unique values are allowed.",
+  "checkReused": "Reused value",
+  "@checkExclusions": {
+    "placeholders": {
+      "references": {
+        "type": "String",
+        "example": "{REF:...} / {S:...}"
+      }
+    }
+  }
 }

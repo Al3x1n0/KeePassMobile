@@ -96,6 +96,7 @@ void main() {
     for (final hasPending in [true, false]) {
       for (final destination in [
         (label: l10n.navigationHome, path: AppRoutes.database),
+        (label: l10n.navigationCheck, path: AppRoutes.check),
         (label: l10n.settingsTitle, path: AppRoutes.appSettingsInDatabase),
         (label: l10n.navigationGenerate, path: AppRoutes.generate),
       ]) {
@@ -185,6 +186,10 @@ void main() {
             expect(
               navigation.settingsSelected,
               destination.path == AppRoutes.appSettingsInDatabase,
+            );
+            expect(
+              navigation.checkSelected,
+              destination.path == AppRoutes.check,
             );
             if (hasPending) {
               if (destination.path != AppRoutes.generate) {
