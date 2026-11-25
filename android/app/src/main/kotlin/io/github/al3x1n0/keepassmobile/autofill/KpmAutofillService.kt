@@ -8,15 +8,12 @@ import android.service.autofill.Dataset
 import android.service.autofill.FillCallback
 import android.service.autofill.FillRequest
 import android.service.autofill.FillResponse
-import android.service.autofill.InlinePresentation
 import android.service.autofill.SaveCallback
 import android.service.autofill.SaveRequest
 import android.service.autofill.SaveInfo
 import android.view.autofill.AutofillId
 import android.widget.RemoteViews
 import androidx.annotation.RequiresApi
-import androidx.autofill.inline.UiVersions
-import androidx.autofill.inline.v1.InlineSuggestionUi
 import io.github.al3x1n0.keepassmobile.R
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -48,7 +45,9 @@ class KpmAutofillService : AutofillService() {
     }
     val userNameIds = ArrayList<AutofillId>()
     val secretIds = ArrayList<AutofillId>()
-    for ((field, hints) in AutofillStructureParser.parse(read.view)) {
+    for ((field, hints) in AutofillStructureParser.selectForFill(
+      read.view, request.flags and FillRequest.FLAG_MANUAL_REQUEST != 0, read.ids.keys,
+    )) {
       val id = read.ids[field] ?: continue
       when {
         AutofillStructureParser.fillsUserName(hints) -> userNameIds.add(id)
@@ -70,19 +69,6 @@ class KpmAutofillService : AutofillService() {
       // Valori sconosciuti fino allo sblocco: li fornisce AutofillActivity.
       for (id in userNameIds + secretIds) setValue(id, null)
       setAuthentication(sender)
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        val spec = request.inlineSuggestionsRequest?.inlinePresentationSpecs?.firstOrNull()
-        if (spec != null && UiVersions.getVersions(spec.style).contains(UiVersions.INLINE_UI_VERSION_1)) {
-          val content = InlineSuggestionUi.newContentBuilder(
-            PendingIntent.getActivity(
-              this@KpmAutofillService, requestCodes.incrementAndGet(), intent,
-              PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE,
-            ),
-          ).setTitle(getString(R.string.autofill_unlock))
-            .setContentDescription(getString(R.string.autofill_unlock)).build()
-          setInlinePresentation(InlinePresentation(content.slice, spec, true))
-        }
-      }
     }.build()
     val response = FillResponse.Builder().addDataset(dataset)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && secretIds.isNotEmpty()) {

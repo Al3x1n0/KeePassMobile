@@ -57,6 +57,114 @@ class AutofillStructureParserTest {
     assertFalse(AutofillStructureParser.fillsUserName(listOf("password")))
   }
 
+  @Test
+  fun `widget moderni riconoscono accesso ed escludono ricerca`() {
+    for (className in listOf(
+      "androidx.appcompat.widget.AppCompatEditText",
+      "com.google.android.material.textfield.TextInputEditText",
+      "example.CustomEditText",
+      "androidx.compose.ui.platform.AndroidComposeView",
+    )) {
+      val user = InputField(className = className, inputType = 1)
+      val password = InputField(className = className, inputType = 0x81)
+      val search = InputField(className = className, idEntry = "search", inputType = 0x81)
+      val result = AutofillStructureParser.parse(AutofillView("app", null, listOf(search, user, password)))
+      assertEquals(listOf("username"), result[user])
+      assertEquals(listOf("password"), result[password])
+      assertFalse(search in result)
+    }
+  }
+
+  @Test
+  fun `campo custom con tipo autofill testo riconosciuto`() {
+    val user = InputField(className = "example.CustomInput", isTextAutofill = true)
+    val password = InputField(className = "example.CustomInput", isTextAutofill = true, hint = "password")
+    val result = AutofillStructureParser.parse(AutofillView("app", null, listOf(user, password)))
+    assertEquals(listOf("username"), result[user])
+    assertEquals(listOf("password"), result[password])
+  }
+
+  @Test
+  fun `richiesta manuale su campo senza hint propone solo nome utente`() {
+    val field = InputField(isFocused = true)
+    val view = AutofillView("app", null, listOf(field))
+    assertTrue(AutofillStructureParser.selectForFill(view, false, setOf(field)).isEmpty())
+    assertEquals(mapOf(field to listOf("username")),
+      AutofillStructureParser.selectForFill(view, true, setOf(field)))
+    assertTrue(AutofillStructureParser.selectForFill(view, true, emptySet()).isEmpty())
+  }
+
+  @Test
+  fun `fallback manuale password e campi non utilizzabili`() {
+    val password = InputField(isFocused = true, inputType = 0x81)
+    val view = AutofillView("app", null, listOf(password))
+    assertEquals(listOf("password"), AutofillStructureParser.selectForFill(view, true, setOf(password))[password])
+    val hidden = InputField(isFocused = true, isVisible = false)
+    val unfocused = InputField()
+    for (field in listOf(hidden, unfocused)) {
+      assertTrue(AutofillStructureParser.selectForFill(
+        AutofillView("app", null, listOf(field)), true, setOf(field)).isEmpty())
+    }
+    val other = InputField(isFocused = true)
+    assertTrue(AutofillStructureParser.selectForFill(
+      AutofillView("app", null, listOf(other, password)), true, setOf(other, password)).isNotEmpty())
+  }
+
+  @Test
+  fun `richiesta manuale conserva parsing standard e rifiuta focus ambiguo`() {
+    val user = InputField(autofillHints = listOf("username"))
+    val other = InputField(isFocused = true)
+    val view = AutofillView("app", null, listOf(user, other))
+    assertEquals(mapOf(user to listOf("username")),
+      AutofillStructureParser.selectForFill(view, true, setOf(user, other)))
+    val second = InputField(isFocused = true)
+    assertTrue(AutofillStructureParser.selectForFill(
+      AutofillView("app", null, listOf(other, second)), true, setOf(other, second)).isEmpty())
+  }
+
+  @Test
+  fun `domini iframe conflittuali conservano campi senza attribuire il sito`() {
+    for (domains in listOf(listOf("login.example", "captcha.example"),
+      listOf("captcha.example", "login.example"), listOf("example", "login.example"))) {
+      val collected = AutofillDomains()
+      domains.forEach(collected::add)
+      assertEquals(null, collected.unambiguousDomain)
+      val password = InputField(autofillHints = listOf("password"))
+      val view = AutofillView("app", collected.unambiguousDomain, listOf(password))
+      assertEquals(listOf("password"), AutofillStructureParser.parse(view)[password])
+    }
+    val single = AutofillDomains()
+    listOf(null, "", " login.example ", "login.example").forEach(single::add)
+    assertEquals("login.example", single.unambiguousDomain)
+    single.add("other.example")
+    single.add("login.example")
+    assertEquals(null, single.unambiguousDomain)
+  }
+
+  @Test
+  fun `iframe differenti non ricevono valori del contesto focalizzato`() {
+    val domains = AutofillDomains().apply { add("login.example"); add("captcha.example") }
+    val user = InputField(autofillHints = listOf("username"))
+    val password = InputField(autofillHints = listOf("password"), isFocused = true)
+    val iframe = InputField(autofillHints = listOf("password"))
+    val contexts = linkedMapOf(user to "login.example", password to "login.example", iframe to "captcha.example")
+    assertEquals(setOf(user, password), domains.fillableFields(contexts))
+    val view = AutofillView("app", domains.unambiguousDomain, contexts.keys.toList())
+    assertEquals(setOf(user, password), AutofillStructureParser.selectForFill(
+      view, false, domains.fillableFields(contexts)).keys)
+    assertTrue(domains.fillableFields(mapOf(user to "login.example", iframe to "captcha.example")).isEmpty())
+    assertEquals(setOf(password), domains.fillableFields(mapOf(password to null, iframe to "captcha.example")))
+  }
+
+  @Test
+  fun `ricerca HTML e ricerca con hint esplicito escluse`() {
+    val html = InputField(htmlTag = "input", htmlType = "search", inputType = 1)
+    val hinted = InputField(idEntry = "search", autofillHints = listOf("password"))
+    val password = InputField(className = "example.CustomEditText", inputType = 0x81)
+    val result = AutofillStructureParser.parse(AutofillView("app", null, listOf(html, hinted, password)))
+    assertEquals(mapOf(password to listOf("password")), result)
+  }
+
   private fun check(resource: String, packageId: String, webDomain: String? = null) {
     val json = JSONObject(read(resource))
     val fields = ArrayList<InputField>()

@@ -21,6 +21,8 @@ class InputField(
   val inputType: Int = 0,
   val htmlTag: String? = null,
   val htmlType: String? = null,
+  val isVisible: Boolean = true,
+  val isTextAutofill: Boolean = false,
 )
 
 /** Schermata da compilare: campi in ordine di visita, app e dominio dichiarato. */
@@ -86,16 +88,17 @@ object AutofillStructureParser {
       result[field] = result[field].orEmpty() + hints
     }
 
-    val allHints = view.fields.flatMap { it.autofillHints.orEmpty() }.map(::canonicalHint).toSet()
+    val candidates = view.fields.filterNot(::isSearch)
+    val allHints = candidates.flatMap { it.autofillHints.orEmpty() }.map(::canonicalHint).toSet()
     if (allHints.any { it in loginHints }) {
-      for (field in view.fields) {
+      for (field in candidates) {
         val hints = field.autofillHints?.map(::canonicalHint)?.distinct() ?: continue
         if (hints.any { it in loginHints }) add(field, hints)
       }
       return result
     }
 
-    val editTexts = view.fields.filter(::isEditText)
+    val editTexts = candidates.filter(::isEditText)
     var passwordFields = editTexts.filter(::isPassword)
     if (passwordFields.isEmpty()) passwordFields = editTexts.filter(::hasPasswordHint)
 
@@ -115,10 +118,32 @@ object AutofillStructureParser {
     return result
   }
 
+  /** La richiesta esplicita usa un solo campo focalizzato, mai un campo arbitrario. */
+  fun selectForFill(
+    view: AutofillView,
+    manualRequest: Boolean,
+    addressableFields: Set<InputField>,
+  ): Map<InputField, List<String>> {
+    val parsed = parse(AutofillView(view.packageId, view.webDomain,
+      view.fields.filter { it in addressableFields }))
+    if (parsed.isNotEmpty() || !manualRequest) return parsed
+    val focused = view.fields.filter { it.isFocused && it.isVisible && it in addressableFields }
+      .singleOrNull() ?: return emptyMap()
+    // Senza semantica password non inviare mai una password a un campo sconosciuto.
+    val hint = if (isPassword(focused) || hasPasswordHint(focused)) HINT_PASSWORD else HINT_USERNAME
+    return mapOf(focused to listOf(hint))
+  }
+
   private fun isEditText(field: InputField): Boolean =
-    field.className == "android.widget.EditText" ||
-      field.className == "android.widget.AutoCompleteTextView" ||
-      field.htmlTag == "input"
+    field.className?.substringAfterLast('.')?.let {
+      it.endsWith("EditText") || it.endsWith("AutoCompleteTextView")
+    } == true || field.isTextAutofill ||
+      (field.inputType and MASK_CLASS) == CLASS_TEXT || field.htmlTag == "input"
+
+  private fun isSearch(field: InputField): Boolean =
+    field.idEntry?.lowercase(Locale.ROOT)?.contains("search") == true ||
+      field.hint?.lowercase(Locale.ROOT)?.contains("search") == true ||
+      field.htmlType?.lowercase(Locale.ROOT) == "search"
 
   private fun isPassword(field: InputField): Boolean {
     if (field.idEntry?.lowercase(Locale.ROOT)?.contains("search") == true) return false

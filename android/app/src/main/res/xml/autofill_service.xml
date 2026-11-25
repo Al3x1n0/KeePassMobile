@@ -2,19 +2,19 @@
 <!-- Compilazione automatica. Browser in modalità di compatibilità: elenco di
      Keepass2Android (autofillservice.xml). -->
 <autofill-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:supportsInlineSuggestions="true">
+    android:supportsInlineSuggestions="false">
     <compatibility-package
         android:name="com.android.chrome"
-        android:maxLongVersionCode="10000000000" />
+        android:maxLongVersionCode="711900039" />
     <compatibility-package
         android:name="com.chrome.beta"
-        android:maxLongVersionCode="10000000000" />
+        android:maxLongVersionCode="711900039" />
     <compatibility-package
         android:name="com.chrome.dev"
-        android:maxLongVersionCode="10000000000" />
+        android:maxLongVersionCode="711900039" />
     <compatibility-package
         android:name="com.chrome.canary"
-        android:maxLongVersionCode="10000000000" />
+        android:maxLongVersionCode="711900039" />
     <compatibility-package
         android:name="com.microsoft.emmx"
         android:maxLongVersionCode="10000000000" />

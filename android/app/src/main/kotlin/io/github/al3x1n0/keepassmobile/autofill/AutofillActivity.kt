@@ -125,7 +125,8 @@ class AutofillActivity : FlutterActivity() {
 
   private fun fillRecipient(): AutofillRecipient? {
     val app = intent.getStringExtra(EXTRA_PACKAGE)
-    if (callingPackage?.let { it != app } == true) return null
+    // Il chiamante dell’IntentSender può essere il sistema. Il destinatario è
+    // fissato dal servizio nell’intent esplicito di questa activity non esportata.
     return verifyRecipient(app, intent.getStringExtra(EXTRA_SIGNER))
   }
 
