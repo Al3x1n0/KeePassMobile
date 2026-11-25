@@ -96,6 +96,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const GroupView(),
             routes: [
               GoRoute(
+                path: 'templates',
+                builder: (_, _) => const GroupView(templates: true),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (_, _) => const EntryEditView(
+                      target: EntryEditTarget.createTemplate(),
+                    ),
+                  ),
+                ],
+              ),
+              GoRoute(
                 path: 'group/:groupId',
                 builder: (_, state) =>
                     GroupView(groupId: state.pathParameters['groupId']),

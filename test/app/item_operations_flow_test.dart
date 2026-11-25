@@ -133,7 +133,13 @@ void main() {
     await pumpUntilFound(tester, find.text(l10n.templatesInstallSuccess));
     await tester.tap(tab(l10n.navigationHome));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(ListTile, l10n.templateGroup), findsOneWidget);
+    expect(find.widgetWithText(ListTile, l10n.templateGroup), findsNothing);
+    await selectHomeAction(tester, l10n, l10n.templateGroup);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.templateCreditCard), findsOneWidget);
+    expect(find.byType(DatabaseNavigationBar), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(l10n.groupAddEntry));
     await tester.pumpAndSettle();
     expect(find.text(l10n.templateCreditCard), findsOneWidget);

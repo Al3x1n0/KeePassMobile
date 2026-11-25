@@ -98,6 +98,12 @@ abstract class AppLocalizations {
     Locale('it'),
   ];
 
+  /// No description provided for @templatesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates. Create one with + or add the default templates in Settings.'**
+  String get templatesEmpty;
+
   /// No description provided for @generateKeyFile.
   ///
   /// In en, this message translates to:

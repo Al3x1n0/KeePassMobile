@@ -99,3 +99,24 @@ bool isInRecycleBin(KdbxDatabase db, KdbxItem item) {
 /// DeleteRunnable di Keepass2Android.
 bool deletesPermanently(KdbxDatabase db, KdbxItem item) =>
     !db.meta.recycleBinEnabled || isInRecycleBin(db, item);
+
+/// Gruppo modelli attivo, senza creare o modificare il database.
+KdbxGroup? existingTemplatesGroup(KdbxDatabase db) {
+  final uuid = db.meta.entryTemplatesGroup;
+  if (uuid == null || uuid == KdbxUuid.zero) return null;
+  final group = db.getGroup(uuid: uuid);
+  if (group == null || group == db.root || isInRecycleBin(db, group)) {
+    return null;
+  }
+  return group;
+}
+
+/// `true` se l'elemento è il gruppo modelli attivo o un suo discendente.
+bool isInTemplatesGroup(KdbxDatabase db, KdbxItem item) {
+  final templates = existingTemplatesGroup(db);
+  if (templates == null) return false;
+  for (KdbxItem? current = item; current != null; current = current.parent) {
+    if (current == templates) return true;
+  }
+  return false;
+}

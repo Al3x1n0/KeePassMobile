@@ -369,7 +369,10 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final entryId = await ref
         .read(entryEditViewModelProvider(widget.target).notifier)
-        .save(_draft);
+        .save(
+          _draft,
+          templateGroupName: AppLocalizations.of(context).templateGroup,
+        );
     if (entryId == null || !mounted) return;
     setState(() => _saved = true);
     if (widget.target.entryId == null) {
@@ -480,10 +483,9 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
                 contentPadding: EdgeInsets.zero,
                 leading: _existingIcon(ref) ?? Icon(kdbxIconData(_icon)),
                 title: Text(l10n.entryIcon),
-                trailing: TextButton(
-                  onPressed: busy ? null : _chooseIcon,
-                  child: Text(l10n.entryEditChooseIcon),
-                ),
+                subtitle: Text(l10n.entryEditChooseIcon),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: busy ? null : _chooseIcon,
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,

@@ -10,6 +10,10 @@ class AppLocalizationsIt extends AppLocalizations {
   AppLocalizationsIt([String locale = 'it']) : super(locale);
 
   @override
+  String get templatesEmpty =>
+      'Nessun modello. Creane uno con + oppure aggiungi i modelli predefiniti dalle Impostazioni.';
+
+  @override
   String get generateKeyFile => 'Genera un file chiave';
 
   @override

@@ -1,4 +1,5 @@
 {
+  "templatesEmpty": "Nessun modello. Creane uno con + oppure aggiungi i modelli predefiniti dalle Impostazioni.",
   "generateKeyFile": "Genera un file chiave",
   "errorCreateKeyFile": "Impossibile salvare e verificare il file chiave.",
   "@@locale": "it",

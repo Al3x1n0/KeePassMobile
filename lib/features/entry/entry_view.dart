@@ -159,7 +159,8 @@ class _EntryViewState extends ConsumerState<EntryView> {
         ),
         actions: historyIndex == null
             ? [
-                if (!inBin)
+                if (!inBin &&
+                    (database == null || !isInTemplatesGroup(database, entry)))
                   IconButton(
                     tooltip: favorite
                         ? l10n.entryFavoriteRemove

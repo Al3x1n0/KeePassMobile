@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../shared/database/database_session.dart';
+import '../shared/database/kdbx_items.dart';
 import 'database_navigation_bar.dart';
 import 'routes.dart';
 
@@ -85,7 +86,18 @@ class _DatabaseNavigationShellState
     final generatorSelected = widget.location == AppRoutes.generate;
     final checkSelected = widget.location == AppRoutes.check;
     final groupLocation = Uri.parse(widget.location).pathSegments;
-    final inGroup = groupLocation.length == 3 && groupLocation[1] == 'group';
+    final database = ref.watch(databaseSessionProvider)?.database;
+    final group =
+        database != null &&
+            groupLocation.length == 3 &&
+            groupLocation[1] == 'group'
+        ? findGroup(database, groupLocation[2])
+        : null;
+    final inGroup =
+        database != null &&
+        group != null &&
+        !isInRecycleBin(database, group) &&
+        !isInTemplatesGroup(database, group);
     final showNavigation =
         !_selectionActive &&
         (widget.location == AppRoutes.database ||

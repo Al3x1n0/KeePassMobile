@@ -59,6 +59,7 @@ PasswordCheckReport auditPasswords(KdbxDatabase database) {
   for (final entry in database.root.allEntries) {
     if (isInRecycleBin(database, entry) ||
         templates.contains(entry) ||
+        isInTemplatesGroup(database, entry) ||
         isStructuredTemplate(entry)) {
       continue;
     }

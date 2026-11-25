@@ -33,7 +33,10 @@ Future<bool> copyToAnotherDatabase(
       targets[_Target(session.file, itemIdOf(group))] =
           '${session.file.name} / $path';
       for (final child in group.groups) {
-        if (!isInRecycleBin(session.database, child)) visit(child, path);
+        if (!isInRecycleBin(session.database, child) &&
+            !isInTemplatesGroup(session.database, child)) {
+          visit(child, path);
+        }
       }
     }
 

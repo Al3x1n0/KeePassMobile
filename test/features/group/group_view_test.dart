@@ -453,6 +453,7 @@ void main() {
 
           // then: tutte le righe sono contigue, senza separatori.
           final labels = [
+            strings.templateGroup,
             strings.favoritesTitle,
             strings.groupSort,
             strings.databasesTitle,
@@ -461,6 +462,7 @@ void main() {
             strings.groupLock,
           ];
           final icons = [
+            Icons.style_outlined,
             Icons.star_border,
             Icons.sort,
             Icons.folder_copy_outlined,
@@ -553,7 +555,7 @@ void main() {
       // then
       expect(
         find.byWidgetPredicate((widget) => widget is PopupMenuItem<Object?>),
-        findsNWidgets(6),
+        findsNWidgets(7),
       );
       expect(find.text(l10n.groupLock), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -613,14 +615,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.byWidgetPredicate((widget) => widget is PopupMenuItem<Object?>),
-        findsNWidgets(6),
+        findsNWidgets(7),
       );
       expect(find.byType(BottomSheet), findsNothing);
       await tester.tap(find.text(l10n.syncNow));
       await tester.pumpAndSettle();
       expect(
         find.byWidgetPredicate((widget) => widget is PopupMenuItem<Object?>),
-        findsNWidgets(6),
+        findsNWidgets(7),
       );
       actions.setBusy(false);
     },
@@ -659,7 +661,7 @@ void main() {
       expect(find.text(l10n.dbSettingsRecycleBin), findsOneWidget);
       expect(
         find.byWidgetPredicate((widget) => widget is PopupMenuItem<Object?>),
-        findsNWidgets(5),
+        findsNWidgets(6),
       );
     },
   );

@@ -56,7 +56,10 @@ DatabaseEdit setEntriesFavoriteEdit(List<String> ids, bool favorite) {
     if (selectedIds.isEmpty ||
         selectedIds.toSet().length != selectedIds.length ||
         entries.any(
-          (entry) => entry == null || isInRecycleBin(database, entry),
+          (entry) =>
+              entry == null ||
+              isInRecycleBin(database, entry) ||
+              isInTemplatesGroup(database, entry),
         )) {
       throw const InvalidItemEditException();
     }
@@ -78,6 +81,7 @@ bool canMoveItem(KdbxDatabase database, KdbxItem item, KdbxGroup target) {
   if (item == database.root ||
       item == existingRecycleBin(database) ||
       isInRecycleBin(database, target) ||
+      isInTemplatesGroup(database, target) ||
       item.parent == target) {
     return false;
   }
@@ -329,7 +333,10 @@ class GroupDestination {
 List<GroupDestination> entryCreationDestinations(KdbxDatabase database) {
   final result = <GroupDestination>[];
   void visit(KdbxGroup group, String parentPath) {
-    if (isInRecycleBin(database, group)) return;
+    if (isInRecycleBin(database, group) ||
+        isInTemplatesGroup(database, group)) {
+      return;
+    }
     final path = parentPath.isEmpty
         ? group.name
         : '$parentPath / ${group.name}';

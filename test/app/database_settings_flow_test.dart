@@ -103,7 +103,7 @@ void main() {
     await tester.tap(tab(l10n.navigationHome));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Archivio'), findsOneWidget);
-    expect(find.text('Banca'), findsOneWidget);
+    expect(find.text('Banca'), findsNothing);
     final db = (await tester.runAsync(() => reopenFile(file)))!;
     expect(db.meta.name, 'Personale');
     expect(db.root.name, 'Archivio');

@@ -79,7 +79,7 @@ List<SearchResult> searchEntries(
 Iterable<SearchResult> searchableEntries(KdbxDatabase database) {
   final bin = existingRecycleBin(database);
   Iterable<SearchResult> visit(KdbxGroup group, bool searchable) sync* {
-    if (group == bin) return;
+    if (group == bin || isInTemplatesGroup(database, group)) return;
     final enabled = group.isSearchingEnabled ?? searchable;
     if (enabled) {
       for (final entry in group.entries) {

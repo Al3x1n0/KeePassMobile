@@ -157,7 +157,7 @@ void main() {
     }
 
     testWidgets(
-      'cestino ${themeMode.name}: ultima riga sopra la capsula senza FAB',
+      'cestino ${themeMode.name}: nessuna barra né spazio della capsula e ultima riga accessibile',
       (tester) async {
         // given
         await _pumpGroupList(tester, themeMode: themeMode, inBin: true);
@@ -174,9 +174,11 @@ void main() {
         // then
         final last = find.widgetWithText(ListTile, 'Gruppo 35');
         expect(last.hitTestable(), findsOneWidget);
+        expect(find.byType(DatabaseNavigationBar), findsNothing);
+        expect(tester.getRect(last).bottom, lessThanOrEqualTo(640 - 24));
         expect(
-          tester.getRect(last).bottom,
-          lessThan(tester.getRect(_capsule()).top),
+          tester.widget<ListView>(find.byType(ListView)).padding,
+          const EdgeInsets.only(bottom: 24 + AppSpacing.m),
         );
         expect(tester.takeException(), isNull);
       },

@@ -10,6 +10,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get templatesEmpty =>
+      'No templates. Create one with + or add the default templates in Settings.';
+
+  @override
   String get generateKeyFile => 'Generate a key file';
 
   @override

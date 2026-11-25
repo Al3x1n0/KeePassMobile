@@ -3,6 +3,8 @@ import 'package:kpasslib/kpasslib.dart';
 import 'database_session.dart';
 import 'kdbx_items.dart';
 
+export 'kdbx_items.dart' show existingTemplatesGroup, isInTemplatesGroup;
+
 const structuredTemplateMarker = '_etm_template';
 const structuredTemplateReference = '_etm_template_uuid';
 
@@ -93,8 +95,8 @@ DatabaseEdit addBuiltInTemplatesEdit(BuiltInTemplateLabels labels) =>
           )
           .toList();
       if (missing.isEmpty) return;
-      var group = database.getGroup(uuid: database.meta.entryTemplatesGroup);
-      if (group == null || isInRecycleBin(database, group)) {
+      var group = existingTemplatesGroup(database);
+      if (group == null) {
         group = database.createGroup(parent: database.root, name: labels.group);
         database.meta.entryTemplatesGroup = group.uuid;
       }
@@ -138,8 +140,8 @@ int compareTemplateFields(KdbxEntry? template, String a, String b) {
 }
 
 List<KdbxEntry> entryTemplates(KdbxDatabase database) {
-  final group = database.getGroup(uuid: database.meta.entryTemplatesGroup);
-  if (group == null || isInRecycleBin(database, group)) return const [];
+  final group = existingTemplatesGroup(database);
+  if (group == null) return const [];
   final result = [...group.entries];
   result.sort(
     (a, b) =>

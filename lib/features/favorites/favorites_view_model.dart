@@ -25,7 +25,9 @@ final favoriteEntriesProvider = Provider.autoDispose<List<KdbxEntry>?>((ref) {
 
   final entries = [
     for (final entry in database.root.allEntries)
-      if (isEntryFavorite(entry) && !isInRecycleBin(database, entry))
+      if (isEntryFavorite(entry) &&
+          !isInRecycleBin(database, entry) &&
+          !isInTemplatesGroup(database, entry))
         (entry: entry, title: visibleEntryTitle(database, entry).toLowerCase()),
   ]..sort((a, b) => a.title.compareTo(b.title));
   return List.unmodifiable(entries.map((item) => item.entry));

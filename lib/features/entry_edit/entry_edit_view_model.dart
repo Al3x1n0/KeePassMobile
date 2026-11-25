@@ -401,6 +401,20 @@ DatabaseEdit createEntryEdit(
   applyDraft(database, entry, draft);
 };
 
+/// Crea il gruppo modelli soltanto durante il salvataggio della prima voce.
+DatabaseEdit createCustomTemplateEdit(
+  KdbxUuid uuid,
+  EntryDraft draft,
+  String groupName,
+) => (database) {
+  var group = existingTemplatesGroup(database);
+  if (group == null) {
+    group = database.createGroup(parent: database.root, name: groupName);
+    database.meta.entryTemplatesGroup = group.uuid;
+  }
+  createEntryEdit(group.uuid, uuid, draft)(database);
+};
+
 /// Modelli KeePass standard nel gruppo configurato nel database.
 List<KdbxEntry> standardEntryTemplates(KdbxDatabase database) {
   return entryTemplates(database)
@@ -548,13 +562,23 @@ class EntryEditTarget {
   const EntryEditTarget.edit(String this.entryId)
     : groupId = null,
       templateId = null,
+      creatingTemplate = false,
       fromGenerator = false;
   const EntryEditTarget.create(
     String this.groupId, {
     this.templateId,
     this.fromGenerator = false,
-  }) : entryId = null;
+  }) : entryId = null,
+       creatingTemplate = false;
 
+  const EntryEditTarget.createTemplate()
+    : entryId = null,
+      groupId = null,
+      templateId = null,
+      fromGenerator = false,
+      creatingTemplate = true;
+
+  final bool creatingTemplate;
   final String? entryId;
   final String? groupId;
   final String? templateId;
@@ -563,13 +587,20 @@ class EntryEditTarget {
   @override
   bool operator ==(Object other) =>
       other is EntryEditTarget &&
+      other.creatingTemplate == creatingTemplate &&
       other.entryId == entryId &&
       other.groupId == groupId &&
       other.templateId == templateId &&
       other.fromGenerator == fromGenerator;
 
   @override
-  int get hashCode => Object.hash(entryId, groupId, templateId, fromGenerator);
+  int get hashCode => Object.hash(
+    entryId,
+    groupId,
+    templateId,
+    fromGenerator,
+    creatingTemplate,
+  );
 }
 
 /// Contenuto iniziale del form; `null` se voce o gruppo non esistono più.
@@ -582,6 +613,7 @@ final entryInitialDraftProvider = Provider.autoDispose
         final entry = findEntry(db, id);
         return entry == null ? null : EntryDraft.fromEntry(entry, database: db);
       }
+      if (target.creatingTemplate) return const EntryDraft();
       final group = findGroup(db, target.groupId);
       if (group == null || isInRecycleBin(db, group)) return null;
       if (target.fromGenerator) {
@@ -625,8 +657,12 @@ class EntryEditViewModel extends AsyncNotifier<String?> {
 
   /// Salva [draft]. Restituisce l'identificatore della voce o `null` se il
   /// salvataggio non è riuscito.
-  Future<String?> save(EntryDraft draft) async {
+  Future<String?> save(EntryDraft draft, {String? templateGroupName}) async {
     if (state.isLoading) return null;
+    if (target.creatingTemplate &&
+        (templateGroupName == null || templateGroupName.trim().isEmpty)) {
+      return null;
+    }
     final session = ref.read(databaseSessionProvider);
     if (session == null) return null;
     final db = session.database;
@@ -647,7 +683,9 @@ class EntryEditViewModel extends AsyncNotifier<String?> {
         prohibited: db.root.allItems.map((i) => i.uuid).toSet(),
       );
       entryId = idOfUuid(uuid);
-      edit = target.templateId == null
+      edit = target.creatingTemplate
+          ? createCustomTemplateEdit(uuid, draft, templateGroupName!)
+          : target.templateId == null
           ? createEntryEdit(group.uuid, uuid, draft)
           : createFromTemplateEdit(group.uuid, uuid, target.templateId!, draft);
     }

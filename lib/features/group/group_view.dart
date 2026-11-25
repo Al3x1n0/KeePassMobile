@@ -34,7 +34,15 @@ import '../unlock/relock.dart';
 import 'group_edit_dialog.dart';
 import 'group_view_model.dart';
 
-enum _HomeAction { favorites, sort, databases, synchronize, recycleBin, lock }
+enum _HomeAction {
+  favorites,
+  templates,
+  sort,
+  databases,
+  synchronize,
+  recycleBin,
+  lock,
+}
 
 enum _ItemAction {
   edit,
@@ -49,10 +57,11 @@ enum _ItemAction {
 /// Elenco di sottogruppi e voci di un gruppo (GroupActivity di
 /// Keepass2Android).
 class GroupView extends ConsumerStatefulWidget {
-  const GroupView({super.key, this.groupId});
+  const GroupView({super.key, this.groupId, this.templates = false});
 
   /// `null` per il gruppo radice.
   final String? groupId;
+  final bool templates;
 
   @override
   ConsumerState<GroupView> createState() => _GroupViewState();
@@ -65,14 +74,37 @@ class _GroupViewState extends ConsumerState<GroupView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final content = ref.watch(groupContentProvider(widget.groupId));
+    final database = ref.watch(databaseSessionProvider)?.database;
+    final templatesGroup = database == null
+        ? null
+        : existingTemplatesGroup(database);
+    final content =
+        widget.templates && templatesGroup == null && database != null
+        ? GroupContent(
+            group: database.root,
+            groups: const [],
+            entries: const [],
+            recycleBin: existingRecycleBin(database),
+          )
+        : ref.watch(
+            groupContentProvider(
+              widget.templates && templatesGroup != null
+                  ? itemIdOf(templatesGroup)
+                  : widget.groupId,
+            ),
+          );
     // Database chiuso: il router sta già tornando alla scelta del file.
     if (content == null) return const Scaffold();
     final id = itemIdOf(content.group);
     final session = ref.watch(databaseSessionProvider)!;
     final recycleBin = content.recycleBin;
+    final inTemplates =
+        widget.templates || isInTemplatesGroup(session.database, content.group);
+    final isHome = widget.groupId == null && !widget.templates;
     final inBin = isInRecycleBin(session.database, content.group);
-    final visibleGroups = content.groups.where((g) => g != recycleBin).toList();
+    final visibleGroups = content.groups
+        .where((g) => g != recycleBin && g != templatesGroup)
+        .toList();
     final selectedGroup = !inBin && _selected.length == 1
         ? visibleGroups
               .where((g) => itemIdOf(g) == _selected.single)
@@ -84,6 +116,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
         .toList();
     final entriesOnly =
         !inBin &&
+        !inTemplates &&
         _selected.isNotEmpty &&
         selectedEntries.length == _selected.length;
     final allFavorites = entriesOnly && selectedEntries.every(isEntryFavorite);
@@ -105,11 +138,11 @@ class _GroupViewState extends ConsumerState<GroupView> {
         }
       });
     }
-    final recentEntries = widget.groupId == null && _selected.isEmpty
+    final recentEntries = isHome && _selected.isEmpty
         ? ref.watch(recentPasswordEntriesProvider)
         : const <KdbxEntry>[];
     final hasFavorites =
-        widget.groupId == null &&
+        isHome &&
         _selected.isEmpty &&
         (ref.watch(favoriteEntriesProvider)?.isNotEmpty ?? false);
     final recentSectionCount = recentEntries.isEmpty ? 0 : 1;
@@ -269,7 +302,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
     ];
 
     return _BiometricOfferHost(
-      enabled: widget.groupId == null,
+      enabled: isHome,
       child: PopScope(
         canPop: _selected.isEmpty,
         onPopInvokedWithResult: (didPop, _) {
@@ -285,7 +318,9 @@ class _GroupViewState extends ConsumerState<GroupView> {
             appBar: AppBar(
               title: Text(
                 _selected.isEmpty
-                    ? content.group == recycleBin
+                    ? widget.templates
+                          ? l10n.templateGroup
+                          : content.group == recycleBin
                           ? l10n.dbSettingsRecycleBin
                           : content.group.name
                     : l10n.itemsSelected(_selected.length),
@@ -303,7 +338,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
                     ),
               actions: _selected.isNotEmpty
                   ? itemActions
-                  : widget.groupId == null
+                  : isHome
                   ? [
                       IconButton(
                         tooltip: l10n.searchTitle,
@@ -312,6 +347,11 @@ class _GroupViewState extends ConsumerState<GroupView> {
                       ),
                       ActionPopupMenu<_HomeAction>(
                         items: [
+                          _homeMenuItem(
+                            _HomeAction.templates,
+                            Icons.style_outlined,
+                            l10n.templateGroup,
+                          ),
                           if (hasFavorites)
                             _homeMenuItem(
                               _HomeAction.favorites,
@@ -351,6 +391,8 @@ class _GroupViewState extends ConsumerState<GroupView> {
                         ],
                         onSelected: (action) {
                           switch (action) {
+                            case _HomeAction.templates:
+                              context.push(AppRoutes.templates);
                             case _HomeAction.favorites:
                               context.push(AppRoutes.favorites);
                             case _HomeAction.sort:
@@ -371,12 +413,12 @@ class _GroupViewState extends ConsumerState<GroupView> {
                         },
                       ),
                     ]
-                  : content.group == recycleBin
+                  : content.group == recycleBin || widget.templates
                   ? null
                   : itemActions,
               bottom: bottom,
             ),
-            bottomNavigationBar: _selected.isEmpty
+            bottomNavigationBar: !inBin && !inTemplates && _selected.isEmpty
                 ? DatabaseNavigationShell.bottomBar(context)
                 : null,
             floatingActionButton: inBin || _selected.isNotEmpty
@@ -385,7 +427,9 @@ class _GroupViewState extends ConsumerState<GroupView> {
                     tooltip: l10n.groupAddEntry,
                     onPressed: busy
                         ? null
-                        : () => _addItem(context, session.database, id),
+                        : () => inTemplates
+                              ? context.push(AppRoutes.newTemplate)
+                              : _addItem(context, session.database, id),
                     child: const Icon(Icons.add),
                   ),
             body: Builder(
@@ -397,7 +441,11 @@ class _GroupViewState extends ConsumerState<GroupView> {
                         ? Center(
                             child: Padding(
                               padding: const EdgeInsets.all(AppSpacing.l),
-                              child: Text(l10n.groupEmpty),
+                              child: Text(
+                                inTemplates
+                                    ? l10n.templatesEmpty
+                                    : l10n.groupEmpty,
+                              ),
                             ),
                           )
                         : ListView.builder(

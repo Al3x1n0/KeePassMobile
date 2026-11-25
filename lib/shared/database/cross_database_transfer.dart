@@ -92,7 +92,9 @@ KdbxDatabase snapshotItems(KdbxDatabase source, List<String> ids) {
 
 DatabaseEdit copySnapshotEdit(KdbxDatabase snapshot, String targetId) => (db) {
   final target = findGroup(db, targetId);
-  if (target == null || isInRecycleBin(db, target)) {
+  if (target == null ||
+      isInRecycleBin(db, target) ||
+      isInTemplatesGroup(db, target)) {
     throw const InvalidItemEditException();
   }
   for (final item in snapshot.root.children) {

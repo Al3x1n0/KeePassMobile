@@ -1,4 +1,5 @@
 {
+  "templatesEmpty": "No templates. Create one with + or add the default templates in Settings.",
   "generateKeyFile": "Generate a key file",
   "errorCreateKeyFile": "Could not save and verify the key file.",
   "@@locale": "en",
