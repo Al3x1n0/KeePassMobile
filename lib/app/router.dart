@@ -12,12 +12,12 @@ import '../features/favorites/favorites_view.dart';
 import '../features/file_select/file_select_view.dart';
 import '../features/group/group_view.dart';
 import '../features/password_generator/generator_view.dart';
-import '../features/password_generator/pending_generated_password.dart';
 import '../features/remote_open/remote_open_view.dart';
 import '../features/search/search_view.dart';
 import '../features/settings/settings_view.dart';
 import '../features/unlock/unlock_view.dart';
 import '../features/unlock/unlock_view_model.dart';
+import '../features/unlock/relock.dart';
 import '../shared/database/database_session.dart';
 import 'database_navigation_shell.dart';
 import 'routes.dart';
@@ -45,10 +45,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!isOpen && inDatabase) return AppRoutes.fileSelect;
       if (isOpen && !inDatabase) {
         return ref
-                .read(pendingGeneratedPasswordProvider.notifier)
-                .takeRestoreDestination(session.file)
-            ? AppRoutes.generate
-            : AppRoutes.database;
+                .read(relockProvider.notifier)
+                .takeRestoreDestination(session.file) ??
+            AppRoutes.database;
       }
       if (location == AppRoutes.unlock && state.extra is! UnlockArgs) {
         return AppRoutes.fileSelect;
@@ -202,6 +201,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
-  ref.onDispose(router.dispose);
+  void rememberTab() {
+    if (ref.read(databaseSessionProvider) == null) return;
+    final current = router.state;
+    final location = current.fullPath == '${AppRoutes.database}/group/:groupId'
+        ? AppRoutes.database
+        : current.uri.path;
+    ref.read(relockProvider.notifier).rememberTab(location);
+  }
+
+  router.routerDelegate.addListener(rememberTab);
+  ref.onDispose(() {
+    router.routerDelegate.removeListener(rememberTab);
+    router.dispose();
+  });
   return router;
 });

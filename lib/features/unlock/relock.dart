@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/routes.dart';
 import '../../shared/database/database_session.dart';
 import '../../shared/storage/file_storage.dart';
 import '../file_select/recent_files.dart';
@@ -18,8 +19,46 @@ final relockProvider = NotifierProvider<RelockNotifier, UnlockArgs?>(
 );
 
 class RelockNotifier extends Notifier<UnlockArgs?> {
+  String _activeTab = AppRoutes.database;
+  FileRef? _resumeFile;
+  String? _resumeTab;
+  bool _automaticLockPrepared = false;
+
   @override
-  UnlockArgs? build() => null;
+  UnlockArgs? build() {
+    ref.listen(databaseSessionProvider, (previous, next) {
+      if (next == null) {
+        if (!_automaticLockPrepared) _clearResume();
+        _automaticLockPrepared = false;
+        _activeTab = AppRoutes.database;
+      } else if (previous?.file != next.file && _resumeFile != next.file) {
+        _clearResume();
+      }
+    });
+    return null;
+  }
+
+  /// Ricorda solo le tre tab principali, senza URL di voci o gruppi.
+  void rememberTab(String location) {
+    if (location == AppRoutes.database ||
+        location == AppRoutes.generate ||
+        location == AppRoutes.appSettingsInDatabase) {
+      _activeTab = location;
+    }
+  }
+
+  /// Consuma il ritorno alla tab lasciata, solo per lo stesso database.
+  String? takeRestoreDestination(FileRef file) {
+    final destination = _resumeFile == file ? _resumeTab : null;
+    _clearResume();
+    return destination;
+  }
+
+  void _clearResume() {
+    _resumeFile = null;
+    _resumeTab = null;
+    _automaticLockPrepared = false;
+  }
 
   /// Blocca il database aperto. Se è tra i file recenti, dopo il blocco si
   /// torna al suo sblocco; altrimenti alla scelta del file (il permesso sul
@@ -29,8 +68,12 @@ class RelockNotifier extends Notifier<UnlockArgs?> {
     if (session == null) return;
     final pending = ref.read(pendingGeneratedPasswordProvider.notifier);
     if (automatic) {
+      _resumeFile = session.file;
+      _resumeTab = _activeTab;
+      _automaticLockPrepared = true;
       pending.prepareAutomaticLock(session.file);
     } else {
+      _clearResume();
       pending.clear();
     }
     final recent = ref
@@ -64,5 +107,8 @@ class RelockNotifier extends Notifier<UnlockArgs?> {
     return args;
   }
 
-  void clear() => state = null;
+  void clear() {
+    _clearResume();
+    state = null;
+  }
 }

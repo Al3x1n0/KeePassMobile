@@ -13,7 +13,6 @@ class PendingGeneratedPassword {
     required this.file,
     required this.options,
     required this.protectedValue,
-    this.restoreOnUnlock = false,
   });
 
   final FileRef file;
@@ -21,7 +20,6 @@ class PendingGeneratedPassword {
 
   /// Buffer posseduto dal notifier: chi lo legge non deve azzerarlo.
   final ProtectedData protectedValue;
-  final bool restoreOnUnlock;
 }
 
 /// Custodia RAM indipendente dalle route e dai provider autoDispose delle viste.
@@ -85,26 +83,6 @@ class PendingGeneratedPasswordNotifier
     final pending = state;
     if (pending == null || pending.file != file) return;
     _retainOnNextLock = true;
-    state = PendingGeneratedPassword(
-      file: pending.file,
-      options: pending.options,
-      protectedValue: pending.protectedValue,
-      restoreOnUnlock: true,
-    );
-  }
-
-  /// Consuma il rientro nella tab dopo lo sblocco dello stesso database.
-  bool takeRestoreDestination(FileRef file) {
-    final pending = state;
-    if (pending == null || pending.file != file || !pending.restoreOnUnlock) {
-      return false;
-    }
-    state = PendingGeneratedPassword(
-      file: pending.file,
-      options: pending.options,
-      protectedValue: pending.protectedValue,
-    );
-    return true;
   }
 
   /// Salvataggio, blocco manuale o abbandono del database: azzera i buffer.

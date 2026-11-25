@@ -39,7 +39,7 @@ void main() {
     },
   );
 
-  test('blocco automatico conserva solo generata e ripristino consumabile una volta', () async {
+  test('blocco automatico conserva la generata indipendentemente dalla navigazione', () async {
     final container = await start();
     addTearDown(container.dispose);
     final database = container.read(databaseSessionProvider)!.database;
@@ -52,12 +52,9 @@ void main() {
     expect(database.root.allEntries, isEmpty);
     expect(database.header.credentials.hash, isNot(credentialHash));
     expect(pending.valueFor(file)?.text, generated);
-    expect(pending.takeRestoreDestination(other), isFalse);
     container
         .read(databaseSessionProvider.notifier)
         .open(DatabaseSession(file: file, database: newTestDatabase()));
-    expect(pending.takeRestoreDestination(file), isTrue);
-    expect(pending.takeRestoreDestination(file), isFalse);
     expect(pending.valueFor(file)?.text, generated);
   });
 
@@ -128,7 +125,6 @@ void main() {
           .open(DatabaseSession(file: other, database: newTestDatabase()));
 
       expect(container.read(pendingGeneratedPasswordProvider), isNull);
-      expect(pending.takeRestoreDestination(file), isFalse);
       expect(protected.bytes.every((byte) => byte == 0), isTrue);
     },
   );
