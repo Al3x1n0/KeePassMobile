@@ -350,7 +350,8 @@ class AppLocalizationsIt extends AppLocalizations {
       'Eliminare definitivamente gli elementi selezionati e il loro contenuto? L\'operazione non può essere annullata.';
 
   @override
-  String get entryDeleteConfirmRecycle => 'Spostare la voce nel cestino?';
+  String get entryDeleteConfirmRecycle =>
+      'Vuoi eliminare questa voce? Verrà spostata nel cestino.';
 
   @override
   String get entryDeleteConfirmPermanent =>
@@ -645,14 +646,14 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String get autofillFillAndRememberApp => 'Compila e ricorda l’app';
+  String get autofillFillAndRememberApp => 'Ricorda';
 
   @override
   String get autofillSaveAndRememberApp => 'Crea voce e ricorda l’app';
 
   @override
   String get autofillRememberAppSignature =>
-      'Se ricordi questa app, KeePassMobile conserva il suo certificato di firma sul dispositivo per le future compilazioni delle voci associate.';
+      'Scegliendo “Ricorda”, compili e salvi la firma dell’app sul dispositivo per le prossime compilazioni.';
 
   @override
   String get autofillNoMatches =>
@@ -680,14 +681,14 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String autofillRememberBody(String target, String entry, String field) {
-    return 'Alla prossima richiesta di $target sarà proposta subito “$entry”. Alla voce si aggiunge il campo $field e il database viene salvato.';
+    return 'Stai per compilare con “$entry” e ricordare l’associazione a $target. Il campo $field verrà aggiunto alla voce e il database salvato.';
   }
 
   @override
-  String get autofillFillOnly => 'Compila soltanto';
+  String get autofillFillOnly => 'Solo ora';
 
   @override
-  String get autofillFillAndRemember => 'Compila e ricorda';
+  String get autofillFillAndRemember => 'Ricorda';
 
   @override
   String get openNotificationChannel => 'Database aperto';
@@ -1047,14 +1048,14 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String entryEditAttachmentExists(String name) {
-    return 'La voce ha già un allegato \"$name\".';
+    return 'La voce ha già un allegato \"$name\". Vuoi sostituirlo o tenerli entrambi?';
   }
 
   @override
   String get entryEditAttachmentReplace => 'Sostituisci';
 
   @override
-  String get entryEditAttachmentRename => 'Aggiungi con un altro nome';
+  String get entryEditAttachmentRename => 'Tieni entrambi';
 
   @override
   String get entryAttachmentNoPreview =>
@@ -1071,7 +1072,7 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String get entryAttachmentSaveConfirm => 'Salva in chiaro';
+  String get entryAttachmentSaveConfirm => 'Salva';
 
   @override
   String entryAttachmentSaved(String name) {
@@ -1146,13 +1147,13 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get biometricOfferBody =>
-      'Vuoi aprire questo database con l\'impronta o il volto? Sul dispositivo resta solo la chiave derivata, protetta dalla biometria. Puoi cambiare idea da Impostazioni → Impostazioni del database.';
+      'Vuoi aprire questo database con impronta o volto? La chiave derivata resta sul dispositivo, protetta dalla biometria. Con “Mai” questa proposta non verrà più mostrata per questo database. Puoi attivarla da Impostazioni → Impostazioni del database.';
 
   @override
   String get biometricOfferEnable => 'Attiva';
 
   @override
-  String get biometricOfferNever => 'Non chiedere più';
+  String get biometricOfferNever => 'Mai';
 
   @override
   String get biometricOfferEnabled => 'Sblocco biometrico attivato.';
@@ -1678,4 +1679,37 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get autofillNoFillableFields =>
       'Questa voce non contiene valori per i campi richiesti dall’app o dal sito. Aggiungi un nome utente o una password e riprova.';
+
+  @override
+  String get dialogSaveUnencryptedTitle => 'Salva in chiaro';
+
+  @override
+  String get dialogRestoreVersionTitle => 'Ripristina versione';
+
+  @override
+  String get dialogDeleteVersionTitle => 'Elimina versione';
+
+  @override
+  String get dialogDiscardBody =>
+      'Se esci senza salvare, le modifiche andranno perse.';
+
+  @override
+  String get dialogGroupBody => 'Scegli il nome e l’icona del gruppo.';
+
+  @override
+  String get dialogLinkedDatabaseBody =>
+      'Scegli il database da collegare e inserisci la sua password.';
+
+  @override
+  String get dialogRemoteCredentialsBody =>
+      'Inserisci le credenziali per accedere al server.';
+
+  @override
+  String get dialogProfileBody => 'Scegli un nome per salvare queste opzioni.';
+
+  @override
+  String get dialogFill => 'Compila';
+
+  @override
+  String get dialogAdd => 'Aggiungi';
 }

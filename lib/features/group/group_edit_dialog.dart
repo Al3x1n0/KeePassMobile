@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:kpasslib/kpasslib.dart';
 
+import '../../shared/ui/app_dialog.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/database/item_edits.dart';
@@ -45,8 +46,9 @@ class _GroupEditDialogState extends State<GroupEditDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
+    return AppDialog(
       title: Text(widget.initial == null ? l10n.groupCreate : l10n.groupEdit),
+      body: Text(l10n.dialogGroupBody),
       content: SingleChildScrollView(
         child: Form(
           key: _form,
@@ -111,11 +113,11 @@ class _GroupEditDialogState extends State<GroupEditDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        AppDialogAction(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
-        FilledButton(onPressed: _save, child: Text(l10n.entryEditSave)),
+        AppDialogAction(onPressed: _save, child: Text(l10n.entryEditSave)),
       ],
     );
   }

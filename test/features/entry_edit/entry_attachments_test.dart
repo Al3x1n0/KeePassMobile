@@ -21,16 +21,22 @@ void main() {
     credentials: testCredentials(),
   );
 
-  test(
-    'uniqueAttachmentName come AddBinaryFromBytes: nome0.ext, nome1.ext',
-    () {
-      expect(uniqueAttachmentName('a.txt', ['b.txt']), 'a.txt');
-      expect(uniqueAttachmentName('a.txt', ['a.txt']), 'a0.txt');
-      expect(uniqueAttachmentName('a.txt', ['a.txt', 'a0.txt']), 'a1.txt');
-      expect(uniqueAttachmentName('nota', ['nota']), 'nota0');
-      expect(uniqueAttachmentName('.env', ['.env']), '.env0');
-    },
-  );
+  test('uniqueAttachmentName inserisce il suffisso prima dell’estensione', () {
+    expect(uniqueAttachmentName('a.txt', ['b.txt']), 'a.txt');
+    expect(uniqueAttachmentName('a.txt', ['a.txt']), 'a (1).txt');
+    expect(uniqueAttachmentName('a.txt', ['a.txt', 'a (1).txt']), 'a (2).txt');
+    expect(uniqueAttachmentName('nota', ['nota']), 'nota (1)');
+    expect(uniqueAttachmentName('.env', ['.env']), '.env (1)');
+    expect(
+      uniqueAttachmentName('a.txt', ['a.txt', 'a (1).txt', 'a (2).txt']),
+      'a (3).txt',
+    );
+    expect(uniqueAttachmentName('a.txt', ['a.txt', 'a (2).txt']), 'a (1).txt');
+    expect(
+      uniqueAttachmentName('archive.tar.gz', ['archive.tar.gz']),
+      'archive.tar (1).gz',
+    );
+  });
 
   test('allegato aggiunto, sostituito e rimosso, salvato nel file', () async {
     // given

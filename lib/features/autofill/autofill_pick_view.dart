@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import '../../shared/ui/app_dialog.dart';
 import '../../shared/ui/group_destination_sheet.dart';
 import '../entry_edit/entry_edit_view_model.dart';
 
@@ -144,30 +145,40 @@ class _AutofillPickViewState extends ConsumerState<AutofillPickView> {
         : message;
     return showDialog<AutofillChoice>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AppDialog(
         title: Text(
           approximate || confirmApp
               ? l10n.autofillApproximateTitle
               : l10n.autofillRememberTitle,
         ),
-        content: Text(description),
+        body: Text(description),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(AutofillChoice.once),
-            child: Text(l10n.autofillFillOnly),
+          AppDialogAction(
+            onPressed: () => Navigator.of(context).pop(
+              approximate || (confirmApp && !request.canRememberApp)
+                  ? null
+                  : AutofillChoice.once,
+            ),
+            child: Text(
+              approximate || (confirmApp && !request.canRememberApp)
+                  ? l10n.cancel
+                  : l10n.autofillFillOnly,
+            ),
           ),
-          if (confirmApp && request.canRememberApp)
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(AutofillChoice.rememberApp),
-              child: Text(l10n.autofillFillAndRememberApp),
+          AppDialogAction(
+            onPressed: () => Navigator.of(context).pop(
+              approximate || (confirmApp && !request.canRememberApp)
+                  ? AutofillChoice.once
+                  : confirmApp
+                  ? AutofillChoice.rememberApp
+                  : AutofillChoice.rememberEntry,
             ),
-          if (!approximate && !confirmApp)
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(AutofillChoice.rememberEntry),
-              child: Text(l10n.autofillFillAndRemember),
+            child: Text(
+              approximate || (confirmApp && !request.canRememberApp)
+                  ? l10n.dialogFill
+                  : l10n.autofillFillAndRemember,
             ),
+          ),
         ],
       ),
     );

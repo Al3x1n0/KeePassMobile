@@ -707,7 +707,7 @@ abstract class AppLocalizations {
   /// No description provided for @entryDeleteConfirmRecycle.
   ///
   /// In en, this message translates to:
-  /// **'Move this entry to the recycle bin?'**
+  /// **'Delete this entry? It will be moved to the recycle bin.'**
   String get entryDeleteConfirmRecycle;
 
   /// No description provided for @entryDeleteConfirmPermanent.
@@ -797,7 +797,7 @@ abstract class AppLocalizations {
   /// No description provided for @entryEditKeepEditing.
   ///
   /// In en, this message translates to:
-  /// **'Keep editing'**
+  /// **'Stay'**
   String get entryEditKeepEditing;
 
   /// No description provided for @errorSaveUnavailable.
@@ -1211,7 +1211,7 @@ abstract class AppLocalizations {
   /// No description provided for @autofillFillAndRememberApp.
   ///
   /// In en, this message translates to:
-  /// **'Fill and remember app'**
+  /// **'Remember'**
   String get autofillFillAndRememberApp;
 
   /// No description provided for @autofillSaveAndRememberApp.
@@ -1223,7 +1223,7 @@ abstract class AppLocalizations {
   /// No description provided for @autofillRememberAppSignature.
   ///
   /// In en, this message translates to:
-  /// **'Remembering this app saves its signing certificate on this device for future fills of entries linked to it.'**
+  /// **'Choosing “Remember” fills now and saves the app’s signing certificate on this device for future fills.'**
   String get autofillRememberAppSignature;
 
   /// No description provided for @autofillNoMatches.
@@ -1271,19 +1271,19 @@ abstract class AppLocalizations {
   /// No description provided for @autofillRememberBody.
   ///
   /// In en, this message translates to:
-  /// **'Next time {target} asks, “{entry}” is suggested right away. The field {field} is added to the entry and the database is saved.'**
+  /// **'Fill with “{entry}” and remember its association with {target}. The field {field} will be added to the entry and the database saved.'**
   String autofillRememberBody(String target, String entry, String field);
 
   /// No description provided for @autofillFillOnly.
   ///
   /// In en, this message translates to:
-  /// **'Fill only'**
+  /// **'Just once'**
   String get autofillFillOnly;
 
   /// No description provided for @autofillFillAndRemember.
   ///
   /// In en, this message translates to:
-  /// **'Fill and remember'**
+  /// **'Remember'**
   String get autofillFillAndRemember;
 
   /// No description provided for @openNotificationChannel.
@@ -1931,7 +1931,7 @@ abstract class AppLocalizations {
   /// No description provided for @entryEditAttachmentExists.
   ///
   /// In en, this message translates to:
-  /// **'The entry already has an attachment \"{name}\".'**
+  /// **'This entry already has an attachment named \"{name}\". Replace it or keep both?'**
   String entryEditAttachmentExists(String name);
 
   /// No description provided for @entryEditAttachmentReplace.
@@ -1943,7 +1943,7 @@ abstract class AppLocalizations {
   /// No description provided for @entryEditAttachmentRename.
   ///
   /// In en, this message translates to:
-  /// **'Add with another name'**
+  /// **'Keep both'**
   String get entryEditAttachmentRename;
 
   /// No description provided for @entryAttachmentNoPreview.
@@ -1967,7 +1967,7 @@ abstract class AppLocalizations {
   /// No description provided for @entryAttachmentSaveConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Save unencrypted'**
+  /// **'Save'**
   String get entryAttachmentSaveConfirm;
 
   /// No description provided for @entryAttachmentSaved.
@@ -2093,7 +2093,7 @@ abstract class AppLocalizations {
   /// No description provided for @biometricOfferBody.
   ///
   /// In en, this message translates to:
-  /// **'Do you want to open this database with your fingerprint or face? Only the derived key is kept on the device, protected by biometrics. You can change this from Settings → Database settings.'**
+  /// **'Open this database with your fingerprint or face? The derived key stays on this device, protected by biometrics. Choose “Never” to stop this offer for this database. You can turn it on from Settings → Database settings.'**
   String get biometricOfferBody;
 
   /// No description provided for @biometricOfferEnable.
@@ -2105,7 +2105,7 @@ abstract class AppLocalizations {
   /// No description provided for @biometricOfferNever.
   ///
   /// In en, this message translates to:
-  /// **'Don\'t ask again'**
+  /// **'Never'**
   String get biometricOfferNever;
 
   /// No description provided for @biometricOfferEnabled.
@@ -3037,6 +3037,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This entry has no values for the fields requested by the app or website. Add a username or password, then try again.'**
   String get autofillNoFillableFields;
+
+  /// No description provided for @dialogSaveUnencryptedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save unencrypted'**
+  String get dialogSaveUnencryptedTitle;
+
+  /// No description provided for @dialogRestoreVersionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore version'**
+  String get dialogRestoreVersionTitle;
+
+  /// No description provided for @dialogDeleteVersionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete version'**
+  String get dialogDeleteVersionTitle;
+
+  /// No description provided for @dialogDiscardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'If you leave without saving, your changes will be lost.'**
+  String get dialogDiscardBody;
+
+  /// No description provided for @dialogGroupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the group name and icon.'**
+  String get dialogGroupBody;
+
+  /// No description provided for @dialogLinkedDatabaseBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the database to link and enter its password.'**
+  String get dialogLinkedDatabaseBody;
+
+  /// No description provided for @dialogRemoteCredentialsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your credentials to connect to the server.'**
+  String get dialogRemoteCredentialsBody;
+
+  /// No description provided for @dialogProfileBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a name to save these options.'**
+  String get dialogProfileBody;
+
+  /// No description provided for @dialogFill.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill'**
+  String get dialogFill;
+
+  /// No description provided for @dialogAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get dialogAdd;
 }
 
 class _AppLocalizationsDelegate

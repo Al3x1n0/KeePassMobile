@@ -129,7 +129,7 @@
   },
   "itemsDeleteRecycle": "Move the selected items and their contents to the recycle bin?",
   "itemsDeletePermanent": "Permanently delete the selected items and their contents? This cannot be undone.",
-  "entryDeleteConfirmRecycle": "Move this entry to the recycle bin?",
+  "entryDeleteConfirmRecycle": "Delete this entry? It will be moved to the recycle bin.",
   "entryDeleteConfirmPermanent": "Delete this entry permanently? This cannot be undone.",
   "entryEditTitleNew": "New entry",
   "entryEditTitle": "Edit entry",
@@ -144,7 +144,7 @@
   "entryEditFieldNameReserved": "This name is reserved for a standard field",
   "entryEditDiscardTitle": "Discard your changes?",
   "entryEditDiscard": "Discard",
-  "entryEditKeepEditing": "Keep editing",
+  "entryEditKeepEditing": "Stay",
   "errorSaveUnavailable": "Cannot save: the file can no longer be reached. Your changes were not saved.",
   "errorSaveFailed": "Saving failed. Your changes were not saved.",
   "errorSaveBusy": "A save is already in progress.",
@@ -261,28 +261,40 @@
   "autofillSiteInApp": "{domain} in {app}",
   "@autofillSiteInApp": {
     "placeholders": {
-      "domain": {"type": "String"},
-      "app": {"type": "String"}
+      "domain": {
+        "type": "String"
+      },
+      "app": {
+        "type": "String"
+      }
     }
   },
   "autofillApproximateTitle": "Confirm the recipient",
   "autofillApproximateBody": "“{entry}” matched only by a related domain or search text. Fill its credentials in {target}?",
   "@autofillApproximateBody": {
     "placeholders": {
-      "entry": {"type": "String"},
-      "target": {"type": "String"}
+      "entry": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
     }
   },
   "autofillAppIdentityWarning": "“{entry}” is linked to {app}. Confirm that you recognize this installed app before filling its credentials.",
   "@autofillAppIdentityWarning": {
     "placeholders": {
-      "entry": {"type": "String"},
-      "app": {"type": "String"}
+      "entry": {
+        "type": "String"
+      },
+      "app": {
+        "type": "String"
+      }
     }
   },
-  "autofillFillAndRememberApp": "Fill and remember app",
+  "autofillFillAndRememberApp": "Remember",
   "autofillSaveAndRememberApp": "Create entry and remember app",
-  "autofillRememberAppSignature": "Remembering this app saves its signing certificate on this device for future fills of entries linked to it.",
+  "autofillRememberAppSignature": "Choosing “Remember” fills now and saves the app’s signing certificate on this device for future fills.",
   "autofillNoMatches": "No entries found: search the database below.",
   "autofillSearchAll": "Search the database",
   "autofillSearchHint": "Search",
@@ -300,7 +312,7 @@
   "autofillUseDomainOnce": "Use the site this time",
   "autofillUseDomainAlways": "Always use the site in this app",
   "autofillRememberTitle": "Remember the entry?",
-  "autofillRememberBody": "Next time {target} asks, “{entry}” is suggested right away. The field {field} is added to the entry and the database is saved.",
+  "autofillRememberBody": "Fill with “{entry}” and remember its association with {target}. The field {field} will be added to the entry and the database saved.",
   "@autofillRememberBody": {
     "placeholders": {
       "target": {
@@ -314,8 +326,8 @@
       }
     }
   },
-  "autofillFillOnly": "Fill only",
-  "autofillFillAndRemember": "Fill and remember",
+  "autofillFillOnly": "Just once",
+  "autofillFillAndRemember": "Remember",
   "openNotificationChannel": "Open database",
   "openNotificationText": "Database open",
   "openNotificationLock": "Lock",
@@ -503,13 +515,13 @@
   "entryEditAttachmentUnreadable": "The selected file could not be read.",
   "entryEditAttachmentTooLarge": "The file exceeds the maximum size of {size}.",
   "entryEditAttachmentExistsTitle": "Attachment already present",
-  "entryEditAttachmentExists": "The entry already has an attachment \"{name}\".",
+  "entryEditAttachmentExists": "This entry already has an attachment named \"{name}\". Replace it or keep both?",
   "entryEditAttachmentReplace": "Replace",
-  "entryEditAttachmentRename": "Add with another name",
+  "entryEditAttachmentRename": "Keep both",
   "entryAttachmentNoPreview": "No preview available for this file type.",
   "entryAttachmentSave": "Save {name}",
   "entryAttachmentSaveWarning": "\"{name}\" will be saved unencrypted, without the database encryption: anyone with access to the file will be able to read it. Continue?",
-  "entryAttachmentSaveConfirm": "Save unencrypted",
+  "entryAttachmentSaveConfirm": "Save",
   "entryAttachmentSaved": "Attachment saved: {name}",
   "entryAttachmentSaveFailed": "The attachment could not be saved.",
   "@entryEditAttachmentTooLarge": {
@@ -565,9 +577,9 @@
   "errorSaveKdfLocked": "The key derivation cannot be changed in this session: open the database with the password.",
   "changeKeyDoneBiometricOff": "Master key changed. Biometric unlock was turned off: turn it on again in the database settings.",
   "biometricOfferTitle": "Biometric unlock",
-  "biometricOfferBody": "Do you want to open this database with your fingerprint or face? Only the derived key is kept on the device, protected by biometrics. You can change this from Settings → Database settings.",
+  "biometricOfferBody": "Open this database with your fingerprint or face? The derived key stays on this device, protected by biometrics. Choose “Never” to stop this offer for this database. You can turn it on from Settings → Database settings.",
   "biometricOfferEnable": "Turn on",
-  "biometricOfferNever": "Don't ask again",
+  "biometricOfferNever": "Never",
   "biometricOfferEnabled": "Biometric unlock turned on.",
   "externalChangeTitle": "File changed elsewhere",
   "externalChangeBody": "\"{name}\" was changed by another app or device after it was opened. Synchronize merges both versions; Overwrite replaces it with this version and the changes made elsewhere are lost.",
@@ -775,5 +787,15 @@
   "changeKeyCurrentPassword": "Current master password",
   "changeKeyCurrentRequired": "Enter the current password.",
   "changeKeyWrongCurrentPassword": "Current password is incorrect.",
-  "autofillNoFillableFields": "This entry has no values for the fields requested by the app or website. Add a username or password, then try again."
+  "autofillNoFillableFields": "This entry has no values for the fields requested by the app or website. Add a username or password, then try again.",
+  "dialogSaveUnencryptedTitle": "Save unencrypted",
+  "dialogRestoreVersionTitle": "Restore version",
+  "dialogDeleteVersionTitle": "Delete version",
+  "dialogDiscardBody": "If you leave without saving, your changes will be lost.",
+  "dialogGroupBody": "Choose the group name and icon.",
+  "dialogLinkedDatabaseBody": "Choose the database to link and enter its password.",
+  "dialogRemoteCredentialsBody": "Enter your credentials to connect to the server.",
+  "dialogProfileBody": "Choose a name to save these options.",
+  "dialogFill": "Fill",
+  "dialogAdd": "Add"
 }

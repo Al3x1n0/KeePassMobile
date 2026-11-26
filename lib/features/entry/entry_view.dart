@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kpasslib/kpasslib.dart';
 
+import '../../shared/ui/app_dialog.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -569,6 +570,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
   Future<void> _saveAttachment(String name) async {
     final l10n = AppLocalizations.of(context);
     if (!await _confirm(
+      l10n.dialogSaveUnencryptedTitle,
       l10n.entryAttachmentSaveWarning(name),
       l10n.entryAttachmentSaveConfirm,
     )) {
@@ -588,18 +590,19 @@ class _EntryViewState extends ConsumerState<EntryView> {
     }
   }
 
-  Future<bool> _confirm(String message, String action) async {
+  Future<bool> _confirm(String title, String message, String action) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        content: Text(message),
+      builder: (context) => AppDialog(
+        title: Text(title),
+        body: Text(message),
         actions: [
-          TextButton(
+          AppDialogAction(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(l10n.cancel),
           ),
-          TextButton(
+          AppDialogAction(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(action),
           ),
@@ -612,6 +615,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
   Future<void> _restore(int index) async {
     final l10n = AppLocalizations.of(context);
     if (!await _confirm(
+      l10n.dialogRestoreVersionTitle,
       l10n.entryHistoryRestoreConfirm,
       l10n.entryHistoryRestore,
     )) {
@@ -626,8 +630,9 @@ class _EntryViewState extends ConsumerState<EntryView> {
   Future<void> _deleteVersion(int index) async {
     final l10n = AppLocalizations.of(context);
     if (!await _confirm(
+      l10n.dialogDeleteVersionTitle,
       l10n.entryHistoryDeleteConfirm,
-      l10n.entryHistoryDelete,
+      l10n.entryDelete,
     )) {
       return;
     }
@@ -642,18 +647,19 @@ class _EntryViewState extends ConsumerState<EntryView> {
     final permanent = ref.read(entryDeletesPermanentlyProvider(widget.entryId));
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        content: Text(
+      builder: (context) => AppDialog(
+        title: Text(l10n.entryDelete),
+        body: Text(
           permanent
               ? l10n.entryDeleteConfirmPermanent
               : l10n.entryDeleteConfirmRecycle,
         ),
         actions: [
-          TextButton(
+          AppDialogAction(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(l10n.cancel),
           ),
-          TextButton(
+          AppDialogAction(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(l10n.entryDelete),
           ),

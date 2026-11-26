@@ -488,7 +488,9 @@ void main() {
       findsOneWidget,
     );
     expect(calls.where((call) => call.method == 'fill'), isEmpty);
-    await tester.tap(find.text(l10n.autofillFillOnly));
+    expect(find.widgetWithText(TextButton, l10n.cancel), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, l10n.dialogFill), findsOneWidget);
+    await tester.tap(find.text(l10n.dialogFill));
     expect(await filled(tester), {
       'userName': 'mario',
       'password': 'segreto-1',

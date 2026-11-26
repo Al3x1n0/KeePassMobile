@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kpasslib/kpasslib.dart';
 
+import '../../shared/ui/app_dialog.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -66,17 +67,17 @@ class _SearchViewState extends ConsumerState<SearchView> {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AppDialog(
         title: Text(l10n.entryDelete),
-        content: Text(
+        body: Text(
           permanent ? l10n.itemsDeletePermanent : l10n.itemsDeleteRecycle,
         ),
         actions: [
-          TextButton(
+          AppDialogAction(
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.cancel),
           ),
-          FilledButton(
+          AppDialogAction(
             onPressed: () => Navigator.pop(context, true),
             child: Text(l10n.entryDelete),
           ),

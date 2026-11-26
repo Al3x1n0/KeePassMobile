@@ -121,6 +121,38 @@ void main() {
       expect(find.text('nota.txt'), findsOneWidget);
       expect(storage.released.map((r) => r.name), ['big.bin', 'nota.txt']);
 
+      picker.files.add(
+        PickedFile(
+          ref: const FileRef(uri: 'content://docs/nota-copy', name: 'nota.txt'),
+          bytes: Uint8List.fromList(utf8.encode('secondo allegato')),
+        ),
+      );
+      await tester.scrollUntilVisible(
+        add,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      final dialog = find.byType(AlertDialog);
+      expect(
+        find.descendant(of: dialog, matching: find.byType(TextButton)),
+        findsNWidgets(3),
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.byType(FilledButton)),
+        findsNothing,
+      );
+      expect(
+        find.text(l10n.entryEditAttachmentExists('nota.txt')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('nota (1).txt'), findsNothing);
+      await tester.tap(find.text(l10n.entryEditAttachmentRename));
+      await tester.pumpAndSettle();
+      expect(find.text('nota (1).txt'), findsOneWidget);
+
       await tester.tap(find.byTooltip(l10n.entryEditSave));
       // Il menu Altre azioni compare al ritorno nel dettaglio.
       await pumpUntilFound(tester, find.byTooltip(l10n.groupMore));
@@ -129,6 +161,7 @@ void main() {
       expect(db.root.allEntries.single.binaries.keys, [
         'pixel.png',
         'nota.txt',
+        'nota (1).txt',
       ]);
 
       await tester.scrollUntilVisible(find.text('nota.txt'), 200);

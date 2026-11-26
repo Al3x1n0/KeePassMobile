@@ -348,7 +348,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Permanently delete the selected items and their contents? This cannot be undone.';
 
   @override
-  String get entryDeleteConfirmRecycle => 'Move this entry to the recycle bin?';
+  String get entryDeleteConfirmRecycle =>
+      'Delete this entry? It will be moved to the recycle bin.';
 
   @override
   String get entryDeleteConfirmPermanent =>
@@ -395,7 +396,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get entryEditDiscard => 'Discard';
 
   @override
-  String get entryEditKeepEditing => 'Keep editing';
+  String get entryEditKeepEditing => 'Stay';
 
   @override
   String get errorSaveUnavailable =>
@@ -642,14 +643,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get autofillFillAndRememberApp => 'Fill and remember app';
+  String get autofillFillAndRememberApp => 'Remember';
 
   @override
   String get autofillSaveAndRememberApp => 'Create entry and remember app';
 
   @override
   String get autofillRememberAppSignature =>
-      'Remembering this app saves its signing certificate on this device for future fills of entries linked to it.';
+      'Choosing “Remember” fills now and saves the app’s signing certificate on this device for future fills.';
 
   @override
   String get autofillNoMatches =>
@@ -677,14 +678,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String autofillRememberBody(String target, String entry, String field) {
-    return 'Next time $target asks, “$entry” is suggested right away. The field $field is added to the entry and the database is saved.';
+    return 'Fill with “$entry” and remember its association with $target. The field $field will be added to the entry and the database saved.';
   }
 
   @override
-  String get autofillFillOnly => 'Fill only';
+  String get autofillFillOnly => 'Just once';
 
   @override
-  String get autofillFillAndRemember => 'Fill and remember';
+  String get autofillFillAndRemember => 'Remember';
 
   @override
   String get openNotificationChannel => 'Open database';
@@ -1042,14 +1043,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String entryEditAttachmentExists(String name) {
-    return 'The entry already has an attachment \"$name\".';
+    return 'This entry already has an attachment named \"$name\". Replace it or keep both?';
   }
 
   @override
   String get entryEditAttachmentReplace => 'Replace';
 
   @override
-  String get entryEditAttachmentRename => 'Add with another name';
+  String get entryEditAttachmentRename => 'Keep both';
 
   @override
   String get entryAttachmentNoPreview =>
@@ -1066,7 +1067,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get entryAttachmentSaveConfirm => 'Save unencrypted';
+  String get entryAttachmentSaveConfirm => 'Save';
 
   @override
   String entryAttachmentSaved(String name) {
@@ -1141,13 +1142,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get biometricOfferBody =>
-      'Do you want to open this database with your fingerprint or face? Only the derived key is kept on the device, protected by biometrics. You can change this from Settings → Database settings.';
+      'Open this database with your fingerprint or face? The derived key stays on this device, protected by biometrics. Choose “Never” to stop this offer for this database. You can turn it on from Settings → Database settings.';
 
   @override
   String get biometricOfferEnable => 'Turn on';
 
   @override
-  String get biometricOfferNever => 'Don\'t ask again';
+  String get biometricOfferNever => 'Never';
 
   @override
   String get biometricOfferEnabled => 'Biometric unlock turned on.';
@@ -1667,4 +1668,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get autofillNoFillableFields =>
       'This entry has no values for the fields requested by the app or website. Add a username or password, then try again.';
+
+  @override
+  String get dialogSaveUnencryptedTitle => 'Save unencrypted';
+
+  @override
+  String get dialogRestoreVersionTitle => 'Restore version';
+
+  @override
+  String get dialogDeleteVersionTitle => 'Delete version';
+
+  @override
+  String get dialogDiscardBody =>
+      'If you leave without saving, your changes will be lost.';
+
+  @override
+  String get dialogGroupBody => 'Choose the group name and icon.';
+
+  @override
+  String get dialogLinkedDatabaseBody =>
+      'Choose the database to link and enter its password.';
+
+  @override
+  String get dialogRemoteCredentialsBody =>
+      'Enter your credentials to connect to the server.';
+
+  @override
+  String get dialogProfileBody => 'Choose a name to save these options.';
+
+  @override
+  String get dialogFill => 'Fill';
+
+  @override
+  String get dialogAdd => 'Add';
 }

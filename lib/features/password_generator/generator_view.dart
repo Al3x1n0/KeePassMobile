@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../shared/ui/app_dialog.dart';
 import '../../app/theme.dart';
 import '../../app/database_navigation_shell.dart';
 import '../../app/routes.dart';
@@ -423,8 +424,9 @@ class _ProfileNameDialogState extends State<_ProfileNameDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
+    return AppDialog(
       title: Text(l10n.generatorSaveProfile),
+      body: Text(l10n.dialogProfileBody),
       content: TextField(
         controller: _name,
         autofocus: true,
@@ -436,11 +438,11 @@ class _ProfileNameDialogState extends State<_ProfileNameDialog> {
         decoration: InputDecoration(labelText: l10n.generatorProfileName),
       ),
       actions: [
-        TextButton(
+        AppDialogAction(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
-        TextButton(onPressed: _save, child: Text(l10n.entryEditSave)),
+        AppDialogAction(onPressed: _save, child: Text(l10n.entryEditSave)),
       ],
     );
   }

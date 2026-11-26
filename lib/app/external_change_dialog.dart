@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../shared/ui/app_dialog.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/database/external_change.dart';
 import 'router.dart';
@@ -18,22 +19,22 @@ ExternalChangeResolver externalChangeDialog(Ref ref) => (file) async {
   final choice = await showDialog<ExternalChangeChoice>(
     context: context,
     barrierDismissible: false,
-    builder: (context) => AlertDialog(
+    builder: (context) => AppDialog(
       icon: const Icon(Icons.sync_problem_outlined),
       title: Text(l10n.externalChangeTitle),
-      content: Text(l10n.externalChangeBody(file.name)),
+      body: Text(l10n.externalChangeBody(file.name)),
       actions: [
-        TextButton(
+        AppDialogAction(
           onPressed: () =>
               Navigator.of(context).pop(ExternalChangeChoice.cancel),
           child: Text(l10n.externalChangeCancel),
         ),
-        TextButton(
+        AppDialogAction(
           onPressed: () =>
               Navigator.of(context).pop(ExternalChangeChoice.overwrite),
           child: Text(l10n.externalChangeOverwrite),
         ),
-        FilledButton(
+        AppDialogAction(
           onPressed: () =>
               Navigator.of(context).pop(ExternalChangeChoice.synchronize),
           child: Text(l10n.externalChangeSynchronize),

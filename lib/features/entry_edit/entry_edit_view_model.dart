@@ -70,15 +70,15 @@ class AttachmentDraft {
 }
 
 /// Nome libero per un allegato che ha lo stesso nome di uno già presente,
-/// come AddBinaryFromBytes di Keepass2Android: `nome0.ext`, `nome1.ext`, ...
+/// inserendo ` (1)`, ` (2)`, ... prima dell’estensione.
 String uniqueAttachmentName(String name, Iterable<String> existing) {
   final taken = existing.toSet();
   if (!taken.contains(name)) return name;
   final dot = name.lastIndexOf('.');
   final base = dot > 0 ? name.substring(0, dot) : name;
   final ext = dot > 0 ? name.substring(dot) : '';
-  for (var n = 0; ; n++) {
-    final candidate = '$base$n$ext';
+  for (var n = 1; ; n++) {
+    final candidate = '$base ($n)$ext';
     if (!taken.contains(candidate)) return candidate;
   }
 }

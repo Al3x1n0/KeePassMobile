@@ -129,7 +129,7 @@ void main() {
     await tester.tap(install);
     await tester.pumpAndSettle();
     expect(find.text(l10n.templatesInstallConfirm), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, l10n.templatesInstall));
+    await tester.tap(find.widgetWithText(FilledButton, l10n.dialogAdd));
     await pumpUntilFound(tester, find.text(l10n.templatesInstallSuccess));
     await tester.tap(tab(l10n.navigationHome));
     await tester.pumpAndSettle();

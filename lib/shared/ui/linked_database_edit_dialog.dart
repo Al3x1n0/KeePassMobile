@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'app_dialog.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../database/database_session.dart';
@@ -110,8 +111,9 @@ class _LinkFormState extends State<_LinkForm> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
+    return AppDialog(
       title: Text(l10n.linkedDatabaseAdd),
+      body: Text(l10n.dialogLinkedDatabaseBody),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -135,11 +137,11 @@ class _LinkFormState extends State<_LinkForm> {
         ],
       ),
       actions: [
-        TextButton(
+        AppDialogAction(
           onPressed: () => Navigator.pop(context),
           child: Text(l10n.cancel),
         ),
-        FilledButton(
+        AppDialogAction(
           onPressed: () => Navigator.pop(context, (
             child: child,
             password: widget.password.text,

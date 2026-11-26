@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kpasslib/kpasslib.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../shared/ui/app_dialog.dart';
 import '../../app/database_navigation_shell.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
@@ -554,17 +555,17 @@ class _GroupViewState extends ConsumerState<GroupView> {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AppDialog(
         title: Text(l10n.entryDelete),
-        content: Text(
+        body: Text(
           permanent ? l10n.itemsDeletePermanent : l10n.itemsDeleteRecycle,
         ),
         actions: [
-          TextButton(
+          AppDialogAction(
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.cancel),
           ),
-          FilledButton(
+          AppDialogAction(
             onPressed: () => Navigator.pop(context, true),
             child: Text(l10n.entryDelete),
           ),
@@ -595,17 +596,17 @@ class _GroupViewState extends ConsumerState<GroupView> {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AppDialog(
         title: Text(l10n.entryDelete),
-        content: Text(
+        body: Text(
           permanent ? l10n.itemsDeletePermanent : l10n.itemsDeleteRecycle,
         ),
         actions: [
-          TextButton(
+          AppDialogAction(
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.cancel),
           ),
-          FilledButton(
+          AppDialogAction(
             onPressed: () => Navigator.pop(context, true),
             child: Text(l10n.entryDelete),
           ),
@@ -863,16 +864,16 @@ class _BiometricOfferHostState extends ConsumerState<_BiometricOfferHost> {
     _showing = true;
     final enable = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AppDialog(
         icon: const Icon(Icons.fingerprint),
         title: Text(l10n.biometricOfferTitle),
-        content: Text(l10n.biometricOfferBody),
+        body: Text(l10n.biometricOfferBody),
         actions: [
-          TextButton(
+          AppDialogAction(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(l10n.biometricOfferNever),
           ),
-          FilledButton(
+          AppDialogAction(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(l10n.biometricOfferEnable),
           ),

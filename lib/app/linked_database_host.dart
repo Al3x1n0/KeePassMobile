@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../shared/ui/app_dialog.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/database/database_session.dart';
 import '../shared/database/linked_databases.dart';
@@ -59,9 +60,9 @@ class _LinkedDatabaseHostState extends ConsumerState<LinkedDatabaseHost> {
     final route = DialogRoute<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (context) => AppDialog(
         title: Text(l10n.linkedDatabaseTitle),
-        content: SingleChildScrollView(
+        body: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,11 +78,11 @@ class _LinkedDatabaseHostState extends ConsumerState<LinkedDatabaseHost> {
           ),
         ),
         actions: [
-          TextButton(
+          AppDialogAction(
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.cancel),
           ),
-          FilledButton(
+          AppDialogAction(
             onPressed: () => Navigator.pop(context, true),
             child: Text(l10n.linkedDatabaseAllow),
           ),

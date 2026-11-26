@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kpasslib/kpasslib.dart';
 
+import '../../shared/ui/app_dialog.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
@@ -224,19 +225,19 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
     if (index >= 0) {
       final overwrite = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => AppDialog(
           title: Text(l10n.entryEditAttachmentExistsTitle),
-          content: Text(l10n.entryEditAttachmentExists(name)),
+          body: Text(l10n.entryEditAttachmentExists(name)),
           actions: [
-            TextButton(
+            AppDialogAction(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(l10n.cancel),
             ),
-            TextButton(
+            AppDialogAction(
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(l10n.entryEditAttachmentRename),
             ),
-            TextButton(
+            AppDialogAction(
               onPressed: () => Navigator.of(context).pop(true),
               child: Text(l10n.entryEditAttachmentReplace),
             ),
@@ -405,16 +406,17 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
     final l10n = AppLocalizations.of(context);
     final discard = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        content: Text(l10n.entryEditDiscardTitle),
+      builder: (context) => AppDialog(
+        title: Text(l10n.entryEditDiscardTitle),
+        body: Text(l10n.dialogDiscardBody),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.entryEditKeepEditing),
-          ),
-          TextButton(
+          AppDialogAction(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(l10n.entryEditDiscard),
+          ),
+          AppDialogAction(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.entryEditKeepEditing),
           ),
         ],
       ),
@@ -862,9 +864,9 @@ class _TotpSetupDialogState extends State<_TotpSetupDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
+    return AppDialog(
       title: Text(l10n.entryEditTotpSetup),
-      content: Column(
+      body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -899,11 +901,14 @@ class _TotpSetupDialogState extends State<_TotpSetupDialog> {
         ],
       ),
       actions: [
-        TextButton(
+        AppDialogAction(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
-        TextButton(onPressed: _apply, child: Text(l10n.entryEditTotpApply)),
+        AppDialogAction(
+          onPressed: _apply,
+          child: Text(l10n.entryEditTotpApply),
+        ),
       ],
     );
   }

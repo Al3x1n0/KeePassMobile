@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../shared/ui/app_dialog.dart';
 import '../../app/database_navigation_shell.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
@@ -442,17 +443,17 @@ class SettingsView extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AppDialog(
         title: Text(l10n.templatesInstall),
-        content: Text(l10n.templatesInstallConfirm),
+        body: Text(l10n.templatesInstallConfirm),
         actions: [
-          TextButton(
+          AppDialogAction(
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.cancel),
           ),
-          FilledButton(
+          AppDialogAction(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.templatesInstall),
+            child: Text(l10n.dialogAdd),
           ),
         ],
       ),
@@ -587,15 +588,15 @@ class _RemoteCacheClearTileState extends ConsumerState<_RemoteCacheClearTile> {
     try {
       final confirmed = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => AppDialog(
           title: Text(l10n.settingsRemoteCacheClear),
-          content: Text(l10n.settingsRemoteCacheClearConfirm),
+          body: Text(l10n.settingsRemoteCacheClearConfirm),
           actions: [
-            TextButton(
+            AppDialogAction(
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(l10n.cancel),
             ),
-            FilledButton(
+            AppDialogAction(
               onPressed: () => Navigator.of(context).pop(true),
               child: Text(l10n.entryDelete),
             ),

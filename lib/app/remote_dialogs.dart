@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../shared/ui/app_dialog.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/storage/remote_storage.dart';
 import '../shared/storage/webdav_client.dart';
@@ -52,10 +53,10 @@ CertificateTrustPrompt _trustDialog(Ref ref, {bool ssh = false}) =>
       final accepted = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
+        builder: (context) => AppDialog(
           icon: const Icon(Icons.gpp_maybe_outlined),
           title: Text(ssh ? l10n.sshHostTitle : l10n.remoteCertificateTitle),
-          content: Column(
+          body: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -73,11 +74,11 @@ CertificateTrustPrompt _trustDialog(Ref ref, {bool ssh = false}) =>
             ],
           ),
           actions: [
-            TextButton(
+            AppDialogAction(
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(l10n.remoteCancel),
             ),
-            FilledButton(
+            AppDialogAction(
               onPressed: () => Navigator.of(context).pop(true),
               child: Text(l10n.remoteCertificateAccept),
             ),
@@ -145,8 +146,9 @@ class _RemoteCredentialsDialogState extends State<RemoteCredentialsDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return AlertDialog(
+    return AppDialog(
       title: Text(l10n.remoteCredentialsTitle(widget.server)),
+      body: Text(l10n.dialogRemoteCredentialsBody),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -231,11 +233,11 @@ class _RemoteCredentialsDialogState extends State<RemoteCredentialsDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        AppDialogAction(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.remoteCancel),
         ),
-        FilledButton(onPressed: _submit, child: Text(l10n.remoteSignIn)),
+        AppDialogAction(onPressed: _submit, child: Text(l10n.remoteSignIn)),
       ],
     );
   }

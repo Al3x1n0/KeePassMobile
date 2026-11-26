@@ -560,7 +560,7 @@ void main() {
     await tester.tap(find.text(l10n.entryDelete));
     await tester.pumpAndSettle();
     expect(find.text(l10n.entryDeleteConfirmRecycle), findsOneWidget);
-    await tester.tap(find.widgetWithText(TextButton, l10n.entryDelete));
+    await tester.tap(find.widgetWithText(FilledButton, l10n.entryDelete));
 
     // Torna al gruppo, ora vuoto.
     await pumpUntilFound(tester, find.text(l10n.groupEmpty));
