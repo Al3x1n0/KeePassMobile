@@ -31,16 +31,28 @@ import 'entry_edit_view_model.dart';
 
 /// Modifica o creazione di una voce (EntryEditActivity di Keepass2Android).
 class EntryEditView extends ConsumerWidget {
-  const EntryEditView({super.key, required this.target});
+  const EntryEditView({
+    super.key,
+    required this.target,
+    this.initialDraft,
+    this.returnCreated = false,
+  });
 
+  final EntryDraft? initialDraft;
+  final bool returnCreated;
   final EntryEditTarget target;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final initial = ref.watch(entryInitialDraftProvider(target));
+    final initial =
+        initialDraft ?? ref.watch(entryInitialDraftProvider(target));
     // Database chiuso o voce eliminata: si sta già lasciando la schermata.
     if (initial == null) return const Scaffold();
-    return _EntryEditForm(target: target, initial: initial);
+    return _EntryEditForm(
+      target: target,
+      initial: initial,
+      returnCreated: returnCreated,
+    );
   }
 }
 
@@ -64,10 +76,15 @@ class _CustomFieldControllers {
 }
 
 class _EntryEditForm extends ConsumerStatefulWidget {
-  const _EntryEditForm({required this.target, required this.initial});
+  const _EntryEditForm({
+    required this.target,
+    required this.initial,
+    required this.returnCreated,
+  });
 
   final EntryEditTarget target;
   final EntryDraft initial;
+  final bool returnCreated;
 
   @override
   ConsumerState<_EntryEditForm> createState() => _EntryEditFormState();
@@ -375,7 +392,9 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
         );
     if (entryId == null || !mounted) return;
     setState(() => _saved = true);
-    if (widget.target.entryId == null) {
+    if (widget.returnCreated) {
+      context.pop(entryId);
+    } else if (widget.target.entryId == null) {
       context.pushReplacement(AppRoutes.entry(entryId));
     } else {
       context.pop();

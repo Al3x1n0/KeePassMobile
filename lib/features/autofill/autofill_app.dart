@@ -1,3 +1,7 @@
+import '../entry_edit/entry_edit_view.dart';
+import '../entry_edit/entry_edit_view_model.dart';
+import '../password_generator/generator_view.dart';
+
 import 'package:material_ui/material_ui.dart';
 
 import 'dart:async';
@@ -93,14 +97,35 @@ GoRouter autofillRouter(Ref ref) {
     redirect: (context, state) {
       final isOpen = ref.read(databaseSessionProvider) != null;
       final location = state.matchedLocation;
-      if (isOpen && location != autofillPickRoute) return autofillPickRoute;
-      if (!isOpen && location == autofillPickRoute) return AppRoutes.fileSelect;
+      final editing =
+          location == '/autofill/new' || location == AppRoutes.generator;
+      if (isOpen && location != autofillPickRoute && !editing) {
+        return autofillPickRoute;
+      }
+      if (!isOpen && (location == autofillPickRoute || editing)) {
+        return AppRoutes.fileSelect;
+      }
       if (location == AppRoutes.unlock && state.extra is! UnlockArgs) {
         return AppRoutes.fileSelect;
       }
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/autofill/new',
+        builder: (_, state) {
+          final args = state.extra! as (String, EntryDraft);
+          return EntryEditView(
+            target: EntryEditTarget.create(args.$1),
+            initialDraft: args.$2,
+            returnCreated: true,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.generator,
+        builder: (_, _) => const GeneratorView(),
+      ),
       GoRoute(
         path: AppRoutes.fileSelect,
         builder: (_, _) => const AutofillFileSelectView(),

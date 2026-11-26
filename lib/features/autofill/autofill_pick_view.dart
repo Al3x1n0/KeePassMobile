@@ -1,3 +1,8 @@
+import 'package:go_router/go_router.dart';
+
+import '../../shared/ui/group_destination_sheet.dart';
+import '../entry_edit/entry_edit_view_model.dart';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../../shared/ui/remote_cache_banner.dart';
@@ -35,6 +40,43 @@ class _AutofillPickViewState extends ConsumerState<AutofillPickView> {
   void dispose() {
     _search.dispose();
     super.dispose();
+  }
+
+  Future<void> _create() async {
+    final query = ref.read(autofillQueryProvider);
+    final request = ref.read(autofillRequestProvider);
+    final group = await showGroupDestinationSheet(
+      context,
+      [],
+      creatingEntry: true,
+    );
+    if (group == null ||
+        !mounted ||
+        ref.read(databaseSessionProvider) == null) {
+      return;
+    }
+    final app = query == request.appQuery;
+    final draft = EntryDraft(
+      title: app ? request.packageName : query,
+      url: app ? '' : 'https://$query',
+      custom: app
+          ? [
+              CustomFieldDraft(
+                key: 'AndroidApp1',
+                value: request.appQuery,
+                protected: false,
+              ),
+            ]
+          : [],
+    );
+    final id = await context.push<String>(
+      '/autofill/new',
+      extra: (group, draft),
+    );
+    if (id == null || !mounted) return;
+    final db = ref.read(databaseSessionProvider)?.database;
+    final entry = db == null ? null : findEntry(db, id);
+    if (entry != null) await _choose(entry, matched: true);
   }
 
   Future<void> _choose(KdbxEntry entry, {required bool matched}) async {
@@ -189,6 +231,11 @@ class _AutofillPickViewState extends ConsumerState<AutofillPickView> {
                 ),
               ),
             ),
+          ListTile(
+            leading: const Icon(Icons.add),
+            title: Text(l10n.entryEditTitleNew),
+            onTap: state.isLoading ? null : _create,
+          ),
           _Section(l10n.autofillMatches),
           if (matches.isEmpty)
             Padding(

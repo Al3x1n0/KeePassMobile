@@ -118,6 +118,29 @@ void main() {
   }
 
   testWidgets(
+    'nuova voce disponibile senza corrispondenze e scelta annullabile',
+    (tester) async {
+      await start(
+        tester,
+        const AutofillRequest(
+          packageName: 'com.example.newapp',
+          signingIds: ['synthetic-signer'],
+        ),
+      );
+      expect(find.text(l10n.autofillNoMatches), findsOneWidget);
+      await tester.tap(find.text(l10n.entryEditTitleNew));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.generatorChooseGroup), findsOneWidget);
+      final container = containerOf(tester);
+      expect(container.read(databaseSessionProvider), isNotNull);
+      Navigator.of(tester.element(find.text(l10n.generatorChooseGroup))).pop();
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.autofillPickTitle), findsOneWidget);
+      expect(calls.where((c) => c.method == 'fill'), isEmpty);
+    },
+  );
+
+  testWidgets(
     'browser: la conferma segue una rotazione verificata, poi compila e chiude',
     (tester) async {
       await start(
@@ -187,6 +210,7 @@ void main() {
       );
       expect(find.text('Esempio'), findsNothing);
       expect(find.text(l10n.autofillNoMatches), findsOneWidget);
+      expect(find.text(l10n.entryEditTitleNew), findsOneWidget);
 
       await tester.tap(find.text(l10n.autofillUseDomainAlways));
       await tester.runAsync(pumpEventQueue);
@@ -309,6 +333,7 @@ void main() {
         const AutofillRequest(packageName: 'com.example.app'),
       );
       expect(find.text(l10n.autofillNoMatches), findsOneWidget);
+      expect(find.text(l10n.entryEditTitleNew), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), 'Altro');
       await tester.pumpAndSettle();

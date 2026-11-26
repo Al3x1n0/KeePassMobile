@@ -185,6 +185,9 @@ class AutofillPickViewModel extends AsyncNotifier<void> {
         EntryFields.password,
         request.hasPassword,
       );
+      if (userName.isEmpty && secret.isEmpty) {
+        throw StateError('nessun campo richiesto valorizzato');
+      }
       await ref
           .read(autofillChannelProvider)
           .fill(
