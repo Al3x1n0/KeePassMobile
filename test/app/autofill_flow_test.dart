@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keepass_mobile/features/autofill/autofill_app.dart';
+import 'package:keepass_mobile/features/entry_edit/entry_edit_view.dart';
 import 'package:keepass_mobile/features/autofill/autofill_channel.dart';
 import 'package:keepass_mobile/features/autofill/autofill_pick_view_model.dart';
 import 'package:keepass_mobile/features/file_select/recent_files.dart';
@@ -116,6 +117,32 @@ void main() {
     }
     return calls.singleWhere((c) => c.method == 'fill').arguments as Map;
   }
+
+  testWidgets(
+    'creazione app: package in URL e titolo vuoto, dominio non confermato escluso',
+    (tester) async {
+      await start(
+        tester,
+        const AutofillRequest(
+          packageName: 'com.example.newapp',
+          webDomain: 'unconfirmed.example',
+          signingIds: ['synthetic-signer'],
+        ),
+      );
+      await tester.tap(find.text(l10n.entryEditTitleNew));
+      await tester.pumpAndSettle();
+      final db = containerOf(tester).read(databaseSessionProvider)!.database;
+      await tester.tap(find.text(db.root.name));
+      await tester.pumpAndSettle();
+      final editor = tester.widget<EntryEditView>(find.byType(EntryEditView));
+      expect(editor.initialDraft!.title, isEmpty);
+      expect(editor.initialDraft!.url, 'androidapp://com.example.newapp');
+      expect(
+        editor.initialDraft!.custom.single.value,
+        'androidapp://com.example.newapp',
+      );
+    },
+  );
 
   testWidgets(
     'nuova voce disponibile senza corrispondenze e scelta annullabile',

@@ -57,8 +57,8 @@ class _AutofillPickViewState extends ConsumerState<AutofillPickView> {
     }
     final app = query == request.appQuery;
     final draft = EntryDraft(
-      title: app ? request.packageName : query,
-      url: app ? '' : 'https://$query',
+      title: app ? '' : query,
+      url: app ? request.appQuery : 'https://$query',
       custom: app
           ? [
               CustomFieldDraft(
