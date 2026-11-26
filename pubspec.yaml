@@ -42,7 +42,7 @@ dependencies:
   # Risposte WebDAV (PROPFIND, D29): MIT. Già presente tramite altre dipendenze.
   xml: ^6.6.1
   dartssh2: 4.1.0
-  qr_scanner_offline_private: 0.2.0-alpha.2
+  qr_scanner_offline_private: ^0.2.0-alpha.3
   cupertino_icons: ^2.0.0
 
 dev_dependencies:
@@ -60,5 +60,5 @@ flutter:
   assets:
     - LICENSE
     - NOTICE
-    - assets/licenses/qr_scanner_0_2_0_alpha_2.json
+    - assets/licenses/qr_scanner_0_2_0_alpha_3.json
     - assets/demo/Rifugio-Aurora.kdbx
