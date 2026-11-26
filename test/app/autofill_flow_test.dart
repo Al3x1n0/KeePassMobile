@@ -118,6 +118,30 @@ void main() {
     return calls.singleWhere((c) => c.method == 'fill').arguments as Map;
   }
 
+  testWidgets('creazione sito confermato: URL HTTPS e titolo vuoto', (
+    tester,
+  ) async {
+    await start(
+      tester,
+      const AutofillRequest(
+        packageName: 'com.example.browser',
+        webDomain: 'www.example.com',
+        signingIds: ['synthetic-signer'],
+      ),
+    );
+    containerOf(tester).read(autofillUseDomainProvider.notifier).useOnce();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.entryEditTitleNew));
+    await tester.pumpAndSettle();
+    final db = containerOf(tester).read(databaseSessionProvider)!.database;
+    await tester.tap(find.text(db.root.name));
+    await tester.pumpAndSettle();
+    final editor = tester.widget<EntryEditView>(find.byType(EntryEditView));
+    expect(editor.initialDraft!.title, isEmpty);
+    expect(editor.initialDraft!.url, 'https://www.example.com');
+    expect(editor.initialDraft!.custom, isEmpty);
+  });
+
   testWidgets(
     'creazione app: package in URL e titolo vuoto, dominio non confermato escluso',
     (tester) async {
