@@ -3031,6 +3031,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Current password is incorrect.'**
   String get changeKeyWrongCurrentPassword;
+
+  /// No description provided for @autofillNoFillableFields.
+  ///
+  /// In en, this message translates to:
+  /// **'This entry has no values for the fields requested by the app or website. Add a username or password, then try again.'**
+  String get autofillNoFillableFields;
 }
 
 class _AppLocalizationsDelegate

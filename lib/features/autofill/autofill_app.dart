@@ -108,13 +108,17 @@ GoRouter autofillRouter(Ref ref) {
       if (location == AppRoutes.unlock && state.extra is! UnlockArgs) {
         return AppRoutes.fileSelect;
       }
+      if (location == '/autofill/new' && state.extra is! (String, EntryDraft)) {
+        return isOpen ? autofillPickRoute : AppRoutes.fileSelect;
+      }
       return null;
     },
     routes: [
       GoRoute(
         path: '/autofill/new',
         builder: (_, state) {
-          final args = state.extra! as (String, EntryDraft);
+          final args = state.extra;
+          if (args is! (String, EntryDraft)) return const AutofillPickView();
           return EntryEditView(
             target: EntryEditTarget.create(args.$1),
             initialDraft: args.$2,

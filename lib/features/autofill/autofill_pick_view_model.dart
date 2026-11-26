@@ -1,3 +1,5 @@
+import '../../shared/database/database_errors.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kpasslib/kpasslib.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -186,7 +188,7 @@ class AutofillPickViewModel extends AsyncNotifier<void> {
         request.hasPassword,
       );
       if (userName.isEmpty && secret.isEmpty) {
-        throw StateError('nessun campo richiesto valorizzato');
+        throw const AutofillNoFillableFieldsException();
       }
       await ref
           .read(autofillChannelProvider)

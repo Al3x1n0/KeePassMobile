@@ -1674,4 +1674,8 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get changeKeyWrongCurrentPassword =>
       'La password attuale non è corretta.';
+
+  @override
+  String get autofillNoFillableFields =>
+      'Questa voce non contiene valori per i campi richiesti dall’app o dal sito. Aggiungi un nome utente o una password e riprova.';
 }

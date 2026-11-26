@@ -12,6 +12,10 @@ import 'database_session.dart';
 import 'external_change.dart';
 import 'item_edits.dart';
 
+final class AutofillNoFillableFieldsException implements Exception {
+  const AutofillNoFillableFieldsException();
+}
+
 /// Il file chiave indicato non è leggibile.
 final class KeyFileUnavailableException implements Exception {
   const KeyFileUnavailableException();
@@ -103,10 +107,10 @@ String describeCreateError(AppLocalizations l10n, Object error) =>
       _ => l10n.errorCreateFailed,
     };
 
-/// Messaggio per un salvataggio non riuscito. In tutti i casi il database in
-/// memoria è rimasto com'era prima della modifica.
+/// Messaggio per un errore durante il salvataggio o la compilazione.
 String describeSaveError(AppLocalizations l10n, Object error) =>
     switch (error) {
+      AutofillNoFillableFieldsException() => l10n.autofillNoFillableFields,
       FieldReferenceException() => l10n.errorFieldReference,
       InvalidItemEditException() => l10n.errorItemOperation,
       KdbxResourceLimitError(:final limit) => _describeResourceLimit(

@@ -541,5 +541,6 @@
   },
   "changeKeyCurrentPassword": "Password principale attuale",
   "changeKeyCurrentRequired": "Inserisci la password attuale.",
-  "changeKeyWrongCurrentPassword": "La password attuale non è corretta."
+  "changeKeyWrongCurrentPassword": "La password attuale non è corretta.",
+  "autofillNoFillableFields": "Questa voce non contiene valori per i campi richiesti dall’app o dal sito. Aggiungi un nome utente o una password e riprova."
 }

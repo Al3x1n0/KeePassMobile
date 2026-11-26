@@ -774,5 +774,6 @@
   },
   "changeKeyCurrentPassword": "Current master password",
   "changeKeyCurrentRequired": "Enter the current password.",
-  "changeKeyWrongCurrentPassword": "Current password is incorrect."
+  "changeKeyWrongCurrentPassword": "Current password is incorrect.",
+  "autofillNoFillableFields": "This entry has no values for the fields requested by the app or website. Add a username or password, then try again."
 }

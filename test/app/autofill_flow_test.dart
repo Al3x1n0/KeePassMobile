@@ -1,3 +1,8 @@
+import 'package:keepass_mobile/app/router.dart';
+import 'package:keepass_mobile/app/routes.dart';
+import 'package:keepass_mobile/features/password_generator/generator_view.dart';
+import 'package:keepass_mobile/shared/database/database_errors.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -117,6 +122,120 @@ void main() {
     }
     return calls.singleWhere((c) => c.method == 'fill').arguments as Map;
   }
+
+  Future<void> createFromPicker(WidgetTester tester) async {
+    await start(
+      tester,
+      const AutofillRequest(
+        packageName: 'com.example.newapp',
+        signingIds: ['synthetic-signer'],
+      ),
+    );
+    await tester.tap(find.text(l10n.entryEditTitleNew));
+    await tester.pumpAndSettle();
+    final db = containerOf(tester).read(databaseSessionProvider)!.database;
+    await tester.tap(find.text(db.root.name));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('creazione: generatore, salvataggio, conferma e compilazione', (
+    tester,
+  ) async {
+    await createFromPicker(tester);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, l10n.entryTitle),
+      'Synthetic new login',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, l10n.entryUserName),
+      'synthetic-user',
+    );
+    await tester.tap(find.byTooltip(l10n.entryEditGenerate));
+    await tester.pumpAndSettle();
+    expect(find.byType(GeneratorView), findsOneWidget);
+    final generated = tester
+        .widget<Text>(find.byKey(GeneratorView.valueKey))
+        .data!;
+    await tester.tap(find.text(l10n.generatorUse));
+    await tester.pumpAndSettle();
+    expect(find.byType(EntryEditView), findsOneWidget);
+    await tester.tap(find.byTooltip(l10n.entryEditSave));
+    await pumpUntilFound(tester, find.text(l10n.autofillFillOnly));
+    await tester.tap(find.text(l10n.autofillFillOnly));
+    final values = await filled(tester);
+    await tester.pumpAndSettle();
+    expect(values, {'userName': 'synthetic-user', 'password': generated});
+    expect(containerOf(tester).read(databaseSessionProvider), isNull);
+    expect(containerOf(tester).read(autofillDoneProvider), isTrue);
+    final saved = await tester.runAsync(() => reopenFile(databaseFile));
+    expect(
+      saved!.root.allEntries.any((e) => entryTitle(e) == 'Synthetic new login'),
+      isTrue,
+    );
+  });
+
+  testWidgets('blocco durante creazione torna alla scelta file', (
+    tester,
+  ) async {
+    await createFromPicker(tester);
+    final container = containerOf(tester);
+    container.read(databaseSessionProvider.notifier).lock();
+    await tester.pumpAndSettle();
+    expect(
+      container.read(routerProvider).routeInformationProvider.value.uri.path,
+      AppRoutes.fileSelect,
+    );
+    expect(find.byType(EntryEditView), findsNothing);
+  });
+
+  testWidgets('route creazione rifiuta extra assente o non valido', (
+    tester,
+  ) async {
+    await start(
+      tester,
+      const AutofillRequest(
+        packageName: 'com.example.newapp',
+        signingIds: ['synthetic-signer'],
+      ),
+    );
+    final router = containerOf(tester).read(routerProvider);
+    for (final extra in [null, 'invalid']) {
+      router.go('/autofill/new', extra: extra);
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, autofillPickRoute);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('voce salvata senza campi richiesti mostra errore dedicato', (
+    tester,
+  ) async {
+    await createFromPicker(tester);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, l10n.entryTitle),
+      'Synthetic empty login',
+    );
+    await tester.tap(find.byTooltip(l10n.entryEditSave));
+    await pumpUntilFound(tester, find.text(l10n.autofillFillOnly));
+    await tester.tap(find.text(l10n.autofillFillOnly));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.autofillNoFillableFields), findsOneWidget);
+    expect(find.text(l10n.errorSaveFailed), findsNothing);
+    final container = containerOf(tester);
+    expect(container.read(databaseSessionProvider), isNotNull);
+    expect(container.read(autofillDoneProvider), isFalse);
+    expect(calls.where((c) => c.method == 'fill'), isEmpty);
+    for (final locale in ['it', 'en']) {
+      final translated = lookupAppLocalizations(Locale(locale));
+      expect(
+        describeSaveError(
+          translated,
+          const AutofillNoFillableFieldsException(),
+        ),
+        translated.autofillNoFillableFields,
+      );
+    }
+  });
 
   testWidgets('creazione sito confermato: URL HTTPS e titolo vuoto', (
     tester,
