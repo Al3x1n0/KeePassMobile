@@ -535,6 +535,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsFiles => 'Files';
 
   @override
+  String get settingsSourceCode => 'Source code';
+
+  @override
+  String get settingsSourceCodeHost => 'GitHub';
+
+  @override
   String get settingsAbout => 'About';
 
   @override

@@ -19,6 +19,7 @@ import '../../shared/ui/demo_database_dialog.dart';
 import '../../shared/ui/expandable_section.dart';
 import '../../shared/ui/linked_database_edit_dialog.dart';
 import '../../shared/ui/selection_sheet.dart';
+import '../../shared/ui/url_opener.dart';
 import '../autofill/autofill_channel.dart';
 import '../export/export_view_model.dart';
 import '../file_select/demo_database.dart';
@@ -416,6 +417,23 @@ class SettingsView extends ConsumerWidget {
                       applicationName: 'KeePassMobile',
                       useRootNavigator: true,
                     );
+                  },
+                ),
+                ListTile(
+                  title: Text(l10n.settingsSourceCode),
+                  subtitle: Text(l10n.settingsSourceCodeHost),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () async {
+                    final opened = await ref
+                        .read(urlOpenerProvider)
+                        .open(
+                          Uri.parse('https://github.com/Al3x1n0/KeePassMobile'),
+                        );
+                    if (!opened && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.entryUrlNoApp)),
+                      );
+                    }
                   },
                 ),
                 LayoutBuilder(

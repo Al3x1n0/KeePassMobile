@@ -1052,6 +1052,18 @@ abstract class AppLocalizations {
   /// **'Files'**
   String get settingsFiles;
 
+  /// No description provided for @settingsSourceCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Source code'**
+  String get settingsSourceCode;
+
+  /// No description provided for @settingsSourceCodeHost.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub'**
+  String get settingsSourceCodeHost;
+
   /// No description provided for @settingsAbout.
   ///
   /// In en, this message translates to:

@@ -1,3 +1,4 @@
+import 'package:keepass_mobile/shared/ui/url_opener.dart';
 import 'package:keepass_mobile/shared/settings/app_locale.dart';
 
 import 'dart:async';
@@ -16,6 +17,18 @@ import 'package:keepass_mobile/shared/ui/expandable_section.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/test_database.dart';
+
+class _SourceCodeOpener extends UrlOpener {
+  _SourceCodeOpener(this.result);
+  final Future<bool> result;
+  final opened = <Uri>[];
+
+  @override
+  Future<bool> open(Uri uri) {
+    opened.add(uri);
+    return result;
+  }
+}
 
 void main() {
   void viewport(WidgetTester tester, Size size) {
@@ -77,6 +90,62 @@ void main() {
           );
     }
     return result;
+  }
+
+  for (final locale in [const Locale('it'), const Locale('en')]) {
+    for (final result in [true, false]) {
+      testWidgets('sorgente ${locale.languageCode}: apertura esterna $result', (
+        tester,
+      ) async {
+        // given
+        viewport(tester, const Size(800, 3000));
+        final opener = _SourceCodeOpener(Future.value(result));
+        final scope = await newTestContainer(
+          overrides: [urlOpenerProvider.overrideWithValue(opener)],
+        );
+        final l10n = lookupAppLocalizations(locale);
+        await tester.pumpWidget(app(scope, locale: locale));
+        await tester.pumpAndSettle();
+
+        // when
+        await tester.tap(find.text(l10n.settingsSourceCode));
+        await tester.pumpAndSettle();
+
+        // then
+        expect(opener.opened, [
+          Uri.parse('https://github.com/Al3x1n0/KeePassMobile'),
+        ]);
+        expect(
+          find.descendant(
+            of: find.byType(SnackBar),
+            matching: find.text(l10n.entryUrlNoApp),
+          ),
+          result ? findsNothing : findsOneWidget,
+        );
+      });
+    }
+    testWidgets('sorgente ${locale.languageCode}: risultato dopo smontaggio', (
+      tester,
+    ) async {
+      viewport(tester, const Size(800, 3000));
+      final completion = Completer<bool>();
+      final scope = await newTestContainer(
+        overrides: [
+          urlOpenerProvider.overrideWithValue(
+            _SourceCodeOpener(completion.future),
+          ),
+        ],
+      );
+      await tester.pumpWidget(app(scope, locale: locale));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.text(lookupAppLocalizations(locale).settingsSourceCode),
+      );
+      await tester.pumpWidget(const SizedBox());
+      completion.complete(false);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
   }
 
   testWidgets('language sheet switches UI immediately and restores system', (
@@ -208,6 +277,46 @@ void main() {
           expect(
             tester.getTopLeft(find.text(licenses)).dy,
             lessThan(tester.getTopLeft(find.text(l10n.settingsAppVersion)).dy),
+          );
+          final sourceTile = find.widgetWithText(
+            ListTile,
+            l10n.settingsSourceCode,
+          );
+          expect(
+            find.descendant(of: about, matching: sourceTile),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(of: sourceTile, matching: find.text('GitHub')),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(
+              of: sourceTile,
+              matching: find.byIcon(Icons.open_in_new),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            tester.getTopLeft(find.text(licenses)).dy,
+            lessThan(tester.getTopLeft(sourceTile).dy),
+          );
+          expect(
+            tester.getTopLeft(sourceTile).dy,
+            lessThan(tester.getTopLeft(find.text(l10n.settingsAppVersion)).dy),
+          );
+          expect(
+            tester
+                .widgetList<ListTile>(
+                  find.descendant(of: about, matching: find.byType(ListTile)),
+                )
+                .last
+                .title,
+            isA<Text>().having(
+              (text) => text.data,
+              'title',
+              l10n.settingsAppVersion,
+            ),
           );
           final versionTile = find.widgetWithText(
             ListTile,

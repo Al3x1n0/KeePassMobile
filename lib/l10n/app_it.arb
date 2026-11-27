@@ -166,6 +166,8 @@
   "settingsSecurity": "Sicurezza",
   "settingsDisplay": "Aspetto",
   "settingsFiles": "File",
+  "settingsSourceCode": "Codice sorgente",
+  "settingsSourceCodeHost": "GitHub",
   "settingsAbout": "Informazioni",
   "settingsAppVersion": "Versione app",
   "settingsClipboardTimeout": "Pulizia degli appunti",

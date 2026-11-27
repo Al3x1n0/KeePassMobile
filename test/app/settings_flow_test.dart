@@ -1,3 +1,6 @@
+import 'package:keepass_mobile/app/session_guard.dart';
+import 'package:keepass_mobile/shared/security/external_activity.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -85,6 +88,89 @@ void main() {
     await tester.tap(find.text(l10n.unlockButton));
     await pumpUntilFound(tester, find.text('Banca'));
     await tester.pumpAndSettle();
+  }
+
+  for (final language in ['it', 'en']) {
+    for (final launched in [true, false]) {
+      testWidgets(
+        'Informazioni $language: GitHub esterno $launched con blocco background',
+        (tester) async {
+          // given
+          const channel = MethodChannel('plugins.flutter.io/url_launcher');
+          final calls = <MethodCall>[];
+          tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            channel,
+            (call) async {
+              calls.add(call);
+              return launched;
+            },
+          );
+          addTearDown(
+            () => tester.binding.defaultBinaryMessenger
+                .setMockMethodCallHandler(channel, null),
+          );
+          await pumpApp(
+            tester,
+            settings: AppSettings(
+              lockInBackground: true,
+              languageCode: language,
+            ),
+          );
+          final strings = lookupAppLocalizations(Locale(language));
+          await tester.tap(find.text('prova.kdbx'));
+          await tester.pumpAndSettle();
+          await tester.enterText(find.byType(TextField), testMasterKey);
+          await tester.tap(find.text(strings.unlockButton));
+          await pumpUntilFound(tester, find.text('Banca'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(strings.settingsTitle));
+          await tester.pumpAndSettle();
+          await tester.scrollUntilVisible(
+            find.text(strings.settingsSourceCode),
+            250,
+          );
+          await tester.ensureVisible(find.text(strings.settingsSourceCode));
+          await tester.pumpAndSettle();
+          final container = ProviderScope.containerOf(
+            tester.element(find.text(strings.settingsSourceCode)),
+          );
+          final session = container.read(databaseSessionProvider);
+
+          // when
+          await tester.tap(find.text(strings.settingsSourceCode));
+          await tester.pumpAndSettle();
+
+          // then
+          expect(calls, hasLength(1));
+          expect(calls.single.method, 'launch');
+          expect(
+            calls.single.arguments['url'],
+            'https://github.com/Al3x1n0/KeePassMobile',
+          );
+          expect(container.read(externalActivityProvider).isActive, launched);
+          expect(
+            find.text(strings.entryUrlNoApp),
+            launched ? findsNothing : findsOneWidget,
+          );
+          final guard = container.read(sessionGuardProvider);
+          if (launched) {
+            for (final state in [
+              AppLifecycleState.inactive,
+              AppLifecycleState.hidden,
+              AppLifecycleState.paused,
+            ]) {
+              guard.appLifecycleChanged(state);
+            }
+            expect(container.read(databaseSessionProvider), same(session));
+            guard.appResumed();
+            expect(container.read(externalActivityProvider).isActive, isFalse);
+          }
+          guard.appLifecycleChanged(AppLifecycleState.hidden);
+          expect(container.read(databaseSessionProvider), isNull);
+          await tester.pumpAndSettle();
+        },
+      );
+    }
   }
 
   void expectNoKeyboardLearning(WidgetTester tester) {

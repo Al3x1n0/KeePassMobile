@@ -229,6 +229,8 @@
   "settingsSecurity": "Security",
   "settingsDisplay": "Appearance",
   "settingsFiles": "Files",
+  "settingsSourceCode": "Source code",
+  "settingsSourceCodeHost": "GitHub",
   "settingsAbout": "About",
   "settingsAppVersion": "App version",
   "settingsClipboardTimeout": "Clear clipboard after",
