@@ -1,7 +1,7 @@
 name: keepass_mobile
 description: "KeePassMobile: password manager KeePass (KDBX) per Android e iOS, ricreazione in Flutter di Keepass2Android."
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.1.0+2
 
 environment:
   sdk: ^3.14.0

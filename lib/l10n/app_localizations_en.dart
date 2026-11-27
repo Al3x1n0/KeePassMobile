@@ -967,7 +967,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deviceBlockedBody =>
-      'KeePassMobile cannot be used on rooted or jailbroken devices, or on devices configured in an insecure way (for example with developer options or USB debugging enabled). To protect your databases the app stays locked.';
+      'KeePassMobile cannot be used on rooted or jailbroken devices, or on devices configured in an insecure way. To protect your databases the app stays locked.';
 
   @override
   String get entryIcon => 'Icon';

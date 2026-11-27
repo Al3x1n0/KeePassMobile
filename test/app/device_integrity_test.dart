@@ -36,39 +36,55 @@ void main() {
       expect(await _FakeIntegrity({}).check(), isEmpty);
     });
 
-    test('release: tutti i problemi rilevati, debugger compreso', () async {
-      final integrity = _FakeIntegrity({
-        IntegrityProblem.jailbreak,
-        IntegrityProblem.debugged,
-        IntegrityProblem.devMode,
-      });
-
-      expect(await integrity.check(), {
-        IntegrityProblem.jailbreak,
-        IntegrityProblem.debugged,
-        IntegrityProblem.devMode,
-      });
-    });
-
     test(
-      'release di prova: salta opzioni sviluppatore e debugger (D10, D15)',
+      'release: mantiene il root con opzioni sviluppatore e debug USB',
       () async {
         final integrity = _FakeIntegrity({
-          IntegrityProblem.devMode,
-          IntegrityProblem.debugged,
           IntegrityProblem.jailbreak,
-        }, deviceTest: true);
+          IntegrityProblem.debugged,
+          IntegrityProblem.devMode,
+        });
 
         expect(await integrity.check(), {IntegrityProblem.jailbreak});
-        expect(
-          await _FakeIntegrity({
-            IntegrityProblem.devMode,
-            IntegrityProblem.debugged,
-          }, deviceTest: true).check(),
-          isEmpty,
-        );
       },
     );
+
+    test('release di prova: salta il debugger', () async {
+      final integrity = _FakeIntegrity({
+        IntegrityProblem.devMode,
+        IntegrityProblem.debugged,
+        IntegrityProblem.jailbreak,
+      }, deviceTest: true);
+
+      expect(await integrity.check(), {IntegrityProblem.jailbreak});
+      expect(
+        await _FakeIntegrity({
+          IntegrityProblem.devMode,
+          IntegrityProblem.debugged,
+        }, deviceTest: true).check(),
+        isEmpty,
+      );
+    });
+
+    test('release: opzioni sviluppatore e debug USB non bloccano', () async {
+      expect(
+        await _FakeIntegrity({
+          IntegrityProblem.devMode,
+          IntegrityProblem.debugged,
+        }).check(),
+        isEmpty,
+      );
+    });
+
+    for (final problem in IntegrityProblem.values) {
+      if (allowedIntegrityProblems.contains(problem)) continue;
+      test('release: mantiene il blocco per $problem', () async {
+        expect(
+          await _FakeIntegrity({IntegrityProblem.devMode, problem}).check(),
+          {problem},
+        );
+      });
+    }
 
     test('release di prova: un errore del controllo blocca comunque', () async {
       expect(await _FakeIntegrity(null, deviceTest: true).check(), {
@@ -145,7 +161,7 @@ void main() {
     );
 
     test('bloccata resta bloccata fino al riavvio', () async {
-      final fake = _FakeIntegrity({IntegrityProblem.devMode});
+      final fake = _FakeIntegrity({IntegrityProblem.jailbreak});
       final container = await newTestContainer(
         overrides: [deviceIntegrityProvider.overrideWithValue(fake)],
       );

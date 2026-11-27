@@ -8,13 +8,15 @@ import 'package:jailbreak_root_detection/jailbreak_root_detection.dart';
 import '../features/unlock/relock.dart';
 import '../shared/database/database_session.dart';
 
-/// Release di prova per il telefono di sviluppo (`--dart-define=KPM_DEVICE_TEST=true`,
-/// decisioni D10 e D15): salta solo i controlli che adb rende sempre positivi.
+/// Release di prova per il telefono di sviluppo (`--dart-define=KPM_DEVICE_TEST=true`),
+/// mantenuta per compatibilità con le configurazioni di prova.
 const _deviceTestBuild = bool.fromEnvironment('KPM_DEVICE_TEST');
 
-/// Problemi ignorati nelle release di prova: opzioni sviluppatore (D10) e
-/// debugger, che su Android risulta collegato con il solo debug USB (D15).
-const deviceTestIgnored = {IntegrityProblem.devMode, IntegrityProblem.debugged};
+/// Segnalazioni consentite: opzioni sviluppatore e debug USB/debugger.
+const allowedIntegrityProblems = {
+  IntegrityProblem.devMode,
+  IntegrityProblem.debugged,
+};
 
 /// Bundle identifier iOS, per il controllo di app modificata.
 const _iosBundleId = 'io.github.al3x1n0.keepassmobile';
@@ -75,7 +77,7 @@ class DeviceIntegrity {
   /// `false`: nessun controllo (build di debug e profile).
   final bool enforce;
 
-  /// Release di prova: [deviceTestIgnored] non blocca l'app.
+  /// Indicatore di build di prova; la policy è uguale alle release ordinarie.
   final bool deviceTest;
 
   /// Problemi rilevati; vuoto se il dispositivo è affidabile o se i controlli
@@ -84,7 +86,7 @@ class DeviceIntegrity {
     if (!enforce) return const {};
     try {
       final problems = await probe();
-      return deviceTest ? problems.difference(deviceTestIgnored) : problems;
+      return problems.difference(allowedIntegrityProblems);
     } on Object {
       return const {IntegrityProblem.checkFailed};
     }
@@ -97,11 +99,9 @@ class DeviceIntegrity {
     final problems = <IntegrityProblem>{
       if (await detector.isJailBroken) IntegrityProblem.jailbreak,
       if (!await detector.isRealDevice) IntegrityProblem.notRealDevice,
-      if (await detector.isDebugged) IntegrityProblem.debugged,
     };
     // Controlli di una sola piattaforma: sull'altra il plugin non li conosce.
     if (Platform.isAndroid) {
-      if (await detector.isDevMode) problems.add(IntegrityProblem.devMode);
       if (await detector.isOnExternalStorage) {
         problems.add(IntegrityProblem.externalStorage);
       }

@@ -1811,7 +1811,7 @@ abstract class AppLocalizations {
   /// No description provided for @deviceBlockedBody.
   ///
   /// In en, this message translates to:
-  /// **'KeePassMobile cannot be used on rooted or jailbroken devices, or on devices configured in an insecure way (for example with developer options or USB debugging enabled). To protect your databases the app stays locked.'**
+  /// **'KeePassMobile cannot be used on rooted or jailbroken devices, or on devices configured in an insecure way. To protect your databases the app stays locked.'**
   String get deviceBlockedBody;
 
   /// No description provided for @entryIcon.

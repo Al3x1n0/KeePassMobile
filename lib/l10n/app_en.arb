@@ -460,7 +460,7 @@
   "generatorProfileReserved": "This name belongs to a built-in profile.",
   "fileSelectNotPersistent": "This file stays accessible only while the app is open: you will need to choose it again later.",
   "deviceBlockedTitle": "Device not secure",
-  "deviceBlockedBody": "KeePassMobile cannot be used on rooted or jailbroken devices, or on devices configured in an insecure way (for example with developer options or USB debugging enabled). To protect your databases the app stays locked.",
+  "deviceBlockedBody": "KeePassMobile cannot be used on rooted or jailbroken devices, or on devices configured in an insecure way. To protect your databases the app stays locked.",
   "entryIcon": "Icon",
   "entryEditChooseIcon": "Choose icon",
   "entryEditIconNumber": "Icon {number}",
