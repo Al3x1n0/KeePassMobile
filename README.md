@@ -54,6 +54,8 @@ previste in una fase successiva.
 
 ## Privacy e protezione
 
+[Informativa sulla privacy](PRIVACY.md#italiano).
+
 Nessuna telemetria. Le connessioni di rete sono limitate allo storage scelto
 dall’utente.
 
@@ -169,6 +171,8 @@ app; iOS distribution and credential autofill are planned for a later phase.
 - Detection of changes made by other apps and merging on save
 
 ## Privacy and protection
+
+[Privacy policy](PRIVACY.md#english).
 
 No telemetry. Network connections are limited to storage chosen by the user.
 
