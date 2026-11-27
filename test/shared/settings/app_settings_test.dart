@@ -4,6 +4,37 @@ import 'package:keepass_mobile/shared/settings/app_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  test(
+    'language preference validates, persists and returns to system',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final repo = AppSettingsRepository(prefs);
+      expect(repo.load().languageCode, isNull);
+      for (final code in ['it', 'en']) {
+        final settings = const AppSettings().copyWith(languageCode: code);
+        await repo.save(settings);
+        expect(repo.load(), settings);
+        expect(settings.copyWith().languageCode, code);
+        expect(settings, isNot(const AppSettings()));
+      }
+      await repo.save(repo.load().copyWith(languageCode: null));
+      expect(repo.load().languageCode, isNull);
+      expect(prefs.containsKey('settings.language_code'), isFalse);
+      for (final invalid in ['ro', 'IT', '', 42]) {
+        if (invalid is String) {
+          await prefs.setString('settings.language_code', invalid);
+          expect(AppSettings(languageCode: invalid).languageCode, isNull);
+        } else {
+          await prefs.setInt('settings.language_code', invalid as int);
+        }
+        expect(repo.load().languageCode, isNull);
+        await repo.save(repo.load());
+        expect(prefs.containsKey('settings.language_code'), isFalse);
+      }
+    },
+  );
+
   Future<AppSettingsRepository> repository([
     Map<String, Object> values = const {},
   ]) async {

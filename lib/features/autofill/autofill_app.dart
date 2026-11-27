@@ -24,6 +24,7 @@ import '../../l10n/app_localizations.dart';
 import '../../shared/crypto/app_crypto_engine.dart';
 import '../../shared/database/database_session.dart';
 import '../../shared/database/external_change.dart';
+import '../../shared/settings/app_locale.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/storage/preferences.dart';
 import '../../shared/storage/remote_storage.dart';
@@ -163,6 +164,7 @@ class AutofillApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Blocco per inattività e a schermo spento, schermo protetto.
     ref.watch(sessionGuardProvider);
+    final locale = ref.watch(appLocaleProvider);
     final themeMode = ref.watch(appSettingsProvider.select((s) => s.themeMode));
     final integrity = ref.watch(integrityStatusProvider);
     final protection = ref.watch(screenProtectionStatusProvider);
@@ -181,6 +183,7 @@ class AutofillApp extends ConsumerWidget {
           ...GlobalMaterialLocalizations.delegates,
           ...AppLocalizations.localizationsDelegates,
         ],
+        locale: locale,
         supportedLocales: AppLocalizations.supportedLocales,
         home: switch (integrity) {
           IntegrityStatus.compromised => const DeviceBlockedView(),
@@ -202,6 +205,7 @@ class AutofillApp extends ConsumerWidget {
         ...GlobalMaterialLocalizations.delegates,
         ...AppLocalizations.localizationsDelegates,
       ],
+      locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(routerProvider),
     );

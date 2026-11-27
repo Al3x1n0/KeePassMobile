@@ -21,6 +21,12 @@ class AppLocalizationsIt extends AppLocalizations {
       'Impossibile salvare e verificare il file chiave.';
 
   @override
+  String get settingsLanguage => 'Lingua';
+
+  @override
+  String get settingsLanguageSystem => 'Sistema';
+
+  @override
   String get appTitle => 'KeePassMobile';
 
   @override

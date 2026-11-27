@@ -20,6 +20,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorCreateKeyFile => 'Could not save and verify the key file.';
 
   @override
+  String get settingsLanguage => 'Language';
+
+  @override
+  String get settingsLanguageSystem => 'System';
+
+  @override
   String get appTitle => 'KeePassMobile';
 
   @override

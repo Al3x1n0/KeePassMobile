@@ -29,7 +29,10 @@ class AppSettings {
     this.rememberKeyFile = true,
     this.cacheRemoteFiles = true,
     this.themeMode = ThemeMode.system,
-  });
+    String? languageCode,
+  }) : languageCode = languageCode == 'it' || languageCode == 'en'
+           ? languageCode
+           : null;
 
   /// 30 secondi al posto dei 5 minuti di
   /// Keepass2Android.
@@ -123,6 +126,10 @@ class AppSettings {
   /// Tema (`design_key`).
   final ThemeMode themeMode;
 
+  /// Lingua scelta; `null` segue le lingue supportate del sistema.
+  final String? languageCode;
+  static const languageCodes = ['it', 'en'];
+
   static const _keep = Object();
 
   /// Copia con i valori indicati. [lockTimeout] accetta anche `null` ("mai").
@@ -146,6 +153,7 @@ class AppSettings {
     bool? rememberKeyFile,
     bool? cacheRemoteFiles,
     ThemeMode? themeMode,
+    Object? languageCode = _keep,
   }) => AppSettings(
     clipboardTimeout: clipboardTimeout ?? this.clipboardTimeout,
     lockTimeout: identical(lockTimeout, _keep)
@@ -168,6 +176,9 @@ class AppSettings {
     rememberKeyFile: rememberKeyFile ?? this.rememberKeyFile,
     cacheRemoteFiles: cacheRemoteFiles ?? this.cacheRemoteFiles,
     themeMode: themeMode ?? this.themeMode,
+    languageCode: identical(languageCode, _keep)
+        ? this.languageCode
+        : languageCode as String?,
   );
 
   @override
@@ -191,7 +202,8 @@ class AppSettings {
       other.rememberRecentFiles == rememberRecentFiles &&
       other.rememberKeyFile == rememberKeyFile &&
       other.cacheRemoteFiles == cacheRemoteFiles &&
-      other.themeMode == themeMode;
+      other.themeMode == themeMode &&
+      other.languageCode == languageCode;
 
   @override
   int get hashCode => Object.hash(
@@ -214,6 +226,7 @@ class AppSettings {
     rememberKeyFile,
     cacheRemoteFiles,
     themeMode,
+    languageCode,
   );
 }
 
@@ -242,6 +255,7 @@ class AppSettingsRepository {
   static const _rememberKeyFile = 'settings.remember_key_file';
   static const _cacheRemoteFiles = 'settings.cache_remote_files';
   static const _themeMode = 'settings.theme_mode';
+  static const _languageCode = 'settings.language_code';
 
   /// Impostazioni di QuickUnlock, tolto in D22: si cancellano al salvataggio.
   static const _removed = [
@@ -262,6 +276,9 @@ class AppSettingsRepository {
     const defaults = AppSettings();
     bool flag(String key, bool fallback) => _prefs.getBool(key) ?? fallback;
     return AppSettings(
+      languageCode: _prefs.get(_languageCode) is String
+          ? _prefs.getString(_languageCode)
+          : null,
       clipboardTimeout:
           _allowed(
             _prefs.getInt(_clipboardTimeout),
@@ -345,6 +362,12 @@ class AppSettingsRepository {
     await _prefs.setBool(_rememberKeyFile, settings.rememberKeyFile);
     await _prefs.setBool(_cacheRemoteFiles, settings.cacheRemoteFiles);
     await _prefs.setString(_themeMode, settings.themeMode.name);
+    final language = settings.languageCode;
+    if (language == null) {
+      await _prefs.remove(_languageCode);
+    } else {
+      await _prefs.setString(_languageCode, language);
+    }
     for (final key in _removed) {
       await _prefs.remove(key);
     }

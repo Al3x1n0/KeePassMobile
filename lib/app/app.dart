@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/device_blocked/device_blocked_view.dart';
 import '../l10n/app_localizations.dart';
+import '../shared/settings/app_locale.dart';
 import '../shared/settings/app_settings.dart';
 import 'device_integrity.dart';
 import 'linked_database_host.dart';
@@ -23,6 +24,7 @@ class KeePassMobileApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Blocco per inattività e a schermo spento, schermo protetto.
     ref.watch(sessionGuardProvider);
+    final locale = ref.watch(appLocaleProvider);
     final themeMode = ref.watch(appSettingsProvider.select((s) => s.themeMode));
     final integrity = ref.watch(integrityStatusProvider);
     final protection = ref.watch(screenProtectionStatusProvider);
@@ -40,6 +42,7 @@ class KeePassMobileApp extends ConsumerWidget {
           ...GlobalMaterialLocalizations.delegates,
           ...AppLocalizations.localizationsDelegates,
         ],
+        locale: locale,
         supportedLocales: AppLocalizations.supportedLocales,
         home: switch (integrity) {
           IntegrityStatus.compromised => const DeviceBlockedView(),
@@ -62,6 +65,7 @@ class KeePassMobileApp extends ConsumerWidget {
         ...GlobalMaterialLocalizations.delegates,
         ...AppLocalizations.localizationsDelegates,
       ],
+      locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       routerDelegate: ref.watch(routerProvider).routerDelegate,
       routeInformationParser: ref.watch(routerProvider).routeInformationParser,

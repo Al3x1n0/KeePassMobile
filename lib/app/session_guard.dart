@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show PlatformDispatcher;
 
 import 'package:app_security/app_security.dart';
 import 'package:flutter/widgets.dart';
@@ -12,6 +11,7 @@ import '../l10n/app_localizations.dart';
 import '../shared/database/database_session.dart';
 import '../shared/security/device_security.dart';
 import '../shared/security/external_activity.dart';
+import '../shared/settings/app_locale.dart';
 import '../shared/settings/app_settings.dart';
 import '../shared/storage/remote_storage.dart';
 import 'device_integrity.dart';
@@ -20,15 +20,9 @@ import 'screen_protection.dart';
 /// Orologio del blocco per inattività (sovrascrivibile nei test).
 final sessionClockProvider = Provider<DateTime Function()>((_) => DateTime.now);
 
-/// Testi della notifica del database aperto nella lingua del sistema, scelta
-/// come fa `MaterialApp`: la notifica vive fuori dai widget.
-final openNotificationTextsProvider = Provider<OpenNotificationTexts>((_) {
-  final l10n = lookupAppLocalizations(
-    basicLocaleListResolution(
-      PlatformDispatcher.instance.locales,
-      AppLocalizations.supportedLocales,
-    ),
-  );
+/// Testi della notifica nella lingua attiva dell'app.
+final openNotificationTextsProvider = Provider<OpenNotificationTexts>((ref) {
+  final l10n = lookupAppLocalizations(ref.watch(appLocaleProvider));
   return OpenNotificationTexts(
     channel: l10n.openNotificationChannel,
     title: l10n.appTitle,
@@ -88,6 +82,9 @@ class SessionGuard {
 
   void _start() {
     _ref
+      ..listen<OpenNotificationTexts>(openNotificationTextsProvider, (_, _) {
+        if (_notificationWanted) unawaited(_showNotification());
+      })
       ..listen<DatabaseSession?>(databaseSessionProvider, _onSession)
       ..listen<AppSettings>(
         appSettingsProvider,
@@ -254,12 +251,15 @@ class SessionGuard {
 
   Future<void> _showNotification() async {
     final security = _security;
-    final texts = _ref.read(openNotificationTextsProvider);
     await _askNotificationPermission();
     // Bloccato o impostazione spenta mentre l'utente rispondeva.
     if (!_notificationWanted) return;
     // Notifiche negate o disattivate: l'app funziona senza.
-    if (!await security.showOpenNotification(texts)) return;
+    if (!await security.showOpenNotification(
+      _ref.read(openNotificationTextsProvider),
+    )) {
+      return;
+    }
     if (!_notificationWanted) {
       await security.hideOpenNotification();
       return;

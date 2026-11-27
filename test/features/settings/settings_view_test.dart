@@ -1,3 +1,5 @@
+import 'package:keepass_mobile/shared/settings/app_locale.dart';
+
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -76,6 +78,59 @@ void main() {
     }
     return result;
   }
+
+  testWidgets('language sheet switches UI immediately and restores system', (
+    tester,
+  ) async {
+    viewport(tester, const Size(800, 3000));
+    tester.binding.platformDispatcher.localesTestValue = [const Locale('ro')];
+    addTearDown(tester.binding.platformDispatcher.clearLocalesTestValue);
+    final scope = await container(version: Future.value('1.2.3'));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: scope,
+        child: Consumer(
+          builder: (context, ref, _) => MaterialApp(
+            locale: ref.watch(appLocaleProvider),
+            localizationsDelegates: [
+              ...GlobalMaterialLocalizations.delegates,
+              ...AppLocalizations.localizationsDelegates,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const SettingsView(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (final choice in ['Italiano', 'English', 'Italiano', 'Sistema']) {
+      final label = scope.read(appLocaleProvider).languageCode == 'it'
+          ? 'Lingua'
+          : 'Language';
+      await tester.scrollUntilVisible(find.text(label), 350);
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(choice).last);
+      await tester.pumpAndSettle();
+      final italian = choice == 'Italiano';
+      expect(find.text(italian ? 'Impostazioni' : 'Settings'), findsOneWidget);
+      expect(
+        scope.read(appSettingsProvider).languageCode,
+        choice == 'Sistema'
+            ? null
+            : italian
+            ? 'it'
+            : 'en',
+      );
+      expect(
+        AppSettingsRepository(scope.read(sharedPreferencesProvider))
+            .load()
+            .languageCode,
+        scope.read(appSettingsProvider).languageCode,
+      );
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   Finder section(String title) => find.byWidgetPredicate(
     (widget) => widget is ExpandableSection && widget.title == title,

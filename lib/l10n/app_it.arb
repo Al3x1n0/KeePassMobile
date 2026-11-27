@@ -2,6 +2,8 @@
   "templatesEmpty": "Nessun modello. Creane uno con + oppure aggiungi i modelli predefiniti dalle Impostazioni.",
   "generateKeyFile": "Genera un file chiave",
   "errorCreateKeyFile": "Impossibile salvare e verificare il file chiave.",
+  "settingsLanguage": "Lingua",
+  "settingsLanguageSystem": "Sistema",
   "@@locale": "it",
   "appTitle": "KeePassMobile",
   "navigationHome": "Home",

@@ -1,3 +1,5 @@
+import 'package:keepass_mobile/shared/settings/app_locale.dart';
+
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
@@ -400,6 +402,50 @@ void main() {
   );
 
   group('notifica del database aperto', () {
+    guardTest('language updates an already visible notification', (
+      tester,
+    ) async {
+      tester.binding.platformDispatcher.localesTestValue = [const Locale('ro')];
+      addTearDown(tester.binding.platformDispatcher.clearLocalesTestValue);
+      final container = await start(tester);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: Consumer(
+            builder: (context, ref, _) {
+              ref.watch(sessionGuardProvider);
+              ref.watch(appLocaleProvider);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      open(container);
+      await settle(tester);
+      expect(security.notification?.text, 'Database open');
+      for (final code in ['it', 'en', 'it', null]) {
+        await tester.runAsync(
+          () => container
+              .read(appSettingsProvider.notifier)
+              .update(
+                container
+                    .read(appSettingsProvider)
+                    .copyWith(languageCode: code),
+              ),
+        );
+        await settle(tester);
+        final texts = container.read(openNotificationTextsProvider);
+        expect(texts.lock, code == 'it' ? 'Blocca' : 'Lock');
+        expect(security.notification?.lock, texts.lock);
+        expect(security.notification?.text, texts.text);
+        expect(security.permissionRequests, 1);
+      }
+      tester.binding.platformDispatcher.localesTestValue = [const Locale('it')];
+      await settle(tester);
+      expect(security.notification?.lock, 'Blocca');
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
     guardTest(
       'compare all\'apertura senza dati del database, sparisce al blocco',
       (tester) async {

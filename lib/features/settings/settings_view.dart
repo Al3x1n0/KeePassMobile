@@ -288,6 +288,37 @@ class SettingsView extends ConsumerWidget {
                   },
                 ),
                 _SelectionTile(
+                  title: l10n.settingsLanguage,
+                  value: settings.languageCode == 'it'
+                      ? 'Italiano'
+                      : settings.languageCode == 'en'
+                      ? 'English'
+                      : l10n.settingsLanguageSystem,
+                  onTap: () async {
+                    final language = await showSelectionSheet<String>(
+                      context: context,
+                      title: l10n.settingsLanguage,
+                      selected: settings.languageCode ?? 'system',
+                      options: {
+                        'system': l10n.settingsLanguageSystem,
+                        'it': 'Italiano',
+                        'en': 'English',
+                      },
+                    );
+                    if (context.mounted && language != null) {
+                      update(
+                        ref
+                            .read(settingsViewModelProvider)
+                            .copyWith(
+                              languageCode: language == 'system'
+                                  ? null
+                                  : language,
+                            ),
+                      );
+                    }
+                  },
+                ),
+                _SelectionTile(
                   title: l10n.settingsTheme,
                   value: switch (settings.themeMode) {
                     ThemeMode.system => l10n.settingsThemeSystem,

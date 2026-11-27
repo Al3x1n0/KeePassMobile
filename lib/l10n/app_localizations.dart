@@ -116,6 +116,18 @@ abstract class AppLocalizations {
   /// **'Could not save and verify the key file.'**
   String get errorCreateKeyFile;
 
+  /// No description provided for @settingsLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get settingsLanguage;
+
+  /// No description provided for @settingsLanguageSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get settingsLanguageSystem;
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
