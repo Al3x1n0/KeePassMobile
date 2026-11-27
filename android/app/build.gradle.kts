@@ -49,6 +49,9 @@ android {
 
     buildTypes {
         release {
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
             proguardFiles("proguard-rules.pro")
             signingConfig = signingConfigs.getByName("release")
         }
