@@ -231,6 +231,7 @@
   "settingsFiles": "Files",
   "settingsSourceCode": "Source code",
   "settingsSourceCodeHost": "GitHub",
+  "settingsPrivacyPolicy": "Privacy policy",
   "settingsAbout": "About",
   "settingsAppVersion": "App version",
   "settingsClipboardTimeout": "Clear clipboard after",

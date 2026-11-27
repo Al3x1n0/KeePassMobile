@@ -146,6 +146,59 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
+    for (final result in [true, false]) {
+      testWidgets('privacy ${locale.languageCode}: apertura esterna $result', (
+        tester,
+      ) async {
+        // given
+        viewport(tester, const Size(800, 3000));
+        final opener = _SourceCodeOpener(Future.value(result));
+        final scope = await newTestContainer(
+          overrides: [urlOpenerProvider.overrideWithValue(opener)],
+        );
+        final l10n = lookupAppLocalizations(locale);
+        await tester.pumpWidget(app(scope, locale: locale));
+        await tester.pumpAndSettle();
+
+        // when
+        await tester.tap(find.text(l10n.settingsPrivacyPolicy));
+        await tester.pumpAndSettle();
+
+        // then
+        expect(opener.opened, [
+          Uri.parse('https://al3x1n0.github.io/KeePassMobile/privacy/'),
+        ]);
+        expect(
+          find.descendant(
+            of: find.byType(SnackBar),
+            matching: find.text(l10n.entryUrlNoApp),
+          ),
+          result ? findsNothing : findsOneWidget,
+        );
+      });
+    }
+    testWidgets('privacy ${locale.languageCode}: risultato dopo smontaggio', (
+      tester,
+    ) async {
+      viewport(tester, const Size(800, 3000));
+      final completion = Completer<bool>();
+      final scope = await newTestContainer(
+        overrides: [
+          urlOpenerProvider.overrideWithValue(
+            _SourceCodeOpener(completion.future),
+          ),
+        ],
+      );
+      await tester.pumpWidget(app(scope, locale: locale));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.text(lookupAppLocalizations(locale).settingsPrivacyPolicy),
+      );
+      await tester.pumpWidget(const SizedBox());
+      completion.complete(false);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
   }
 
   testWidgets('language sheet switches UI immediately and restores system', (
@@ -317,6 +370,22 @@ void main() {
               'title',
               l10n.settingsAppVersion,
             ),
+          );
+          final privacyTile = find.widgetWithText(
+            ListTile,
+            l10n.settingsPrivacyPolicy,
+          );
+          expect(
+            find.descendant(of: about, matching: privacyTile),
+            findsOneWidget,
+          );
+          expect(
+            tester.getTopLeft(sourceTile).dy,
+            lessThan(tester.getTopLeft(privacyTile).dy),
+          );
+          expect(
+            tester.getTopLeft(privacyTile).dy,
+            lessThan(tester.getTopLeft(find.text(l10n.settingsAppVersion)).dy),
           );
           final versionTile = find.widgetWithText(
             ListTile,

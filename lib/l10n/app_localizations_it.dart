@@ -543,6 +543,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get settingsSourceCodeHost => 'GitHub';
 
   @override
+  String get settingsPrivacyPolicy => 'Informativa sulla privacy';
+
+  @override
   String get settingsAbout => 'Informazioni';
 
   @override

@@ -436,6 +436,24 @@ class SettingsView extends ConsumerWidget {
                     }
                   },
                 ),
+                ListTile(
+                  title: Text(l10n.settingsPrivacyPolicy),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () async {
+                    final opened = await ref
+                        .read(urlOpenerProvider)
+                        .open(
+                          Uri.parse(
+                            'https://al3x1n0.github.io/KeePassMobile/privacy/',
+                          ),
+                        );
+                    if (!opened && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.entryUrlNoApp)),
+                      );
+                    }
+                  },
+                ),
                 LayoutBuilder(
                   builder: (context, constraints) => ListTile(
                     title: Text(l10n.settingsAppVersion),

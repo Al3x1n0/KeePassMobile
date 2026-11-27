@@ -1064,6 +1064,12 @@ abstract class AppLocalizations {
   /// **'GitHub'**
   String get settingsSourceCodeHost;
 
+  /// No description provided for @settingsPrivacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get settingsPrivacyPolicy;
+
   /// No description provided for @settingsAbout.
   ///
   /// In en, this message translates to:

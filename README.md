@@ -54,7 +54,7 @@ previste in una fase successiva.
 
 ## Privacy e protezione
 
-[Informativa sulla privacy](PRIVACY.md#italiano).
+[Informativa sulla privacy](https://al3x1n0.github.io/KeePassMobile/privacy/).
 
 Nessuna telemetria. Le connessioni di rete sono limitate allo storage scelto
 dall’utente.
@@ -172,7 +172,7 @@ app; iOS distribution and credential autofill are planned for a later phase.
 
 ## Privacy and protection
 
-[Privacy policy](PRIVACY.md#english).
+[Privacy policy](https://al3x1n0.github.io/KeePassMobile/privacy/).
 
 No telemetry. Network connections are limited to storage chosen by the user.
 

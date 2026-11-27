@@ -168,6 +168,7 @@
   "settingsFiles": "File",
   "settingsSourceCode": "Codice sorgente",
   "settingsSourceCodeHost": "GitHub",
+  "settingsPrivacyPolicy": "Informativa sulla privacy",
   "settingsAbout": "Informazioni",
   "settingsAppVersion": "Versione app",
   "settingsClipboardTimeout": "Pulizia degli appunti",
