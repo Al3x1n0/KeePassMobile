@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../storage/remote_storage.dart';
+import 'app_snack_bar.dart';
 
 /// Scelta di una chiave privata SSH, solo in memoria finché non si ricorda
 /// il file remoto. L'accesso al file passa dal servizio di storage.
@@ -65,7 +66,7 @@ class SshKeyField extends ConsumerWidget {
                             }
                           } on Object {
                             if (context.mounted) {
-                              messenger.showSnackBar(
+                              messenger.showAppSnackBar(
                                 SnackBar(content: Text(l10n.errorSshKey)),
                               );
                             }

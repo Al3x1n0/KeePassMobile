@@ -19,6 +19,7 @@ import '../../shared/database/kdbx_items.dart';
 import '../../shared/database/item_edits.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/security/external_activity.dart';
+import '../../shared/ui/app_snack_bar.dart';
 import '../../shared/ui/date_format.dart';
 import '../../shared/ui/entry_color.dart';
 import '../../shared/ui/entry_icon.dart';
@@ -199,7 +200,7 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
     try {
       picked = await ref.read(filePickerServiceProvider).pick();
     } on Exception {
-      messenger.showSnackBar(
+      messenger.showAppSnackBar(
         SnackBar(content: Text(l10n.entryEditAttachmentUnreadable)),
       );
       return;
@@ -209,7 +210,7 @@ class _EntryEditFormState extends ConsumerState<_EntryEditForm> {
     final data = picked.bytes;
     if (!mounted || data == null) return;
     if (data.length > AppLimits.attachmentBytes) {
-      messenger.showSnackBar(
+      messenger.showAppSnackBar(
         SnackBar(
           content: Text(
             l10n.entryEditAttachmentTooLarge(

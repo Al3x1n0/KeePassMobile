@@ -7,6 +7,7 @@ import '../shared/database/database_session.dart';
 import '../shared/database/linked_databases.dart';
 import '../shared/storage/file_storage.dart';
 import '../shared/storage/recent_passwords_store.dart';
+import '../shared/ui/app_snack_bar.dart';
 import 'router.dart';
 
 /// Runs only the passive database-opening subset of AutoOpen.
@@ -183,7 +184,7 @@ class _LinkedDatabaseHostState extends ConsumerState<LinkedDatabaseHost> {
                   .navigatorKey
                   .currentContext;
               if (navigator != null && navigator.mounted) {
-                ScaffoldMessenger.maybeOf(navigator)?.showSnackBar(
+                ScaffoldMessenger.maybeOf(navigator)?.showAppSnackBar(
                   SnackBar(
                     content: Text(
                       AppLocalizations.of(navigator).linkedDatabaseFailure,

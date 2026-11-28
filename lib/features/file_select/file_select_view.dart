@@ -11,6 +11,7 @@ import '../../shared/database/database_errors.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/database/database_session.dart';
 import '../../shared/storage/remote_storage.dart';
+import '../../shared/ui/app_snack_bar.dart';
 import '../../shared/ui/demo_database_dialog.dart';
 import '../unlock/relock.dart';
 import '../unlock/unlock_view_model.dart';
@@ -288,7 +289,7 @@ class _FileSelectViewState extends ConsumerState<FileSelectView> {
                                   } on Exception {
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                          .showAppSnackBar(
                                             SnackBar(
                                               content: Text(l10n.errorGeneric),
                                             ),
@@ -328,9 +329,9 @@ class _FileSelectViewState extends ConsumerState<FileSelectView> {
       final picked = await ref.read(filePickerServiceProvider).pick();
       if (picked == null || !mounted) return;
       if (!picked.persistent) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.fileSelectNotPersistent)));
+        ScaffoldMessenger.of(context).showAppSnackBar(
+          SnackBar(content: Text(l10n.fileSelectNotPersistent)),
+        );
       }
       await context.push(
         widget.additional ? AppRoutes.additionalUnlock : AppRoutes.unlock,
@@ -344,7 +345,7 @@ class _FileSelectViewState extends ConsumerState<FileSelectView> {
       );
     } on Exception catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showAppSnackBar(
         SnackBar(content: Text(describeFilePickError(l10n, error))),
       );
     }

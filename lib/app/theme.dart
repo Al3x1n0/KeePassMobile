@@ -145,6 +145,14 @@ ThemeData _buildTheme(Brightness brightness) {
       centerTitle: false,
       scrolledUnderElevation: 0,
     ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: buttonShape,
+      insetPadding: const EdgeInsets.all(AppSpacing.m),
+      backgroundColor: scheme.inverseSurface,
+      contentTextStyle: TextStyle(color: scheme.onInverseSurface),
+      actionTextColor: scheme.onInverseSurface,
+    ),
     popupMenuTheme: PopupMenuThemeData(
       color: scheme.surfaceContainer,
       elevation: 3,

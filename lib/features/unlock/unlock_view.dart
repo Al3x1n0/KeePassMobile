@@ -12,6 +12,7 @@ import '../../shared/security/biometric_key_store.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/remote_cache.dart';
 import '../../shared/storage/remote_storage.dart';
+import '../../shared/ui/app_snack_bar.dart';
 import '../../shared/ui/sensitive_text_editing.dart';
 import '../file_select/demo_database.dart';
 import 'unlock_view_model.dart';
@@ -123,8 +124,9 @@ class _UnlockViewState extends ConsumerState<UnlockView> {
       if (picked != null && mounted) setState(() => _keyFile = picked);
     } on Exception {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.errorKeyFileUnavailable)));
+      ScaffoldMessenger.of(
+        context,
+      ).showAppSnackBar(SnackBar(content: Text(l10n.errorKeyFileUnavailable)));
     }
   }
 
@@ -145,7 +147,7 @@ class _UnlockViewState extends ConsumerState<UnlockView> {
       );
     } on Exception catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showAppSnackBar(
           SnackBar(content: Text(describeFilePickError(l10n, error))),
         );
       }

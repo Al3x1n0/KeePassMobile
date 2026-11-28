@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../database/database_session.dart';
 import '../database/linked_databases.dart';
 import '../storage/file_storage.dart';
+import 'app_snack_bar.dart';
 import 'selection_sheet.dart';
 
 typedef _LinkedTarget = ({FileRef file, FileRef? keyFile});
@@ -67,7 +68,7 @@ Future<void> addLinkedDatabase(BuildContext context, WidgetRef ref) async {
     } on Object {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l10n.errorGeneric)));
+            .showAppSnackBar(SnackBar(content: Text(l10n.errorGeneric)));
       }
     }
   } finally {

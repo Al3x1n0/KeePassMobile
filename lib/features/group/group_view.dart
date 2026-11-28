@@ -19,6 +19,7 @@ import '../../shared/settings/app_settings.dart';
 import '../../shared/storage/file_storage.dart';
 import '../../shared/storage/remote_storage.dart';
 import '../../shared/ui/action_popup_menu.dart';
+import '../../shared/ui/app_snack_bar.dart';
 import '../../shared/ui/selection_app_bar_builder.dart';
 import '../../shared/ui/cross_database_copy_sheet.dart';
 import '../../shared/ui/database_item_icon.dart';
@@ -133,7 +134,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
       ref.listen(actions, (_, next) {
         if (next case AsyncError(:final error)
             when ModalRoute.isCurrentOf(context) != false) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showAppSnackBar(
             SnackBar(content: Text(describeSaveError(l10n, error))),
           );
         }
@@ -787,7 +788,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
     // Messaggi precedenti tolti: l'esito si vede subito.
     final messenger = ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(l10n.syncInProgress)));
+      ..showAppSnackBar(SnackBar(content: Text(l10n.syncInProgress)));
     String message;
     try {
       message = switch (await ref
@@ -805,7 +806,7 @@ class _GroupViewState extends ConsumerState<GroupView> {
     setState(() => _synchronizing = false);
     messenger
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showAppSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -910,7 +911,7 @@ class _BiometricOfferHostState extends ConsumerState<_BiometricOfferHost> {
         _ => null,
       };
       if (message != null) {
-        messenger.showSnackBar(SnackBar(content: Text(message)));
+        messenger.showAppSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
       keepAlive.close();

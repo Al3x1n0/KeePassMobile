@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../shared/database/database_errors.dart';
 import '../../shared/database/database_session.dart';
 import '../../shared/storage/file_storage.dart';
+import '../../shared/ui/app_snack_bar.dart';
 import '../../shared/ui/master_key_form.dart';
 import 'change_master_key_view_model.dart';
 
@@ -33,7 +34,7 @@ class ChangeMasterKeyView extends ConsumerWidget {
         keyFile: keyFile,
       );
       if (!changed || !context.mounted) return;
-      messenger.showSnackBar(
+      messenger.showAppSnackBar(
         SnackBar(
           content: Text(
             viewModel.biometricDisabled

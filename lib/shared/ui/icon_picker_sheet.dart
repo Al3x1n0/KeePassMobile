@@ -10,6 +10,7 @@ import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../database/item_edits.dart';
 import '../storage/file_storage.dart';
+import 'app_snack_bar.dart';
 import 'entry_icon.dart';
 import 'selection_sheet.dart';
 
@@ -70,7 +71,7 @@ class _IconPicker extends ConsumerWidget {
     } catch (_) {
       if (context.mounted && ModalRoute.isCurrentOf(context) == true) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l10n.iconImportError)));
+            .showAppSnackBar(SnackBar(content: Text(l10n.iconImportError)));
       }
     }
   }

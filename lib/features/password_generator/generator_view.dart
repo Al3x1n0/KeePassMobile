@@ -10,6 +10,7 @@ import '../../app/routes.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/database/database_errors.dart';
 import '../../shared/database/database_session.dart';
+import '../../shared/ui/app_snack_bar.dart';
 import '../../shared/ui/group_destination_sheet.dart';
 import '../../shared/ui/selection_sheet.dart';
 import '../entry_edit/entry_edit_view_model.dart';
@@ -76,12 +77,12 @@ class _GeneratorViewState extends ConsumerState<GeneratorView> {
     try {
       final timeout = await _viewModel.copy();
       if (!mounted || timeout == null) return;
-      messenger.showSnackBar(
+      messenger.showAppSnackBar(
         SnackBar(content: Text(l10n.entryCopied(timeout.inSeconds))),
       );
     } on Object catch (error) {
       if (!mounted) return;
-      messenger.showSnackBar(
+      messenger.showAppSnackBar(
         SnackBar(content: Text(describeDatabaseError(l10n, error))),
       );
     }
@@ -128,7 +129,7 @@ class _GeneratorViewState extends ConsumerState<GeneratorView> {
     );
     if (name == null || !mounted) return;
     if (!_viewModel.saveProfile(name)) {
-      messenger.showSnackBar(
+      messenger.showAppSnackBar(
         SnackBar(content: Text(l10n.generatorProfileReserved)),
       );
     }

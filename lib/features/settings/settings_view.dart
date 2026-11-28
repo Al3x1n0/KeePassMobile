@@ -15,6 +15,7 @@ import '../../shared/database/kdbx_items.dart';
 import '../../shared/licenses/bundled_licenses.dart';
 import '../../shared/security/device_security.dart';
 import '../../shared/settings/app_settings.dart';
+import '../../shared/ui/app_snack_bar.dart';
 import '../../shared/ui/demo_database_dialog.dart';
 import '../../shared/ui/expandable_section.dart';
 import '../../shared/ui/linked_database_edit_dialog.dart';
@@ -384,7 +385,7 @@ class SettingsView extends ConsumerWidget {
                           );
                     } on Exception {
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(context).showAppSnackBar(
                         SnackBar(content: Text(l10n.errorGeneric)),
                       );
                     }
@@ -430,7 +431,7 @@ class SettingsView extends ConsumerWidget {
                           Uri.parse('https://github.com/Al3x1n0/KeePassMobile'),
                         );
                     if (!opened && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(context).showAppSnackBar(
                         SnackBar(content: Text(l10n.entryUrlNoApp)),
                       );
                     }
@@ -448,7 +449,7 @@ class SettingsView extends ConsumerWidget {
                           ),
                         );
                     if (!opened && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      ScaffoldMessenger.of(context).showAppSnackBar(
                         SnackBar(content: Text(l10n.entryUrlNoApp)),
                       );
                     }
@@ -490,7 +491,7 @@ class SettingsView extends ConsumerWidget {
     };
     if (message != null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+          .showAppSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -554,7 +555,7 @@ class SettingsView extends ConsumerWidget {
     };
     if (message != null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+          .showAppSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -675,7 +676,7 @@ class _RemoteCacheClearTileState extends ConsumerState<_RemoteCacheClearTile> {
           .read(settingsViewModelProvider.notifier)
           .clearSynchronizedRemoteCache();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showAppSnackBar(
         SnackBar(
           content: Text(
             complete

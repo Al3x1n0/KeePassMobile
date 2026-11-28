@@ -11,6 +11,7 @@ import '../../shared/database/database_errors.dart';
 import '../../shared/database/database_session.dart';
 import '../../shared/database/kdbx_items.dart';
 import '../../shared/security/biometric_key_store.dart';
+import '../../shared/ui/app_snack_bar.dart';
 import '../../shared/ui/master_key_form.dart';
 import '../../shared/ui/selection_sheet.dart';
 import 'biometric_unlock_view_model.dart';
@@ -150,7 +151,7 @@ class _DatabaseSettingsViewState extends ConsumerState<DatabaseSettingsView> {
         .read(databaseSettingsViewModelProvider.notifier)
         .save(_settings(), newRootGroupName: _newRootGroupName);
     if (!saved || !mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text(l10n.dbSettingsSaved)));
+    messenger.showAppSnackBar(SnackBar(content: Text(l10n.dbSettingsSaved)));
     context.pop();
   }
 

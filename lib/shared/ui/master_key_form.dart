@@ -6,6 +6,7 @@ import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../storage/file_storage.dart';
 import '../storage/key_file.dart';
+import 'app_snack_bar.dart';
 import 'sensitive_text_editing.dart';
 
 /// Chiave principale nuova: password con conferma e file chiave facoltativo
@@ -93,7 +94,7 @@ class _MasterKeyFormState extends ConsumerState<MasterKeyForm> {
       if (picked != null && mounted) setState(() => _keyFile = picked);
     } on Exception {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showAppSnackBar(
         SnackBar(
           content: Text(
             generate ? l10n.errorCreateKeyFile : l10n.errorKeyFileUnavailable,

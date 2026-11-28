@@ -12,6 +12,7 @@ import '../../app/theme.dart';
 import '../../l10n/app_localizations.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/ui/action_popup_menu.dart';
+import '../../shared/ui/app_snack_bar.dart';
 import '../../shared/ui/selection_app_bar_builder.dart';
 import '../../shared/ui/entry_tile.dart';
 import '../../shared/ui/cross_database_copy_sheet.dart';
@@ -339,7 +340,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
       busy = ref.watch(actions).isLoading || busy;
       ref.listen(actions, (_, next) {
         if (next case AsyncError(:final error)) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showAppSnackBar(
             SnackBar(content: Text(describeSaveError(l10n, error))),
           );
         }

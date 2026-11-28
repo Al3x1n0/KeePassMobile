@@ -18,6 +18,7 @@ import '../../shared/database/kdbx_items.dart';
 import '../../shared/database/item_edits.dart';
 import '../../shared/settings/app_settings.dart';
 import '../../shared/ui/action_popup_menu.dart';
+import '../../shared/ui/app_snack_bar.dart';
 import '../../shared/ui/date_format.dart';
 import '../../shared/ui/entry_color.dart';
 import '../../shared/ui/group_destination_sheet.dart';
@@ -675,8 +676,7 @@ class _EntryViewState extends ConsumerState<EntryView> {
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+        .showAppSnackBar(SnackBar(content: Text(message)));
   }
 }
 

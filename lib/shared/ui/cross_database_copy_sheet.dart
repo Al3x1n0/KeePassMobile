@@ -7,6 +7,7 @@ import '../database/cross_database_transfer.dart';
 import '../database/database_session.dart';
 import '../database/kdbx_items.dart';
 import '../storage/file_storage.dart';
+import 'app_snack_bar.dart';
 import 'selection_sheet.dart';
 
 class _Target {
@@ -77,7 +78,7 @@ Future<bool> copyToAnotherDatabase(
     return true;
   } on Object {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showAppSnackBar(
         SnackBar(
           content: Text(
             copied && move ? l10n.databasesMoveIncomplete : l10n.errorGeneric,
